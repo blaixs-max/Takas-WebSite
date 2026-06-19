@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<meta name="ext-resource-dependency" content="assets/hero-main-game.jpg" />
+<meta name="ext-resource-dependency" content="assets/product-color-sorter.jpg" />
+<meta name="ext-resource-dependency" content="assets/product-montessori-rings.jpg" />
+<meta name="ext-resource-dependency" content="assets/product-rings-close.jpg" />
+<meta name="ext-resource-dependency" content="assets/product-wooden-blocks.jpg" />
+<meta name="ext-resource-dependency" content="assets/product-wooden-close.jpg" />
+<style>
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  ::-webkit-scrollbar{width:10px;height:10px;}
+  ::-webkit-scrollbar-thumb{background:rgba(23,33,29,.18);border-radius:99px;}
+  @keyframes ktspin{to{transform:rotate(360deg);}}
+  @keyframes ktup{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes ktpulse{0%,100%{opacity:.5;}50%{opacity:1;}}
+</style>
+</helmet>
+
+<div style="min-height:100vh;font-family:Manrope,system-ui,sans-serif;color:#17211D;background:radial-gradient(circle at 12% 8%, rgba(221,241,230,.9), transparent 24rem),radial-gradient(circle at 88% 16%, rgba(242,202,196,.5), transparent 22rem),linear-gradient(180deg,#F8F5EF,#F7F3EA 55%,#F4EFE5);overflow-x:hidden;">
+
+  <!-- ===== NAV ===== -->
+  <div style="position:sticky;top:16px;z-index:50;padding:16px 0 0;">
+    <div style="max-width:1216px;margin:0 auto;padding:0 28px;">
+      <nav style="height:72px;display:grid;grid-template-columns:230px 1fr auto;align-items:center;gap:18px;padding:10px 12px 10px 18px;border:1px solid rgba(23,33,29,.1);background:rgba(255,253,248,.82);backdrop-filter:blur(22px) saturate(145%);border-radius:999px;box-shadow:0 12px 44px rgba(31,43,37,.1);">
+        <button onClick="{{ goHome }}" style="display:flex;align-items:center;gap:10px;background:none;border:none;cursor:pointer;padding:0;text-align:left;">
+          <span style="width:38px;height:38px;border-radius:12px;background:#184A3C;display:grid;place-items:center;color:#fff;flex:0 0 38px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.16);">
+            <svg viewBox="0 0 24 24" fill="none" style="width:21px;height:21px;"><path d="M7.2 7.8C8.5 5.6 10.5 4.5 12.9 4.5c2.7 0 5.1 1.7 6 4.2M16.8 16.2c-1.3 2.2-3.3 3.3-5.7 3.3-2.7 0-5.1-1.7-6-4.2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M18.9 4.8v3.9h-3.9M5.1 19.2v-3.9h3.9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span style="font-weight:900;letter-spacing:-.03em;font-size:16px;line-height:1.05;">KIDS TRADE<small style="display:block;color:#69766F;font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:800;margin-top:1px;">Puanlı çocuk pazaryeri</small></span>
+        </button>
+        <div style="display:flex;justify-content:center;gap:2px;color:#69766F;font-size:13px;font-weight:800;">
+          <a href="#nasil" style="padding:11px 13px;border-radius:999px;color:inherit;text-decoration:none;" style-hover="background:rgba(24,74,60,.08);color:#184A3C;">Nasıl çalışır?</a>
+          <a href="#raflar" style="padding:11px 13px;border-radius:999px;color:inherit;text-decoration:none;" style-hover="background:rgba(24,74,60,.08);color:#184A3C;">Takas rafı</a>
+          <a href="#guven" style="padding:11px 13px;border-radius:999px;color:inherit;text-decoration:none;" style-hover="background:rgba(24,74,60,.08);color:#184A3C;">Güven</a>
+          <a href="#puan" style="padding:11px 13px;border-radius:999px;color:inherit;text-decoration:none;" style-hover="background:rgba(24,74,60,.08);color:#184A3C;">Puan sistemi</a>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button onClick="{{ goBrowse }}" style="min-width:210px;height:46px;display:flex;align-items:center;gap:9px;padding:0 16px;border-radius:999px;background:#F1ECE3;border:1px solid rgba(23,33,29,.06);color:#7B817B;font-size:13px;font-weight:700;cursor:pointer;text-align:left;">⌕ Oyuncak, kitap, montessori…</button>
+          <button onClick="{{ goList }}" style="display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 20px;border-radius:999px;border:none;background:#17211D;color:#fff;font-weight:800;font-size:14px;letter-spacing:-.01em;cursor:pointer;box-shadow:0 14px 36px rgba(23,33,29,.22);" style-hover="transform:translateY(-1px);">Başla</button>
+        </div>
+      </nav>
+    </div>
+  </div>
+
+  <main>
+    <!-- ===== HERO ===== -->
+    <section data-screen-label="Hero" style="padding:78px 0 50px;">
+      <div style="max-width:1216px;margin:0 auto;padding:0 28px;display:grid;grid-template-columns:0.98fr 1.02fr;gap:48px;align-items:center;">
+        <div>
+          <div style="display:inline-flex;align-items:center;gap:9px;height:34px;padding:0 14px;border-radius:999px;background:rgba(255,253,248,.78);border:1px solid rgba(23,33,29,.12);color:#184A3C;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;">
+            <span style="width:8px;height:8px;border-radius:99px;background:#C7754A;box-shadow:0 0 0 5px rgba(199,117,74,.12);"></span> fiyat kavgasız takas
+          </div>
+          <h1 style="margin:22px 0 18px;font-size:clamp(46px,5.4vw,78px);line-height:.96;letter-spacing:-.045em;font-weight:900;max-width:640px;">Çocuk ürünlerinde satış değil, adil takas.</h1>
+          <p style="margin:0;color:#2A3832;font-size:19px;line-height:1.6;letter-spacing:-.01em;max-width:560px;">Kullanılmayan oyuncak, kitap ve çocuk ürünlerini <strong style="color:#184A3C;font-weight:800;">Takas Puanı</strong>na çevir. Ürün teslim edilene kadar puan <strong style="color:#184A3C;font-weight:800;">güvenli havuzda</strong> bekler; sistem hem alıcıyı hem satıcıyı korur.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:30px;">
+            <button onClick="{{ goList }}" style="display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:52px;padding:0 22px;border-radius:999px;border:none;background:#184A3C;color:#fff;font-weight:800;font-size:15px;letter-spacing:-.01em;cursor:pointer;box-shadow:0 16px 40px rgba(24,74,60,.25);" style-hover="transform:translateY(-1px);">Ürününü puana çevir →</button>
+            <a href="#nasil" style="display:inline-flex;align-items:center;justify-content:center;min-height:52px;padding:0 22px;border-radius:999px;background:rgba(255,253,248,.7);border:1px solid rgba(23,33,29,.12);color:#17211D;font-weight:800;font-size:15px;text-decoration:none;cursor:pointer;" style-hover="transform:translateY(-1px);">Sistem nasıl çalışıyor?</a>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:34px;max-width:560px;">
+            <div style="padding:16px 14px;background:rgba(255,253,248,.7);border:1px solid rgba(23,33,29,.12);border-radius:20px;box-shadow:0 12px 40px rgba(24,35,31,.06);"><b style="display:block;font-size:20px;letter-spacing:-.04em;margin-bottom:4px;">3 gün</b><span style="color:#69766F;font-size:12px;line-height:1.35;font-weight:700;">kargoya verme kuralı</span></div>
+            <div style="padding:16px 14px;background:rgba(255,253,248,.7);border:1px solid rgba(23,33,29,.12);border-radius:20px;box-shadow:0 12px 40px rgba(24,35,31,.06);"><b style="display:block;font-size:20px;letter-spacing:-.04em;margin-bottom:4px;">48 saat</b><span style="color:#69766F;font-size:12px;line-height:1.35;font-weight:700;">teslim sonrası onay süresi</span></div>
+            <div style="padding:16px 14px;background:rgba(255,253,248,.7);border:1px solid rgba(23,33,29,.12);border-radius:20px;box-shadow:0 12px 40px rgba(24,35,31,.06);"><b style="display:block;font-size:20px;letter-spacing:-.04em;margin-bottom:4px;">AI + beyan</b><span style="color:#69766F;font-size:12px;line-height:1.35;font-weight:700;">fotoğraf ve kondisyon kontrolü</span></div>
+          </div>
+        </div>
+
+        <div style="position:relative;min-height:600px;">
+          <div style="position:absolute;inset:0 0 42px 44px;border-radius:40px;overflow:hidden;background:#ddd;box-shadow:0 28px 80px rgba(24,35,31,.16);border:1px solid rgba(255,255,255,.72);">
+            <img src="assets/hero-main-game.jpg" alt="Çocukların oyuncaklarla oynadığı oda" style="width:100%;height:100%;object-fit:cover;display:block;" />
+            <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(18,29,25,.02),rgba(18,29,25,.36));"></div>
+          </div>
+          <div style="position:absolute;right:64px;top:30px;display:flex;align-items:center;gap:8px;padding:11px 13px;border-radius:999px;background:rgba(255,253,248,.88);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.7);box-shadow:0 18px 60px rgba(23,33,29,.12);font-size:12px;font-weight:800;">
+            <span style="width:8px;height:8px;border-radius:99px;background:#184A3C;animation:ktpulse 1.8s infinite;"></span> Şu an 1.248 ürün takasta
+          </div>
+          <div style="position:absolute;left:0;top:74px;width:254px;background:rgba(255,253,248,.85);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.7);border-radius:26px;padding:16px;box-shadow:0 24px 70px rgba(23,33,29,.2);">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;"><div style="font-size:14px;font-weight:900;letter-spacing:-.03em;line-height:1.15;">Montessori ahşap blok seti</div><span style="display:inline-flex;align-items:center;height:25px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:800;color:#184A3C;background:#DDF1E6;white-space:nowrap;">Az kullanılmış</span></div>
+            <div style="height:128px;border-radius:18px;overflow:hidden;margin:13px 0;"><img src="assets/product-wooden-blocks.jpg" alt="Ahşap oyuncak" style="width:100%;height:100%;object-fit:cover;display:block;" /></div>
+            <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px;"><div><small style="color:#69766F;font-size:11px;font-weight:700;">Önerilen takas değeri</small><b style="display:block;font-size:24px;letter-spacing:-.05em;">420</b></div><span style="display:inline-flex;align-items:center;height:25px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:800;color:#184A3C;background:#DDF1E6;">puan</span></div>
+          </div>
+          <div style="position:absolute;right:18px;bottom:0;width:318px;background:#0E3029;color:#fff;border-radius:30px;padding:20px;box-shadow:0 30px 76px rgba(14,48,41,.34);overflow:hidden;">
+            <div style="position:absolute;width:170px;height:170px;right:-70px;top:-80px;border-radius:50%;background:rgba(221,241,230,.15);"></div>
+            <h3 style="margin:0 0 12px;font-size:18px;letter-spacing:-.03em;position:relative;">Güvenli havuz akışı</h3>
+            <div style="display:grid;gap:10px;position:relative;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;border-radius:14px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.12);"><span style="color:rgba(255,255,255,.72);font-size:12px;font-weight:700;">Alıcı puanı</span><b style="font-size:13px;">beklemede</b></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;border-radius:14px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.12);"><span style="color:rgba(255,255,255,.72);font-size:12px;font-weight:700;">Paketleme kanıtı</span><b style="font-size:13px;">yüklendi</b></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;border-radius:14px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.12);"><span style="color:rgba(255,255,255,.72);font-size:12px;font-weight:700;">Teslim sonrası</span><b style="font-size:13px;">48 saat onay</b></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== FEATURE STRIP ===== -->
+    <div style="padding:8px 0 50px;">
+      <div style="max-width:1216px;margin:0 auto;padding:0 28px;">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:10px;background:rgba(255,253,248,.7);border:1px solid rgba(23,33,29,.12);border-radius:28px;box-shadow:0 16px 48px rgba(24,35,31,.1);">
+          <div style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:20px;background:rgba(248,245,239,.62);"><div style="width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border-radius:15px;background:#DDF1E6;color:#184A3C;font-weight:900;">AI</div><div><b style="display:block;font-size:14px;letter-spacing:-.02em;">Fotoğraf filtresi</b><span style="display:block;color:#69766F;font-size:12px;font-weight:700;line-height:1.35;margin-top:2px;">Stok görsel ve riskli içerik kontrolü.</span></div></div>
+          <div style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:20px;background:rgba(248,245,239,.62);"><div style="width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border-radius:15px;background:#DDF1E6;color:#184A3C;font-weight:900;">₽</div><div><b style="display:block;font-size:14px;letter-spacing:-.02em;">Takas Puanı</b><span style="display:block;color:#69766F;font-size:12px;font-weight:700;line-height:1.35;margin-top:2px;">Pazarlık yerine kondisyon bazlı denklik.</span></div></div>
+          <div style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:20px;background:rgba(248,245,239,.62);"><div style="width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border-radius:15px;background:#DDF1E6;color:#184A3C;font-weight:900;">↺</div><div><b style="display:block;font-size:14px;letter-spacing:-.02em;">Güvenli havuz</b><span style="display:block;color:#69766F;font-size:12px;font-weight:700;line-height:1.35;margin-top:2px;">Puan, teslim onayına kadar bekler.</span></div></div>
+          <div style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:20px;background:rgba(248,245,239,.62);"><div style="width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border-radius:15px;background:#DDF1E6;color:#184A3C;font-weight:900;">□</div><div><b style="display:block;font-size:14px;letter-spacing:-.02em;">Paketleme kanıtı</b><span style="display:block;color:#69766F;font-size:12px;font-weight:700;line-height:1.35;margin-top:2px;">Kargo öncesi fotoğrafla operasyon güveni.</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== HOW IT WORKS ===== -->
+    <section id="nasil" data-screen-label="Nasıl çalışır" style="padding:54px 0;">
+      <div style="max-width:1216px;margin:0 auto;padding:0 28px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:26px;">
+          <div>
+            <div style="color:#184A3C;font-weight:800;font-size:12px;letter-spacing:.12em;text-transform:uppercase;">4 adımda kavranır</div>
+            <h2 style="margin:8px 0 0;font-size:clamp(32px,3.6vw,54px);line-height:1;letter-spacing:-.045em;font-weight:900;max-width:640px;">Karmaşık takası, net bir alışveriş akışına indiriyoruz.</h2>
+          </div>
+          <p style="color:#69766F;max-width:380px;margin:0;line-height:1.55;font-weight:600;">Kullanıcının öğrenmesi gereken tek şey: ürün yükle, puan kazan, aynı güvenli akışla ihtiyacın olanı al.</p>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;">
+          <div style="position:relative;min-height:228px;padding:20px;border-radius:26px;border:1px solid rgba(23,33,29,.12);background:rgba(255,253,248,.74);box-shadow:0 16px 48px rgba(24,35,31,.08);overflow:hidden;"><div style="width:40px;height:40px;display:grid;place-items:center;border-radius:14px;background:#17211D;color:#fff;font-size:13px;font-weight:800;margin-bottom:30px;">01</div><h3 style="margin:0 0 10px;font-size:19px;letter-spacing:-.03em;line-height:1.1;">Fotoğraf çek, ürünü anlat.</h3><p style="margin:0;color:#69766F;font-size:14px;line-height:1.55;font-weight:600;">Kapak fotoğrafı gerçek çekim olur. Sistem kategori, kondisyon ve eksik parça sinyalini kontrol eder.</p></div>
+          <div style="position:relative;min-height:228px;padding:20px;border-radius:26px;border:1px solid rgba(23,33,29,.12);background:rgba(255,253,248,.74);box-shadow:0 16px 48px rgba(24,35,31,.08);overflow:hidden;"><div style="width:40px;height:40px;display:grid;place-items:center;border-radius:14px;background:#17211D;color:#fff;font-size:13px;font-weight:800;margin-bottom:30px;">02</div><h3 style="margin:0 0 10px;font-size:19px;letter-spacing:-.03em;line-height:1.1;">Puan bandı önerilir.</h3><p style="margin:0;color:#69766F;font-size:14px;line-height:1.55;font-weight:600;">Marka, kategori ve durum beyanı birlikte değerlendirilir; kullanıcı fiyat pazarlığına sokulmaz.</p></div>
+          <div style="position:relative;min-height:228px;padding:20px;border-radius:26px;border:1px solid rgba(23,33,29,.12);background:rgba(255,253,248,.74);box-shadow:0 16px 48px rgba(24,35,31,.08);overflow:hidden;"><div style="width:40px;height:40px;display:grid;place-items:center;border-radius:14px;background:#17211D;color:#fff;font-size:13px;font-weight:800;margin-bottom:30px;">03</div><h3 style="margin:0 0 10px;font-size:19px;letter-spacing:-.03em;line-height:1.1;">Alıcı puanı havuza alınır.</h3><p style="margin:0;color:#69766F;font-size:14px;line-height:1.55;font-weight:600;">Satıcı ürünü göndermeden puan satıcıya geçmez. İtiraz varsa işlem durur.</p></div>
+          <div style="position:relative;min-height:228px;padding:20px;border-radius:26px;border:1px solid rgba(23,33,29,.12);background:rgba(255,253,248,.74);box-shadow:0 16px 48px rgba(24,35,31,.08);overflow:hidden;"><div style="width:40px;height:40px;display:grid;place-items:center;border-radius:14px;background:#184A3C;color:#fff;font-size:13px;font-weight:800;margin-bottom:30px;">04</div><h3 style="margin:0 0 10px;font-size:19px;letter-spacing:-.03em;line-height:1.1;">Teslim onaylanır, puan aktarılır.</h3><p style="margin:0;color:#69766F;font-size:14px;line-height:1.55;font-weight:600;">48 saat içinde sorun bildirilmezse puan satıcıya geçer ve güven skoru güncellenir.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SHELF PREVIEW ===== -->
+    <section id="raflar" data-screen-label="Takas rafı" style="padding:54px 0;">
+      <div style="max-width:1216px;margin:0 auto;padding:0 28px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:26px;">
+          <div>
+            <div style="color:#184A3C;font-weight:800;font-size:12px;letter-spacing:.12em;text-transform:uppercase;">pazar yeri hissi</div>
+            <h2 style="margin:8px 0 0;font-size:clamp(32px,3.6vw,54px);line-height:1;letter-spacing:-.045em;font-weight:900;max-width:640px;">İlan kalabalığı değil, seçilmiş takas rafı.</h2>
+          </div>
+          <button onClick="{{ goBrowse }}" style="display:inline-flex;align-items:center;gap:8px;min-height:48px;padding:0 20px;border-radius:999px;background:rgba(255,253,248,.7);border:1px solid rgba(23,33,29,.12);color:#17211D;font-weight:800;font-size:14px;cursor:pointer;white-space:nowrap;" style-hover="transform:translateY(-1px);">Tüm rafları gör →</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;">
+          <sc-for list="{{ featured }}" as="p" hint-placeholder-count="6">
+            <button onClick="{{ p.onClick }}" style="display:block;width:100%;text-align:left;background:rgba(255,253,248,.82);border:1px solid rgba(23,33,29,.12);border-radius:26px;padding:10px;box-shadow:0 16px 48px rgba(24,35,31,.08);cursor:pointer;" style-hover="transform:translateY(-2px);box-shadow:0 22px 60px rgba(24,35,31,.12);">
+              <div style="height:188px;border-radius:20px;overflow:hidden;background:#eee;position:relative;">
+                {{ p.imgEl }}
+                <span style="position:absolute;left:10px;top:10px;height:28px;display:inline-flex;align-items:center;padding:0 10px;border-radius:999px;background:rgba(255,253,248,.92);font-size:11px;font-weight:800;">{{ p.badge }}</span>
+              </div>
+              <div style="padding:14px 6px 6px;">
+                <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;"><b style="font-size:15px;line-height:1.15;letter-spacing:-.02em;">{{ p.title }}</b><span style="color:#184A3C;font-weight:900;white-space:nowrap;">{{ p.pts }}</span></div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;"><span style="display:inline-flex;align-items:center;height:25px;padding:0 9px;border-radius:999px;background:#F0EAE0;color:#69766F;font-size:11px;font-weight:800;">{{ p.metaCond }}</span><span style="display:inline-flex;align-items:center;height:25px;padding:0 9px;border-radius:999px;background:#F0EAE0;color:#69766F;font-size:11px;font-weight:800;">{{ p.metaTrust }}</span></div>
+              </div>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== TRUST ===== -->
+    <section id="guven" data-screen-label="Güven" style="padding:60px 0;">
+      <div style="max-width:1216px;margin:0 auto;padding:0 28px;">
+        <div style="display:grid;grid-template-columns:1.05fr .95fr;gap:28px;align-items:center;padding:38px;border-radius:40px;background:#111B17;color:#fff;box-shadow:0 36px 100px rgba(17,27,23,.32);overflow:hidden;position:relative;">
+          <div style="position:absolute;width:520px;height:520px;right:-160px;top:-220px;border-radius:50%;background:radial-gradient(circle,rgba(221,241,230,.16),transparent 66%);"></div>
+          <div style="position:relative;">
+            <div style="color:#9CD3B5;font-weight:800;font-size:12px;letter-spacing:.12em;text-transform:uppercase;">pazar yeri güveni</div>
+            <h2 style="margin:8px 0 0;font-size:clamp(30px,3.2vw,48px);line-height:1.02;letter-spacing:-.04em;font-weight:900;max-width:560px;">“Güvenliyiz” demek yerine, güvenin çalıştığı yeri gösteriyoruz.</h2>
+            <p style="color:rgba(255,255,255,.72);font-weight:600;line-height:1.65;max-width:540px;margin:16px 0 0;">Kullanıcıya teknik terim göstermiyoruz. Uygulama dili: “Puanın güvenli havuzda bekliyor.” Satıcı için paketleme kanıtı, alıcı için teslim sonrası itiraz süresi, platform için hakemlik kaydı var.</p>
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:24px;">
+              <div style="padding:16px;border-radius:18px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);"><b style="display:block;font-size:14px;margin-bottom:5px;">Satıcı koruması</b><span style="display:block;color:rgba(255,255,255,.62);font-size:12px;line-height:1.45;font-weight:600;">Puan önceden havuza alınır; ürün gönderilince karşılık garanti altındadır.</span></div>
+              <div style="padding:16px;border-radius:18px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);"><b style="display:block;font-size:14px;margin-bottom:5px;">Alıcı koruması</b><span style="display:block;color:rgba(255,255,255,.62);font-size:12px;line-height:1.45;font-weight:600;">Ürün gelmezse veya beyana uymazsa puan satıcıya aktarılmaz.</span></div>
+              <div style="padding:16px;border-radius:18px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);"><b style="display:block;font-size:14px;margin-bottom:5px;">İşlem hafızası</b><span style="display:block;color:rgba(255,255,255,.62);font-size:12px;line-height:1.45;font-weight:600;">Her puan hareketi kayıt altında tutulur; müdahale izlenebilir.</span></div>
+              <div style="padding:16px;border-radius:18px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);"><b style="display:block;font-size:14px;margin-bottom:5px;">Güven skoru</b><span style="display:block;color:rgba(255,255,255,.62);font-size:12px;line-height:1.45;font-weight:600;">Zamanında kargo, düşük itiraz ve paketleme kanıtı skor üretir.</span></div>
+            </div>
+          </div>
+          <div style="width:320px;margin-left:auto;border-radius:42px;padding:12px;background:#F8F4EA;box-shadow:0 26px 70px rgba(0,0,0,.28);position:relative;z-index:1;">
+            <div style="border-radius:32px;overflow:hidden;background:#fff;min-height:560px;color:#17211D;">
+              <div style="height:170px;overflow:hidden;position:relative;"><img src="assets/product-wooden-blocks.jpg" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" /><div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.18));"></div></div>
+              <div style="padding:16px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;"><b style="font-size:17px;letter-spacing:-.03em;">Cüzdanım</b><span style="display:inline-flex;align-items:center;height:25px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:800;color:#184A3C;background:#DDF1E6;">Güvenli</span></div>
+                <div style="background:#102A24;color:#fff;border-radius:22px;padding:16px;margin-bottom:14px;"><small style="color:rgba(255,255,255,.58);font-weight:700;">Kullanılabilir Takas Puanı</small><strong style="display:block;font-size:34px;letter-spacing:-.05em;margin-top:3px;">1.260</strong></div>
+                <div style="display:grid;gap:9px;">
+                  <div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:16px;background:#F4EFE7;"><div style="width:50px;height:50px;border-radius:14px;overflow:hidden;flex:0 0 50px;"><img src="assets/product-montessori-rings.jpg" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" /></div><div><b style="display:block;font-size:12px;letter-spacing:-.02em;">360 puan havuzda</b><span style="color:#69766F;font-size:11px;font-weight:700;">Teslim onayı bekliyor</span></div></div>
+                  <div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:16px;background:#F4EFE7;"><div style="width:50px;height:50px;border-radius:14px;overflow:hidden;flex:0 0 50px;"><img src="assets/product-color-sorter.jpg" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" /></div><div><b style="display:block;font-size:12px;letter-spacing:-.02em;">Paketleme kanıtı yüklendi</b><span style="color:#69766F;font-size:11px;font-weight:700;">Kargo barkodu hazır</span></div></div>
+                  <div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:16px;background:#F4EFE7;"><div style="width:50px;height:50px;border-radius:14px;overflow:hidden;flex:0 0 50px;"><img src="assets/product-wooden-close.jpg" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" /></div><div><b style="display:block;font-size:12px;letter-spacing:-.02em;">Satıcı güveni arttı</b><span style="color:#69766F;font-size:11px;font-weight:700;">Sorunsuz işlem tamamlandı</span></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== POINTS LOGIC ===== -->
+    <section id="puan" data-screen-label="Puan sistemi" style="padding:54px 0;">
+      <div style="max-width:1216px;margin:0 auto;padding:0 28px;display:grid;grid-template-columns:.98fr 1.02fr;gap:20px;align-items:stretch;">
+        <div style="border:1px solid rgba(23,33,29,.12);background:rgba(255,253,248,.74);border-radius:32px;box-shadow:0 16px 48px rgba(24,35,31,.08);padding:28px;">
+          <div style="color:#184A3C;font-weight:800;font-size:12px;letter-spacing:.12em;text-transform:uppercase;">puan mantığı</div>
+          <h2 style="margin:8px 0 16px;font-size:clamp(30px,3.2vw,48px);line-height:1;letter-spacing:-.045em;font-weight:900;">TL fiyatı değil, takas denkliği.</h2>
+          <p style="color:#69766F;line-height:1.7;font-weight:600;margin:0;">İkinci el çocuk ürünlerinde fiyat kıyası dağınık olduğu için kullanıcıyı pazarlığa değil, anlaşılır bir puan bandına yönlendiriyoruz. Böylece alakasız ürünlerin kıyaslanması azalır.</p>
+          <div style="display:grid;gap:10px;margin-top:24px;">
+            <div style="display:flex;align-items:center;gap:10px;padding:14px;border-radius:16px;background:#F4EFE7;font-weight:800;"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:10px;background:#184A3C;color:#fff;flex:0 0 28px;">1</span>Kategori taban puanı</div>
+            <div style="display:flex;align-items:center;gap:10px;padding:14px;border-radius:16px;background:#F4EFE7;font-weight:800;"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:10px;background:#184A3C;color:#fff;flex:0 0 28px;">2</span>Durum ve eksik parça beyanı</div>
+            <div style="display:flex;align-items:center;gap:10px;padding:14px;border-radius:16px;background:#F4EFE7;font-weight:800;"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:10px;background:#184A3C;color:#fff;flex:0 0 28px;">3</span>AI görsel kalite kontrolü</div>
+            <div style="display:flex;align-items:center;gap:10px;padding:14px;border-radius:16px;background:#F4EFE7;font-weight:800;"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:10px;background:#184A3C;color:#fff;flex:0 0 28px;">4</span>Talep ve kargo uygunluğu</div>
+          </div>
+        </div>
+        <div style="border:1px solid rgba(23,33,29,.12);border-radius:32px;box-shadow:0 16px 48px rgba(24,35,31,.08);padding:28px;background:linear-gradient(180deg,#FFFDF8,#F4EFE7);">
+          <div style="display:grid;grid-template-columns:1fr 120px;gap:12px;padding:14px 0;border-bottom:1px solid rgba(23,33,29,.12);"><span style="color:#69766F;font-weight:700;">Kategori: Montessori / Ahşap oyuncak</span><b style="text-align:right;font-size:18px;letter-spacing:-.03em;">500</b></div>
+          <div style="display:grid;grid-template-columns:1fr 120px;gap:12px;padding:14px 0;border-bottom:1px solid rgba(23,33,29,.12);"><span style="color:#69766F;font-weight:700;">Kondisyon: az kullanılmış</span><b style="text-align:right;font-size:18px;letter-spacing:-.03em;">× 0.90</b></div>
+          <div style="display:grid;grid-template-columns:1fr 120px;gap:12px;padding:14px 0;border-bottom:1px solid rgba(23,33,29,.12);"><span style="color:#69766F;font-weight:700;">Tamlık: tüm parçalar mevcut</span><b style="text-align:right;font-size:18px;letter-spacing:-.03em;">× 1.00</b></div>
+          <div style="display:grid;grid-template-columns:1fr 120px;gap:12px;padding:14px 0;border-bottom:1px solid rgba(23,33,29,.12);"><span style="color:#69766F;font-weight:700;">Görsel kalite: gerçek fotoğraf</span><b style="text-align:right;font-size:18px;letter-spacing:-.03em;">+ 20</b></div>
+          <div style="display:grid;grid-template-columns:1fr 120px;gap:12px;padding:14px 0;"><span style="color:#69766F;font-weight:700;">Kargo eşiği: satıcı paketi uygun</span><b style="text-align:right;font-size:18px;letter-spacing:-.03em;">✓</b></div>
+          <div style="margin-top:18px;padding:20px;border-radius:22px;background:#184A3C;color:#fff;display:flex;justify-content:space-between;align-items:flex-end;"><div><small style="display:block;color:rgba(255,255,255,.65);font-weight:700;margin-bottom:4px;">Önerilen takas değeri</small><strong style="font-size:40px;letter-spacing:-.06em;">470</strong></div><b>puan</b></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CTA ===== -->
+    <section data-screen-label="CTA" style="padding:54px 0 80px;">
+      <div style="max-width:1216px;margin:0 auto;padding:0 28px;">
+        <div style="border-radius:40px;background:linear-gradient(135deg,#164639,#0D2B25);color:#fff;padding:48px;position:relative;overflow:hidden;box-shadow:0 28px 80px rgba(24,35,31,.16);">
+          <div style="position:absolute;width:560px;height:560px;right:-180px;top:-260px;background:rgba(240,182,109,.25);border-radius:50%;"></div>
+          <div style="position:relative;z-index:1;max-width:760px;">
+            <div style="color:#9CD3B5;font-weight:800;font-size:12px;letter-spacing:.12em;text-transform:uppercase;">soft launch hazır</div>
+            <h2 style="margin:10px 0 16px;color:#fff;font-size:clamp(30px,3.4vw,52px);line-height:1.02;letter-spacing:-.04em;font-weight:900;">İlk grup için güvenli, sade ve premium bir başlangıç.</h2>
+            <p style="color:rgba(255,255,255,.72);font-size:18px;line-height:1.65;font-weight:600;margin:0;">Bu yön; “ikinci el ilan sitesi” gibi değil, seçilmiş ürün rafı ve güvenli işlem altyapısı gibi hissettirir. Gerçek ürün fotoğrafları ve iyi mikro metinlerle marka hızla olgunlaşır.</p>
+            <div style="display:flex;gap:12px;margin-top:26px;flex-wrap:wrap;">
+              <button onClick="{{ goList }}" style="display:inline-flex;align-items:center;justify-content:center;min-height:52px;padding:0 24px;border-radius:999px;border:none;background:#fff;color:#0D2B25;font-weight:800;font-size:15px;cursor:pointer;" style-hover="transform:translateY(-1px);">Pilot listeye katıl</button>
+              <a href="#nasil" style="display:inline-flex;align-items:center;justify-content:center;min-height:52px;padding:0 24px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);color:#fff;font-weight:800;font-size:15px;text-decoration:none;cursor:pointer;">Önce sistemi gör</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer style="padding:28px 0 42px;color:#69766F;">
+    <div style="max-width:1216px;margin:0 auto;padding:0 28px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(23,33,29,.12);padding-top:22px;font-size:13px;font-weight:700;">
+      <div>© KIDS TRADE — Pilot lansman prototipi</div>
+      <div style="display:flex;gap:18px;"><a href="#" style="color:inherit;text-decoration:none;">Kullanıcı sözleşmesi</a><a href="#" style="color:inherit;text-decoration:none;">Güvenli havuz</a><a href="#" style="color:inherit;text-decoration:none;">KVKK</a><a href="#" style="color:inherit;text-decoration:none;">Yardım</a></div>
+    </div>
+  </footer>
+
+  <!-- ================= APP OVERLAY ================= -->
+  <sc-if value="{{ appOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;z-index:200;background:linear-gradient(180deg,#F8F5EF,#F4EFE5);display:flex;flex-direction:column;">
+      <!-- app top bar -->
+      <div style="flex:0 0 auto;display:flex;align-items:center;gap:14px;padding:14px 20px;background:rgba(255,253,248,.9);backdrop-filter:blur(18px);border-bottom:1px solid rgba(23,33,29,.1);">
+        <button onClick="{{ goHome }}" style="width:42px;height:42px;display:grid;place-items:center;border-radius:14px;border:1px solid rgba(23,33,29,.12);background:#fff;cursor:pointer;font-size:18px;color:#17211D;" style-hover="background:#F4EFE7;">←</button>
+        <div style="flex:1;font-weight:900;letter-spacing:-.02em;font-size:16px;">{{ appTitle }}</div>
+        <button onClick="{{ goWallet }}" style="display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 14px;border-radius:999px;border:1px solid rgba(24,74,60,.18);background:#DDF1E6;color:#184A3C;font-weight:800;font-size:13px;cursor:pointer;">₽ {{ pointsFmt }} puan</button>
+      </div>
+
+      <!-- scroll area -->
+      <div ref="{{ scrollerRef }}" style="flex:1;overflow-y:auto;overflow-x:hidden;">
+
+        <!-- ===== BROWSE ===== -->
+        <sc-if value="{{ isBrowse }}" hint-placeholder-val="{{ false }}">
+          <div data-screen-label="App / Browse" style="max-width:1100px;margin:0 auto;padding:24px 20px 60px;">
+            <div style="display:flex;align-items:center;gap:10px;height:52px;padding:0 18px;border-radius:999px;background:#fff;border:1px solid rgba(23,33,29,.1);color:#7B817B;font-weight:700;font-size:14px;margin-bottom:16px;box-shadow:0 8px 28px rgba(24,35,31,.06);">⌕ Oyuncak, kitap, montessori, kutu oyunu…</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;">
+              <sc-for list="{{ filters }}" as="f" hint-placeholder-count="4">
+                <button onClick="{{ f.onClick }}" style="display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 16px;border-radius:999px;font-weight:800;font-size:13px;cursor:pointer;background:{{ f.bg }};color:{{ f.fg }};border:1px solid {{ f.bd }};">{{ f.label }} <span style="opacity:.6;">{{ f.count }}</span></button>
+              </sc-for>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;">
+              <sc-for list="{{ products }}" as="p" hint-placeholder-count="6">
+                <button onClick="{{ p.onClick }}" style="display:block;width:100%;text-align:left;background:#fff;border:1px solid rgba(23,33,29,.1);border-radius:24px;padding:10px;box-shadow:0 10px 34px rgba(24,35,31,.07);cursor:pointer;" style-hover="transform:translateY(-2px);box-shadow:0 18px 50px rgba(24,35,31,.12);">
+                  <div style="height:172px;border-radius:18px;overflow:hidden;background:#eee;position:relative;">
+                    {{ p.imgEl }}
+                    <span style="position:absolute;left:10px;top:10px;height:28px;display:inline-flex;align-items:center;padding:0 10px;border-radius:999px;background:rgba(255,253,248,.92);font-size:11px;font-weight:800;">{{ p.badge }}</span>
+                  </div>
+                  <div style="padding:13px 6px 6px;">
+                    <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;"><b style="font-size:15px;line-height:1.15;letter-spacing:-.02em;">{{ p.title }}</b><span style="color:#184A3C;font-weight:900;white-space:nowrap;">{{ p.pts }}</span></div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:11px;"><span style="display:inline-flex;align-items:center;height:25px;padding:0 9px;border-radius:999px;background:#F0EAE0;color:#69766F;font-size:11px;font-weight:800;">{{ p.metaCond }}</span><span style="display:inline-flex;align-items:center;height:25px;padding:0 9px;border-radius:999px;background:#F0EAE0;color:#69766F;font-size:11px;font-weight:800;">{{ p.loc }}</span></div>
+                  </div>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== DETAIL ===== -->
+        <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+          <div data-screen-label="App / Detail" style="max-width:980px;margin:0 auto;padding:24px 20px 120px;">
+            <button onClick="{{ backToBrowse }}" style="display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 14px;border-radius:999px;background:#fff;border:1px solid rgba(23,33,29,.12);color:#17211D;font-weight:800;font-size:13px;cursor:pointer;margin-bottom:16px;">← Rafa dön</button>
+            <div style="display:grid;grid-template-columns:1fr .95fr;gap:24px;align-items:start;">
+              <div style="border-radius:28px;overflow:hidden;background:#eee;aspect-ratio:1/1;box-shadow:0 20px 60px rgba(24,35,31,.14);position:relative;">
+                {{ sel.imgEl }}
+                <span style="position:absolute;left:14px;top:14px;height:30px;display:inline-flex;align-items:center;padding:0 12px;border-radius:999px;background:rgba(255,253,248,.94);font-size:12px;font-weight:800;">{{ sel.badge }}</span>
+              </div>
+              <div>
+                <h2 style="margin:0;font-size:32px;line-height:1.05;letter-spacing:-.03em;font-weight:900;">{{ sel.title }}</h2>
+                <div style="display:flex;align-items:baseline;gap:8px;margin:14px 0;"><strong style="font-size:38px;letter-spacing:-.05em;color:#184A3C;">{{ sel.points }}</strong><span style="color:#69766F;font-weight:800;">Takas Puanı</span></div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;">
+                  <span style="display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:999px;background:#DDF1E6;color:#184A3C;font-size:12px;font-weight:800;">{{ sel.cond }}</span>
+                  <span style="display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:999px;background:#F0EAE0;color:#69766F;font-size:12px;font-weight:800;">{{ sel.loc }}</span>
+                  <span style="display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:999px;background:#F0EAE0;color:#69766F;font-size:12px;font-weight:800;">★ {{ sel.metaTrust }}</span>
+                </div>
+                <p style="color:#2A3832;line-height:1.65;font-weight:600;margin:0 0 18px;">{{ sel.desc }}</p>
+                <div style="background:#fff;border:1px solid rgba(23,33,29,.1);border-radius:20px;padding:16px;box-shadow:0 10px 34px rgba(24,35,31,.06);">
+                  <div style="display:flex;align-items:center;gap:10px;font-weight:800;font-size:13px;color:#184A3C;margin-bottom:10px;"><span style="width:26px;height:26px;border-radius:8px;background:#DDF1E6;display:grid;place-items:center;">↺</span> Güvenli havuz korumalı takas</div>
+                  <p style="margin:0;color:#69766F;font-size:13px;line-height:1.55;font-weight:600;">Takas talebinde puanın havuza alınır; satıcı kargoya verip ürün eline geçene ve onaylayana kadar satıcıya geçmez.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- sticky action bar -->
+          <div style="position:fixed;left:0;right:0;bottom:0;z-index:210;background:rgba(255,253,248,.94);backdrop-filter:blur(18px);border-top:1px solid rgba(23,33,29,.1);padding:14px 20px;">
+            <div style="max-width:980px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+              <div><small style="display:block;color:#69766F;font-size:12px;font-weight:700;">Takas değeri</small><b style="font-size:20px;letter-spacing:-.03em;color:#184A3C;">{{ sel.points }}</b></div>
+              <button onClick="{{ openSwap }}" style="display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:52px;padding:0 26px;border-radius:999px;border:none;background:#184A3C;color:#fff;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 16px 40px rgba(24,74,60,.25);" style-hover="transform:translateY(-1px);">Bu ürünle takas yap →</button>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== SWAP / SECURE POOL ===== -->
+        <sc-if value="{{ isSwap }}" hint-placeholder-val="{{ false }}">
+          <div data-screen-label="App / Swap" style="max-width:640px;margin:0 auto;padding:28px 20px 60px;">
+            <!-- stepper -->
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:22px;">
+              <sc-for list="{{ swapSteps }}" as="s" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:6px;flex:1;">
+                  <div style="width:30px;height:30px;flex:0 0 30px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;background:{{ s.bg }};color:{{ s.fg }};">{{ s.num }}</div>
+                  <span style="font-size:12px;font-weight:800;color:#69766F;white-space:nowrap;">{{ s.label }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="height:6px;border-radius:99px;background:rgba(23,33,29,.08);overflow:hidden;margin-bottom:24px;"><div style="height:100%;background:#184A3C;border-radius:99px;transition:width .5s ease;width:{{ swapPct }};"></div></div>
+
+            <sc-if value="{{ swapNotDone }}" hint-placeholder-val="{{ true }}">
+              <div style="background:#fff;border:1px solid rgba(23,33,29,.1);border-radius:28px;padding:26px;box-shadow:0 18px 54px rgba(24,35,31,.1);">
+                <div style="display:flex;gap:16px;align-items:center;padding-bottom:20px;border-bottom:1px solid rgba(23,33,29,.08);margin-bottom:20px;">
+                  <div style="width:72px;height:72px;border-radius:18px;overflow:hidden;flex:0 0 72px;background:#eee;">{{ sel.imgEl }}</div>
+                  <div><b style="display:block;font-size:16px;letter-spacing:-.02em;">{{ sel.title }}</b><span style="color:#184A3C;font-weight:900;font-size:15px;">{{ sel.points }}</span></div>
+                </div>
+                <h2 style="margin:0 0 8px;font-size:24px;letter-spacing:-.03em;font-weight:900;">{{ swapActiveTitle }}</h2>
+                <p style="margin:0 0 22px;color:#69766F;line-height:1.6;font-weight:600;">{{ swapActiveDesc }}</p>
+                <button onClick="{{ swapNext }}" style="display:inline-flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:54px;border-radius:18px;border:none;background:#184A3C;color:#fff;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 16px 40px rgba(24,74,60,.25);" style-hover="transform:translateY(-1px);">{{ swapBtn }}</button>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ swapDone }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff;border:1px solid rgba(23,33,29,.1);border-radius:28px;padding:32px 26px;text-align:center;box-shadow:0 18px 54px rgba(24,35,31,.1);">
+                <div style="width:64px;height:64px;border-radius:50%;background:#DDF1E6;color:#184A3C;display:grid;place-items:center;font-size:30px;margin:0 auto 16px;">✓</div>
+                <h2 style="margin:0 0 8px;font-size:26px;letter-spacing:-.03em;font-weight:900;">Takas tamamlandı!</h2>
+                <p style="margin:0 0 20px;color:#69766F;line-height:1.6;font-weight:600;">Puan satıcıya aktarıldı ve güven skorun güncellendi. Yeni kullanılabilir bakiyen <b style="color:#184A3C;">{{ newBalance }} puan</b>.</p>
+                <button onClick="{{ goWallet }}" style="display:inline-flex;align-items:center;justify-content:center;width:100%;min-height:54px;border-radius:18px;border:none;background:#17211D;color:#fff;font-weight:800;font-size:15px;cursor:pointer;" style-hover="transform:translateY(-1px);">Cüzdanıma git</button>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <!-- ===== LIST / SELL ===== -->
+        <sc-if value="{{ isList }}" hint-placeholder-val="{{ false }}">
+          <div data-screen-label="App / List" style="max-width:640px;margin:0 auto;padding:28px 20px 60px;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:22px;">
+              <sc-for list="{{ listSteps }}" as="s" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:6px;flex:1;">
+                  <div style="width:30px;height:30px;flex:0 0 30px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;background:{{ s.bg }};color:{{ s.fg }};">{{ s.num }}</div>
+                  <span style="font-size:12px;font-weight:800;color:#69766F;white-space:nowrap;">{{ s.label }}</span>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="background:#fff;border:1px solid rgba(23,33,29,.1);border-radius:28px;padding:26px;box-shadow:0 18px 54px rgba(24,35,31,.1);">
+              <!-- step 0 photo -->
+              <sc-if value="{{ ls0 }}" hint-placeholder-val="{{ true }}">
+                <h2 style="margin:0 0 6px;font-size:24px;letter-spacing:-.03em;font-weight:900;">Ürünün fotoğrafını ekle</h2>
+                <p style="margin:0 0 18px;color:#69766F;line-height:1.6;font-weight:600;">Kapak fotoğrafı gerçek çekim olmalı. AI; stok görsel, ekran görüntüsü ve riskli içeriği kontrol eder.</p>
+                <sc-if value="{{ listNoPhoto }}" hint-placeholder-val="{{ true }}">
+                  <button onClick="{{ fillPhoto }}" style="width:100%;min-height:220px;border-radius:20px;border:2px dashed rgba(23,33,29,.2);background:#F8F5EF;color:#69766F;font-weight:800;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;"><span style="font-size:34px;">＋</span>Örnek fotoğraf kullan</button>
+                </sc-if>
+                <sc-if value="{{ listPhoto }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:relative;border-radius:20px;overflow:hidden;height:220px;">
+                    <img src="assets/product-montessori-rings.jpg" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" />
+                    <span style="position:absolute;right:12px;top:12px;height:30px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;border-radius:999px;background:rgba(221,241,230,.95);color:#184A3C;font-size:12px;font-weight:800;">✓ Gerçek fotoğraf algılandı</span>
+                  </div>
+                </sc-if>
+              </sc-if>
+
+              <!-- step 1 detail -->
+              <sc-if value="{{ ls1 }}" hint-placeholder-val="{{ false }}">
+                <h2 style="margin:0 0 6px;font-size:24px;letter-spacing:-.03em;font-weight:900;">Kategori ve kondisyon</h2>
+                <p style="margin:0 0 18px;color:#69766F;line-height:1.6;font-weight:600;">Fiyat pazarlığı yok; puan bandı bu beyana göre hesaplanır.</p>
+                <div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#69766F;margin-bottom:10px;">Kategori</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;">
+                  <sc-for list="{{ cats }}" as="c" hint-placeholder-count="4">
+                    <button onClick="{{ c.onClick }}" style="text-align:left;min-height:48px;padding:0 14px;border-radius:14px;font-weight:800;font-size:13px;cursor:pointer;background:{{ c.bg }};color:{{ c.fg }};border:1.5px solid {{ c.bd }};">{{ c.label }}</button>
+                  </sc-for>
+                </div>
+                <div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#69766F;margin-bottom:10px;">Kondisyon</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                  <sc-for list="{{ conds }}" as="c" hint-placeholder-count="4">
+                    <button onClick="{{ c.onClick }}" style="text-align:left;min-height:48px;padding:0 14px;border-radius:14px;font-weight:800;font-size:13px;cursor:pointer;background:{{ c.bg }};color:{{ c.fg }};border:1.5px solid {{ c.bd }};">{{ c.label }}</button>
+                  </sc-for>
+                </div>
+              </sc-if>
+
+              <!-- step 2 AI -->
+              <sc-if value="{{ ls2 }}" hint-placeholder-val="{{ false }}">
+                <div style="text-align:center;padding:30px 0;">
+                  <div style="width:56px;height:56px;border-radius:50%;border:4px solid #DDF1E6;border-top-color:#184A3C;margin:0 auto 18px;animation:ktspin .9s linear infinite;"></div>
+                  <h2 style="margin:0 0 8px;font-size:22px;letter-spacing:-.03em;font-weight:900;">AI görseli inceliyor…</h2>
+                  <p style="margin:0;color:#69766F;line-height:1.6;font-weight:600;">Fotoğraf gerçekliği, kategori uyumu ve kondisyon sinyalleri kontrol ediliyor.</p>
+                </div>
+              </sc-if>
+
+              <!-- step 3 result -->
+              <sc-if value="{{ ls3 }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:center;gap:10px;font-weight:800;color:#184A3C;font-size:13px;margin-bottom:16px;"><span style="width:26px;height:26px;border-radius:8px;background:#DDF1E6;display:grid;place-items:center;">✓</span> AI kontrolünden geçti — gerçek fotoğraf</div>
+                <sc-for list="{{ calcRows }}" as="r" hint-placeholder-count="5">
+                  <div style="display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid rgba(23,33,29,.08);"><span style="color:#69766F;font-weight:700;font-size:14px;">{{ r.label }}</span><b style="white-space:nowrap;letter-spacing:-.02em;">{{ r.val }}</b></div>
+                </sc-for>
+                <div style="margin-top:18px;padding:20px;border-radius:20px;background:#184A3C;color:#fff;display:flex;justify-content:space-between;align-items:flex-end;"><div><small style="display:block;color:rgba(255,255,255,.65);font-weight:700;margin-bottom:4px;">Önerilen takas değeri</small><strong style="font-size:38px;letter-spacing:-.05em;">{{ suggested }}</strong></div><b>puan</b></div>
+              </sc-if>
+            </div>
+
+            <!-- list nav buttons -->
+            <div style="display:flex;gap:10px;margin-top:18px;">
+              <sc-if value="{{ ls3 }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ publish }}" style="flex:1;min-height:54px;border-radius:18px;border:none;background:#184A3C;color:#fff;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 16px 40px rgba(24,74,60,.25);" style-hover="transform:translateY(-1px);">Rafa ekle →</button>
+              </sc-if>
+              <sc-if value="{{ ls0 }}" hint-placeholder-val="{{ true }}">
+                <button onClick="{{ listNext }}" style="flex:1;min-height:54px;border-radius:18px;border:none;background:#184A3C;color:#fff;font-weight:800;font-size:15px;cursor:pointer;opacity:{{ listDimBtn }};" style-hover="transform:translateY(-1px);">Devam et</button>
+              </sc-if>
+              <sc-if value="{{ ls1 }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ listBack }}" style="flex:0 0 auto;min-height:54px;padding:0 20px;border-radius:18px;border:1px solid rgba(23,33,29,.14);background:#fff;color:#17211D;font-weight:800;font-size:15px;cursor:pointer;">Geri</button>
+                <button onClick="{{ listNext }}" style="flex:1;min-height:54px;border-radius:18px;border:none;background:#184A3C;color:#fff;font-weight:800;font-size:15px;cursor:pointer;opacity:{{ listDimBtn }};" style-hover="transform:translateY(-1px);">Puanı hesapla</button>
+              </sc-if>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== WALLET ===== -->
+        <sc-if value="{{ isWallet }}" hint-placeholder-val="{{ false }}">
+          <div data-screen-label="App / Wallet" style="max-width:640px;margin:0 auto;padding:28px 20px 60px;">
+            <div style="background:#102A24;color:#fff;border-radius:28px;padding:26px;box-shadow:0 22px 60px rgba(14,48,41,.28);position:relative;overflow:hidden;">
+              <div style="position:absolute;width:240px;height:240px;right:-90px;top:-110px;border-radius:50%;background:rgba(221,241,230,.12);"></div>
+              <small style="color:rgba(255,255,255,.6);font-weight:700;position:relative;">Kullanılabilir Takas Puanı</small>
+              <strong style="display:block;font-size:54px;letter-spacing:-.06em;margin:4px 0 18px;position:relative;">{{ pointsFmt }}</strong>
+              <div style="display:flex;gap:10px;position:relative;">
+                <button onClick="{{ goList }}" style="flex:1;min-height:48px;border-radius:14px;border:none;background:#fff;color:#0D2B25;font-weight:800;font-size:14px;cursor:pointer;">Ürün ekle</button>
+                <button onClick="{{ goBrowse }}" style="flex:1;min-height:48px;border-radius:14px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;font-weight:800;font-size:14px;cursor:pointer;">Rafı gör</button>
+              </div>
+            </div>
+            <h3 style="margin:24px 0 12px;font-size:17px;letter-spacing:-.02em;font-weight:900;">İşlem geçmişi</h3>
+            <div style="display:grid;gap:10px;">
+              <sc-for list="{{ txns }}" as="t" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:18px;background:#fff;border:1px solid rgba(23,33,29,.1);box-shadow:0 8px 28px rgba(24,35,31,.05);">
+                  <div style="width:52px;height:52px;border-radius:14px;overflow:hidden;flex:0 0 52px;background:#eee;">{{ t.imgEl }}</div>
+                  <div style="flex:1;"><b style="display:block;font-size:14px;letter-spacing:-.02em;">{{ t.title }}</b><span style="color:#69766F;font-size:12px;font-weight:700;">{{ t.sub }}</span></div>
+                  <div style="text-align:right;"><b style="display:block;font-size:14px;letter-spacing:-.02em;color:#184A3C;">{{ t.amt }}</b><span style="display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;background:#F0EAE0;color:#69766F;font-size:10px;font-weight:800;margin-top:2px;">{{ t.tag }}</span></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- toast -->
+  <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:300;max-width:90vw;display:flex;align-items:center;gap:10px;padding:14px 20px;border-radius:16px;background:#17211D;color:#fff;font-weight:700;font-size:14px;box-shadow:0 18px 50px rgba(0,0,0,.3);animation:ktup .3s ease;"><span style="color:#9CD3B5;">✓</span>{{ toast }}</div>
+  </sc-if>
+
+</div>
+
+<template id="__bundler_thumbnail">
+<div style="width:100%;height:100%;display:grid;place-items:center;background:linear-gradient(160deg,#184A3C,#0D2B25);">
+  <svg viewBox="0 0 24 24" fill="none" style="width:30%;height:30%;color:#DDF1E6;"><path d="M7.2 7.8C8.5 5.6 10.5 4.5 12.9 4.5c2.7 0 5.1 1.7 6 4.2M16.8 16.2c-1.3 2.2-3.3 3.3-5.7 3.3-2.7 0-5.1-1.7-6-4.2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M18.9 4.8v3.9h-3.9M5.1 19.2v-3.9h3.9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+</div>
+</template></x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:860}}">
+class Component extends DCLogic {
+  scrollerRef = React.createRef();
+
+  state = {
+    screen: 'home',
+    selectedId: 'p1',
+    filter: 'all',
+    swapStep: 0,
+    swapDone: false,
+    listStep: 0,
+    listCat: null,
+    listCond: null,
+    listPhoto: false,
+    aiBusy: false,
+    points: 1260,
+    toast: null,
+    txns: [
+      { id:'t1', title:'Montessori halka blokları', sub:'Teslim onayı bekliyor', amt:'-360', tag:'Güvenli havuzda', img:'assets/product-montessori-rings.jpg' },
+      { id:'t2', title:'Paketleme kanıtı yüklendi', sub:'Kargo barkodu hazır', amt:'', tag:'İşlemde', img:'assets/product-color-sorter.jpg' },
+      { id:'t3', title:'Renk eşleme oyun seti', sub:'Takas tamamlandı', amt:'+280', tag:'Tamamlandı', img:'assets/product-color-sorter.jpg' },
+    ],
+  };
+
+  PRODUCTS = [
+    { id:'p1', title:'Ahşap tren ve blok seti', points:420, cat:'oyuncak', cond:'Az kullanılmış', loc:'İstanbul', trust:'4.9', img:'assets/product-wooden-blocks.jpg', badge:'Paket uygun', desc:'24 parça doğal kayın ahşabı tren ve blok seti. Tüm parçalar mevcut, boya çıkması yok. 3 yaş ve üzeri için uygun.' },
+    { id:'p2', title:'Montessori halka blokları', points:360, cat:'oyuncak', cond:'Eksiksiz', loc:'İstanbul', trust:'4.8', img:'assets/product-montessori-rings.jpg', badge:'AI onaylı', desc:'Renk-boyut eşleme halka seti. Su bazlı boya, eksiksiz. Kutusuyla birlikte gönderilir.' },
+    { id:'p3', title:'Renk eşleme oyun seti', points:280, cat:'oyuncak', cond:'Temiz', loc:'Ankara', trust:'4.7', img:'assets/product-color-sorter.jpg', badge:'Yeni eklendi', desc:'Erken dönem renk ve şekil tanıma oyunu. Tüm taşlar tam, yıpranma yok.' },
+    { id:'p4', title:'Ahşap puzzle paketi', points:240, cat:'oyuncak', cond:'3 parça, hasarsız', loc:'İzmir', trust:'4.6', img:'assets/product-rings-close.jpg', badge:'Set ürün', desc:'3 farklı ahşap puzzle bir arada. Köşe yıpranması yok, parçalar tam.' },
+    { id:'p5', title:'Doğal ahşap bloklar', points:180, cat:'oyuncak', cond:'Ek ürün', loc:'İstanbul', trust:'4.9', img:'assets/product-wooden-close.jpg', badge:'Kargo eşiğine ekle', desc:'Sade doğal ahşap yapı blokları. Düşük puanlı; başka bir ürünle aynı kargoya eklemek için ideal.' },
+    { id:'p6', title:'Eğitici oyun kutusu', points:510, cat:'kutu', cond:'Az kullanılmış', loc:'Bursa', trust:'4.8', img:'assets/hero-main-game.jpg', badge:'Satıcı güvenli', desc:'Kapsamlı eğitici oyun kutusu. Foto kanıtlı, satıcı güven skoru yüksek.' },
+    { id:'p7', title:'Hikâye kitap seti — 5 kitap', points:200, cat:'kitap', cond:'Yıpranmasız', loc:'İstanbul', trust:'4.9', img:'assets/product-color-sorter.jpg', badge:'Kitap paketi', desc:'5 resimli hikâye kitabı. Sayfa yırtığı/yazı yok, kapaklar sağlam.' },
+    { id:'p8', title:'Ahşap denge oyunu', points:320, cat:'kutu', cond:'Az kullanılmış', loc:'Ankara', trust:'4.7', img:'assets/product-rings-close.jpg', badge:'Popüler', desc:'Motor beceri ve denge oyunu. Tüm taşlar mevcut, kutusu hafif yıpranmış.' },
+  ];
+
+  FILTERS = [
+    { key:'all', label:'Tümü' },
+    { key:'oyuncak', label:'Oyuncak & Montessori' },
+    { key:'kitap', label:'Kitap & Hikâye' },
+    { key:'kutu', label:'Kutu oyunu' },
+  ];
+
+  CATS = [
+    { key:'oyuncak', label:'Oyuncak & Montessori', base:500 },
+    { key:'kitap', label:'Kitap & Hikâye', base:260 },
+    { key:'kiyafet', label:'Kıyafet paketi', base:300 },
+    { key:'kutu', label:'Kutu oyunu', base:380 },
+  ];
+  CONDS = [
+    { key:'sifir', label:'Sıfır / etiketli', mult:1.0 },
+    { key:'az', label:'Az kullanılmış', mult:0.9 },
+    { key:'iyi', label:'İyi durumda', mult:0.75 },
+    { key:'orta', label:'Orta', mult:0.6 },
+  ];
+
+  resetScroll(){ requestAnimationFrame(()=>{ const el=this.scrollerRef.current; if(el) el.scrollTop=0; }); }
+  go(screen){ this.setState({ screen }); this.resetScroll(); }
+  home(){ this.setState({ screen:'home' }); }
+  openDetail(id){ this.setState({ screen:'detail', selectedId:id }); this.resetScroll(); }
+  setFilter(key){ this.setState({ filter:key }); }
+
+  startSwap(){ this.setState({ screen:'swap', swapStep:0, swapDone:false }); this.resetScroll(); }
+  swapNext(){
+    const s=this.state.swapStep;
+    if(s<3){ this.setState({ swapStep:s+1 }); this.resetScroll(); return; }
+    const sel=this.PRODUCTS.find(p=>p.id===this.state.selectedId);
+    const txn={ id:'t'+Date.now(), title:sel.title, sub:'Takas tamamlandı', amt:'-'+sel.points, tag:'Tamamlandı', img:sel.img };
+    this.setState(st=>({ swapDone:true, points:st.points-sel.points, txns:[txn,...st.txns] }));
+    this.resetScroll();
+  }
+
+  startList(){ this.setState({ screen:'list', listStep:0, listCat:null, listCond:null, listPhoto:false, aiBusy:false }); this.resetScroll(); }
+  fillPhoto(){ this.setState({ listPhoto:true }); }
+  setCat(k){ this.setState({ listCat:k }); }
+  setCond(k){ this.setState({ listCond:k }); }
+  listNext(){
+    const s=this.state.listStep;
+    if(s===2) return;
+    if(s===1){
+      this.setState({ listStep:2, aiBusy:true }); this.resetScroll();
+      clearTimeout(this._ai);
+      this._ai=setTimeout(()=>this.setState({ listStep:3, aiBusy:false }), 1700);
+      return;
+    }
+    this.setState({ listStep:s+1 }); this.resetScroll();
+  }
+  listBack(){ const s=this.state.listStep; if(s>0&&s!==2) this.setState({ listStep:s-1 }); this.resetScroll(); }
+  publishListing(){ this.showToast('Ürünün takas rafında! İlk talep geldiğinde haber vereceğiz.'); this.go('browse'); }
+
+  showToast(msg){ this.setState({ toast:msg }); clearTimeout(this._t); this._t=setTimeout(()=>this.setState({ toast:null }), 3200); }
+
+  fmt(n){ return n.toLocaleString('tr-TR'); }
+
+  renderVals(){
+    const S=this.state;
+    const sel=this.PRODUCTS.find(p=>p.id===S.selectedId) || this.PRODUCTS[0];
+
+    const imgEl=(src,alt)=>React.createElement('img',{src,alt:alt||'',style:{width:'100%',height:'100%',objectFit:'cover',display:'block'}});
+    const decorate=(p)=>({ ...p, pts:p.points+' p', metaCond:p.cond, metaTrust:'Güven '+p.trust, imgEl:imgEl(p.img,p.title), onClick:()=>this.openDetail(p.id) });
+    const products = (S.filter==='all'?this.PRODUCTS:this.PRODUCTS.filter(p=>p.cat===S.filter)).map(decorate);
+    const featured = this.PRODUCTS.slice(0,6).map(decorate);
+
+    const count=(k)=> k==='all'? this.PRODUCTS.length : this.PRODUCTS.filter(p=>p.cat===k).length;
+    const filters=this.FILTERS.map(f=>{
+      const active=f.key===S.filter;
+      return { label:f.label, count:String(count(f.key)), onClick:()=>this.setFilter(f.key),
+        bg: active?'#184A3C':'rgba(255,253,248,.8)', fg: active?'#fff':'#2A3832', bd: active?'#184A3C':'rgba(23,33,29,.12)' };
+    });
+
+    // swap flow
+    const swapMeta=[
+      { title:'Takas talebini onayla', desc:'Satıcıya talep gönderilir. '+sel.points+' puanın bu işlem için ayrılır; henüz satıcıya geçmez.', btn:'Puanı güvenli havuza al' },
+      { title:'Puanın güvenli havuzda', desc:'Puanın havuzda bekliyor. Satıcı 3 gün içinde kargoya verir; vermezse puanın otomatik iade edilir.', btn:'Satıcı kargoya verdi (demo)' },
+      { title:'Kargo yolda', desc:'Satıcı paketleme kanıtı fotoğrafını yükledi ve kargo barkodu oluşturuldu. Ürünü teslim aldığında onayla.', btn:'Ürünü teslim aldım' },
+      { title:'Teslimi onayla', desc:'48 saat içinde sorun bildirmezsen puan satıcıya aktarılır ve takas tamamlanır. Her şey yolundaysa onayla.', btn:'Takası tamamla' },
+    ];
+    const sm=swapMeta[Math.min(S.swapStep,3)];
+    const swapSteps=['Talep','Havuz','Kargo','Teslim'].map((label,i)=>{
+      const done = S.swapDone || i<S.swapStep; const active = !S.swapDone && i===S.swapStep;
+      return { label, num:String(i+1),
+        bg: done?'#184A3C':(active?'#17211D':'rgba(23,33,29,.06)'),
+        fg: (done||active)?'#fff':'#69766F',
+        line: done?'#184A3C':'rgba(23,33,29,.12)' };
+    });
+    const swapPct = (S.swapDone?100:(S.swapStep/3)*100)+'%';
+
+    // list flow
+    const cat=this.CATS.find(c=>c.key===S.listCat);
+    const cond=this.CONDS.find(c=>c.key===S.listCond);
+    const cats=this.CATS.map(c=>{ const a=c.key===S.listCat; return { label:c.label, onClick:()=>this.setCat(c.key),
+      bg:a?'#DDF1E6':'#F4EFE7', fg:a?'#184A3C':'#2A3832', bd:a?'#184A3C':'transparent' }; });
+    const conds=this.CONDS.map(c=>{ const a=c.key===S.listCond; return { label:c.label, onClick:()=>this.setCond(c.key),
+      bg:a?'#DDF1E6':'#F4EFE7', fg:a?'#184A3C':'#2A3832', bd:a?'#184A3C':'transparent' }; });
+    const suggested = (cat&&cond)? Math.round(cat.base*cond.mult)+20 : 0;
+    const calcRows = (cat&&cond)? [
+      { label:'Kategori taban puanı — '+cat.label, val:String(cat.base) },
+      { label:'Kondisyon — '+cond.label, val:'× '+cond.mult.toFixed(2) },
+      { label:'Tamlık — tüm parçalar beyan edildi', val:'× 1.00' },
+      { label:'Görsel kalite — gerçek fotoğraf', val:'+ 20' },
+      { label:'Kargo eşiği — paket uygun', val:'✓' },
+    ] : [];
+    const listSteps=['Fotoğraf','Detay','AI kontrol','Sonuç'].map((label,i)=>{
+      const done=i<S.listStep; const active=i===S.listStep;
+      return { label, num:String(i+1), bg:done?'#184A3C':(active?'#17211D':'rgba(23,33,29,.06)'), fg:(done||active)?'#fff':'#69766F' };
+    });
+    const listCanContinue = S.listStep===0 ? S.listPhoto : (S.listStep===1 ? !!(S.listCat&&S.listCond) : true);
+
+    return {
+      // nav / flow
+      appOpen: S.screen!=='home',
+      isBrowse: S.screen==='browse',
+      isDetail: S.screen==='detail',
+      isSwap: S.screen==='swap',
+      isList: S.screen==='list',
+      isWallet: S.screen==='wallet',
+      scrollerRef: this.scrollerRef,
+      goBrowse:()=>this.go('browse'),
+      goWallet:()=>this.go('wallet'),
+      goList:()=>this.startList(),
+      goHome:()=>this.home(),
+      backToBrowse:()=>this.go('browse'),
+
+      appTitle: S.screen==='browse'?'Takas rafı':S.screen==='detail'?'Ürün':S.screen==='swap'?'Güvenli havuz takası':S.screen==='list'?'Ürününü puana çevir':S.screen==='wallet'?'Cüzdanım':'',
+      pointsFmt: this.fmt(S.points),
+
+      products, featured, filters,
+      sel: { ...sel, pts: sel.points+' puan', metaTrust:'Satıcı güveni '+sel.trust, imgEl:imgEl(sel.img,sel.title) },
+      openSwap:()=>this.startSwap(),
+
+      // swap
+      ss0:S.screen==='swap'&&!S.swapDone&&S.swapStep===0,
+      swapActiveTitle: sm.title, swapActiveDesc: sm.desc, swapBtn: sm.btn,
+      swapNotDone: !S.swapDone, swapDone: S.swapDone,
+      swapSteps, swapPct, swapNext:()=>this.swapNext(),
+      swapPoints: sel.points+' puan',
+      newBalance: this.fmt(S.points),
+
+      // list
+      listSteps,
+      ls0:S.listStep===0, ls1:S.listStep===1, ls2:S.listStep===2, ls3:S.listStep===3,
+      listPhoto:S.listPhoto, listNoPhoto:!S.listPhoto, aiBusy:S.aiBusy,
+      fillPhoto:()=>this.fillPhoto(), cats, conds,
+      listNext:()=>this.listNext(), listBack:()=>this.listBack(),
+      listCanContinue, listDimBtn: listCanContinue?'1':'.45',
+      calcRows, suggested:String(suggested),
+      publish:()=>this.publishListing(),
+
+      // wallet
+      txns:S.txns.map(t=>({ ...t, imgEl:imgEl(t.img,'') })),
+
+      toast:S.toast, hasToast:!!S.toast,
+    };
+  }
+}
+</script>
+</body>
+</html>
