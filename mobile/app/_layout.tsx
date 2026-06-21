@@ -8,12 +8,14 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <StatusBar style="dark" />
       <Stack
+        initialRouteName="onboarding"
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: colors.surface },
           animation: 'slide_from_right',
         }}
       >
+        <Stack.Screen name="onboarding" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="product/[id]" options={{ presentation: 'card' }} />
       </Stack>

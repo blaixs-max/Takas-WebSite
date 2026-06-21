@@ -1,5 +1,5 @@
 /**
- * KIDS TRADE — Material Design 3 tema tokenları.
+ * KIDS TRADE — Material Design 3 tema tokenları (v2).
  * Marka yeşili (#1f6b4f) primary seed olarak alınıp M3 tonal palete
  * genişletildi; şeftali aksanı tertiary rolünde.
  */
@@ -10,8 +10,8 @@ export const colors = {
   onPrimaryContainer: '#00210f',
 
   secondary: '#4e6356',
-  secondaryContainer: '#d1e8d7',
-  onSecondaryContainer: '#0c1f15',
+  secondaryContainer: '#d3e8d8',
+  onSecondaryContainer: '#0b1f14',
 
   tertiary: '#9a5c3f',
   tertiaryContainer: '#ffdbcb',
@@ -20,17 +20,24 @@ export const colors = {
   error: '#ba1a1a',
   errorContainer: '#ffdad6',
 
-  surface: '#f7f8f3',
+  surface: '#fbfcf7',
   surfaceContainerLowest: '#ffffff',
-  surfaceContainerLow: '#f1f4ec',
-  surfaceContainer: '#ebeee6',
-  surfaceContainerHigh: '#e6e8e1',
-  surfaceContainerHighest: '#e0e3db',
+  surfaceContainerLow: '#f4f6ef',
+  surfaceContainer: '#eef1e9',
+  surfaceContainerHigh: '#e8ebe2',
+  surfaceContainerHighest: '#e2e5dc',
 
-  onSurface: '#181d18',
-  onSurfaceVariant: '#414941',
-  outline: '#717971',
-  outlineVariant: '#c1c9bf',
+  onSurface: '#171d17',
+  onSurfaceVariant: '#3f493f',
+  outline: '#6f7a6e',
+  outlineVariant: '#bfc9bc',
+
+  gold: '#b8862b',
+
+  /** Marka gradyanları */
+  balanceGradient: ['#23795a', '#1f6b4f', '#0e3d2c'] as const,
+  coverGradient: ['#23795a', '#0e3d2c'] as const,
+  onDark: '#ffffff',
 } as const;
 
 /** M3 shape scale */
@@ -38,7 +45,7 @@ export const shape = {
   xs: 8,
   sm: 12,
   md: 16,
-  lg: 24,
+  lg: 20,
   xl: 28,
   full: 999,
 } as const;
@@ -46,23 +53,23 @@ export const shape = {
 /** M3 elevation (RN shadow + Android elevation eşlemesi) */
 export const elevation = {
   level1: {
-    shadowColor: '#000',
-    shadowOpacity: 0.18,
+    shadowColor: '#141e16',
+    shadowOpacity: 0.16,
     shadowRadius: 3,
     shadowOffset: { width: 0, height: 1 },
     elevation: 1,
   },
   level2: {
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
+    shadowColor: '#141e16',
+    shadowOpacity: 0.18,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
   },
   level3: {
-    shadowColor: '#000',
-    shadowOpacity: 0.22,
-    shadowRadius: 8,
+    shadowColor: '#141e16',
+    shadowOpacity: 0.2,
+    shadowRadius: 9,
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },

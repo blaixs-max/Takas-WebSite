@@ -1,84 +1,111 @@
 import { useState } from 'react';
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { ProductCard } from '../../components/ProductCard';
-import { products } from '../../data/products';
+import { FeaturedCard } from '../../components/FeaturedCard';
+import { products, featured, Category } from '../../data/products';
 import { colors, elevation, shape } from '../../theme/tokens';
 
-const FILTERS = ['Tümü', 'Oyuncak', 'Kitap', 'Montessori', 'Kutu oyunu'] as const;
+const FILTERS: { label: string; icon?: keyof typeof MaterialIcons.glyphMap; cat?: Category }[] = [
+  { label: 'Tümü', icon: 'check' },
+  { label: 'Oyuncak', icon: 'toys', cat: 'Oyuncak' },
+  { label: 'Kitap', icon: 'menu-book', cat: 'Kitap' },
+  { label: 'Montessori', icon: 'extension', cat: 'Montessori' },
+  { label: 'Kutu oyunu', cat: 'Kutu oyunu' },
+];
 
 export default function ShelfScreen() {
   const insets = useSafeAreaInsets();
-  const [active, setActive] = useState<string>('Tümü');
+  const router = useRouter();
+  const [active, setActive] = useState('Tümü');
 
-  const visible =
-    active === 'Tümü' ? products : products.filter((p) => p.category === active);
+  const visible = active === 'Tümü' ? products : products.filter((p) => p.category === active);
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      {/* M3 top app bar */}
+      {/* Kişiselleştirilmiş app bar */}
       <View style={styles.appbar}>
-        <Text style={styles.appTitle}>Takas Rafı</Text>
+        <View style={{ flex: 1, paddingLeft: 10 }}>
+          <Text style={styles.greeting}>Merhaba, Emrah</Text>
+          <Text style={styles.sub}>Kadıköy · 1.248 ürün takasta</Text>
+        </View>
         <Pressable style={styles.iconBtn}>
-          <MaterialIcons name="tune" size={24} color={colors.onSurface} />
+          <MaterialIcons name="favorite-border" size={24} color={colors.onSurface} />
         </Pressable>
         <Pressable style={styles.iconBtn}>
           <MaterialIcons name="notifications-none" size={24} color={colors.onSurface} />
-          <View style={styles.dot}>
-            <Text style={styles.dotText}>3</Text>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>3</Text>
           </View>
         </Pressable>
       </View>
 
-      <ScrollView
-        contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* M3 search bar */}
-        <View style={styles.search}>
-          <MaterialIcons name="search" size={24} color={colors.onSurfaceVariant} />
-          <TextInput
-            placeholder="Oyuncak, kitap, montessori…"
-            placeholderTextColor={colors.onSurfaceVariant}
-            style={styles.searchInput}
-          />
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>EA</Text>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+        {/* Arama */}
+        <View style={styles.searchWrap}>
+          <View style={styles.search}>
+            <MaterialIcons name="search" size={24} color={colors.onSurfaceVariant} />
+            <TextInput
+              placeholder="Oyuncak, kitap, montessori…"
+              placeholderTextColor={colors.onSurfaceVariant}
+              style={styles.searchInput}
+            />
+            <MaterialIcons name="mic" size={24} color={colors.onSurfaceVariant} />
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>EA</Text>
+            </View>
           </View>
         </View>
 
-        {/* M3 filter chips */}
+        {/* Filtre chip'leri */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chips}
         >
           {FILTERS.map((f) => {
-            const sel = f === active;
+            const sel = f.label === active;
             return (
               <Pressable
-                key={f}
-                onPress={() => setActive(f)}
+                key={f.label}
+                onPress={() => setActive(f.label)}
                 style={[styles.chip, sel && styles.chipSel]}
               >
-                {sel && (
-                  <MaterialIcons name="check" size={18} color={colors.onSecondaryContainer} />
+                {f.icon && (
+                  <MaterialIcons
+                    name={f.icon}
+                    size={18}
+                    color={sel ? colors.onSecondaryContainer : colors.onSurfaceVariant}
+                  />
                 )}
-                <Text style={[styles.chipText, sel && styles.chipTextSel]}>{f}</Text>
+                <Text style={[styles.chipText, sel && styles.chipTextSel]}>{f.label}</Text>
               </Pressable>
             );
           })}
         </ScrollView>
 
-        {/* Ürün ızgarası (2 sütun) */}
+        {/* Öne çıkanlar */}
+        <View style={styles.sec}>
+          <Text style={styles.secTitle}>Öne çıkan takaslar</Text>
+          <Text style={styles.secLink}>Tümü</Text>
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.carousel}
+        >
+          {featured.map((p) => (
+            <FeaturedCard key={p.id} product={p} />
+          ))}
+        </ScrollView>
+
+        {/* Yakındaki raflar */}
+        <View style={styles.sec}>
+          <Text style={styles.secTitle}>Yakınındaki raflar</Text>
+          <Text style={styles.secLink}>Harita</Text>
+        </View>
         <View style={styles.grid}>
           {visible.map((p) => (
             <View key={p.id} style={styles.cell}>
@@ -88,8 +115,8 @@ export default function ShelfScreen() {
         </View>
       </ScrollView>
 
-      {/* M3 Extended FAB */}
-      <Pressable style={styles.fab}>
+      {/* Extended FAB */}
+      <Pressable style={styles.fab} onPress={() => router.push('/product/blocks')}>
         <MaterialIcons name="add-a-photo" size={22} color={colors.onTertiaryContainer} />
         <Text style={styles.fabText}>Ürün ekle</Text>
       </Pressable>
@@ -99,53 +126,52 @@ export default function ShelfScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
-  appbar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 60,
-    paddingHorizontal: 6,
-  },
-  appTitle: { flex: 1, fontSize: 22, fontWeight: '700', paddingLeft: 10, color: colors.onSurface },
+  appbar: { flexDirection: 'row', alignItems: 'center', height: 56, paddingHorizontal: 6 },
+  greeting: { fontSize: 22, fontWeight: '700', letterSpacing: -0.3, color: colors.onSurface },
+  sub: { fontSize: 12, fontWeight: '500', color: colors.onSurfaceVariant, marginTop: 1 },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  dot: {
+  badge: {
     position: 'absolute',
-    top: 6,
-    right: 6,
-    minWidth: 16,
-    height: 16,
+    top: 5,
+    right: 5,
+    minWidth: 17,
+    height: 17,
     paddingHorizontal: 4,
     borderRadius: shape.full,
     backgroundColor: colors.error,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.surface,
   },
-  dotText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  badgeText: { color: '#fff', fontSize: 9, fontWeight: '800' },
+  searchWrap: { paddingHorizontal: 18, marginTop: 6, marginBottom: 16 },
   search: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     height: 56,
     paddingHorizontal: 16,
-    borderRadius: shape.xl,
+    borderRadius: shape.full,
     backgroundColor: colors.surfaceContainerHigh,
-    marginBottom: 14,
+    ...elevation.level1,
   },
   searchInput: { flex: 1, fontSize: 15, color: colors.onSurface },
   avatar: {
-    width: 32,
-    height: 32,
+    width: 34,
+    height: 34,
     borderRadius: shape.full,
-    backgroundColor: colors.tertiaryContainer,
+    backgroundColor: colors.tertiary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: { fontWeight: '700', fontSize: 13, color: colors.onTertiaryContainer },
-  chips: { gap: 8, paddingBottom: 4, paddingRight: 8 },
+  avatarText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  chips: { gap: 8, paddingHorizontal: 18, paddingBottom: 6 },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    height: 32,
+    gap: 7,
+    height: 34,
     paddingHorizontal: 14,
     borderRadius: shape.xs,
     borderWidth: 1,
@@ -153,12 +179,23 @@ const styles = StyleSheet.create({
   },
   chipSel: { backgroundColor: colors.secondaryContainer, borderColor: 'transparent' },
   chipText: { fontSize: 13, fontWeight: '600', color: colors.onSurfaceVariant },
-  chipTextSel: { color: colors.onSecondaryContainer },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 14, marginHorizontal: -7 },
+  chipTextSel: { color: colors.onSecondaryContainer, fontWeight: '700' },
+  sec: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    marginTop: 18,
+    marginBottom: 12,
+  },
+  secTitle: { fontSize: 16, fontWeight: '700', letterSpacing: -0.2, color: colors.onSurface },
+  secLink: { fontSize: 13, fontWeight: '700', color: colors.primary },
+  carousel: { gap: 14, paddingHorizontal: 18 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 11 },
   cell: { width: '50%', paddingHorizontal: 7, marginBottom: 14 },
   fab: {
     position: 'absolute',
-    right: 16,
+    right: 18,
     bottom: 24,
     flexDirection: 'row',
     alignItems: 'center',

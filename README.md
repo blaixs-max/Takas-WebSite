@@ -1,39 +1,27 @@
 # KIDS TRADE
 
-Puanlı çocuk ürünü takas pazaryeri — pilot lansman landing page + tıklanabilir prototip.
+Puanlı çocuk ürünü takas pazaryeri. Kullanılmayan oyuncak, kitap ve montessori
+ürünleri **Takas Puanı**'na çevrilir; ürün teslim edilene kadar puan **güvenli
+havuzda** bekler ve sistem hem alıcıyı hem satıcıyı korur.
 
-Sıcak/yeşil marka sisteminde tek dosyalık, çalışan bir prototip:
+## Yapı
 
-- **Takas rafı** — filtrelenebilir ürün ızgarası
-- **Ürün detayı** — puan, kondisyon, satıcı güveni
-- **Güvenli havuz takası** — 4 adımlı escrow akışı
-- **Ürününü puana çevir** — AI fotoğraf kontrolü + otomatik puan hesabı
-- **Cüzdan** — bakiye + işlem geçmişi
+| Klasör | Açıklama |
+|--------|----------|
+| **`mobile/`** | **Aktif proje** — Expo + React Native mobil uygulaması (iOS + Android), Material Design 3 v2 tasarımı. |
+| `screens/` | Tasarımın render edilmiş ekran görüntüleri (7 ekran) |
+| `archive/` | Önceki HTML projesi (web prototipi + tasarım mockup'ı) — referans amaçlı |
 
-## Çalıştırma
+## Mobil uygulama
 
-`KIDS TRADE.dc.html` tarayıcıda doğrudan açılır. Statik sunucu için:
-
-```bash
-npx serve .
-```
-
-`index.html` otomatik olarak prototipe yönlendirir.
-
-## Dosyalar
-
-- `KIDS TRADE.dc.html` — ana tasarım (template + logic)
-- `support.js` — çalışma zamanı (gerekli)
-- `assets/` — ürün görselleri
-- `index.html` — yönlendirme girişi
-
-## GitHub'a yükleme
+Geliştirme ve mağaza yayını için `mobile/README.md` dosyasına bakın.
 
 ```bash
-git init
-git add .
-git commit -m "KIDS TRADE prototip"
-git branch -M main
-git remote add origin <REPO_URL>
-git push -u origin main
+cd mobile
+npm install
+npx expo start
 ```
+
+## Ekranlar
+Giriş/Onboarding · Takas Rafı · Ürün Detayı · Ürününü Puana Çevir ·
+Güvenli Havuz Akışı · Cüzdan · Profil & Güven

@@ -34,13 +34,15 @@ export default function TabsLayout() {
         name="discover"
         options={{
           title: 'Keşfet',
-          tabBarIcon: ({ color }) => <MaterialIcons name="search" size={24} color={color} />,
+          tabBarIcon: ({ color }) => <MaterialIcons name="explore" size={24} color={color} />,
         }}
       />
       <Tabs.Screen
         name="trades"
         options={{
           title: 'Takaslar',
+          tabBarBadge: 2,
+          tabBarBadgeStyle: { backgroundColor: colors.error, fontSize: 10 },
           tabBarIcon: ({ color }) => <MaterialIcons name="swap-horiz" size={24} color={color} />,
         }}
       />
