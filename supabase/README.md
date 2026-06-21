@@ -78,7 +78,22 @@ pazaryeri/alt-üye (split) **gerekmez**. `daily_commission` view'ı günlük gel
   **token + RETRIEVE doğrulaması** ile sağlanır.
 - `cargo_payments` tablosunda RLS açık; yazma yalnızca `service_role` ile yapılır.
 
+## Puan defteri (güvenli havuz) ✅
+`migrations/20260621130000_points_ledger.sql` — gerçek para olmadan puan escrow'u:
+- `wallets` (available/held, CHECK ≥ 0) · `wallet_entries` (değişmez log) · `trades` (durum makinesi)
+- Atomik fonksiyonlar: `earn_points`, `hold_points`, `release_points`, `refund_points`
+  (SELECT … FOR UPDATE ile yarış-koşulsuz; negatif bakiye ve çift harcama engelli)
+- RLS açık; yazma yalnızca `service_role` (SECURITY DEFINER) ile.
+
+**Yerel test** (geçici Postgres cluster ile, `tests/points_ledger_test.sql`):
+```bash
+psql "$DATABASE_URL" -f supabase/migrations/20260621130000_points_ledger.sql
+psql "$DATABASE_URL" -f supabase/tests/points_ledger_test.sql
+```
+Senaryolar: kazanç → havuza al → teslim → satıcıya geçiş, iade, negatif bakiye
+engeli, çift harcama/idempotency engeli, çift-giriş tutarlılığı. (Hepsi doğrulandı.)
+
 ## Sonraki adım
 - Kargo **aggregator** (Navlungo/Kolay Gelsin) entegrasyonu: `iyzico-callback` içinde
   `carrier_cost` ile etiket üretimi (şu an `TODO`).
-- Puan defteri (güvenli havuz) — ayrı migration (HOLD/RELEASE/REFUND fonksiyonları).
+- Mobil tarafta ödeme WebView ekranı + deep-link dönüşü.
