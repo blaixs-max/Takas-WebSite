@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KIDS TRADE — Mobil Uygulama UI (Material Design 3)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=Roboto+Flex:opsz,wght@8..144,400..900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+<style>
+  /* ============================================================
+     KIDS TRADE — Material Design 3 (Material You) mobil tema
+     Marka yeşili "primary seed" olarak alınıp M3 tonal sistemine
+     uyarlandı. Bileşenler M3 spesifikasyonuna sıkı uyumludur:
+     top app bar, navigation bar, FAB, chips, cards, state layers.
+     ============================================================ */
+  :root{
+    /* ----- M3 Tonal renk tokenları (yeşil seed) ----- */
+    --md-primary:#1f6b4f;
+    --md-on-primary:#ffffff;
+    --md-primary-container:#a8f2cd;
+    --md-on-primary-container:#00210f;
+    --md-secondary:#4e6356;
+    --md-secondary-container:#d1e8d7;
+    --md-on-secondary-container:#0c1f15;
+    /* tertiary = marka şeftali aksanı */
+    --md-tertiary:#9a5c3f;
+    --md-tertiary-container:#ffdbcb;
+    --md-on-tertiary-container:#380d00;
+    --md-error:#ba1a1a;
+    --md-error-container:#ffdad6;
+    /* nötr yüzeyler (sıcak krem tonu) */
+    --md-surface:#f7f8f3;
+    --md-surface-dim:#d8dad3;
+    --md-surface-bright:#f7f8f3;
+    --md-surface-container-lowest:#ffffff;
+    --md-surface-container-low:#f1f4ec;
+    --md-surface-container:#ebeee6;
+    --md-surface-container-high:#e6e8e1;
+    --md-surface-container-highest:#e0e3db;
+    --md-on-surface:#181d18;
+    --md-on-surface-variant:#414941;
+    --md-outline:#717971;
+    --md-outline-variant:#c1c9bf;
+    --md-inverse-surface:#2c322c;
+    --md-inverse-on-surface:#edf1ea;
+    /* M3 elevation gölgeleri */
+    --md-e1:0 1px 2px rgba(0,0,0,.30),0 1px 3px 1px rgba(0,0,0,.15);
+    --md-e2:0 1px 2px rgba(0,0,0,.30),0 2px 6px 2px rgba(0,0,0,.15);
+    --md-e3:0 4px 8px 3px rgba(0,0,0,.15),0 1px 3px rgba(0,0,0,.30);
+    /* M3 shape scale */
+    --shape-xs:8px; --shape-sm:12px; --shape-md:16px;
+    --shape-lg:24px; --shape-xl:28px; --shape-full:999px;
+    --ease:cubic-bezier(.2,0,0,1);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:"Roboto Flex","Roboto",system-ui,sans-serif;
+    background:
+      radial-gradient(circle at 14% 6%,rgba(31,107,79,.10),transparent 40%),
+      radial-gradient(circle at 92% 0%,rgba(154,92,63,.08),transparent 38%),
+      #eef0ea;
+    color:var(--md-on-surface);
+    -webkit-font-smoothing:antialiased;
+  }
+  .ms{
+    font-family:"Material Symbols Rounded";
+    font-weight:normal;font-style:normal;line-height:1;
+    letter-spacing:normal;text-transform:none;display:inline-block;
+    white-space:nowrap;direction:ltr;
+    -webkit-font-feature-settings:"liga";font-feature-settings:"liga";
+    -webkit-font-smoothing:antialiased;user-select:none;
+  }
+  .ms.fill{font-variation-settings:"FILL" 1;}
+
+  /* ---------- Sayfa başlığı ---------- */
+  .page-head{
+    max-width:1320px;margin:0 auto;padding:40px 28px 8px;
+  }
+  .page-head .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 14px;
+    border-radius:var(--shape-full);background:var(--md-primary-container);
+    color:var(--md-on-primary-container);font-weight:700;font-size:12px;
+    letter-spacing:.06em;text-transform:uppercase;
+  }
+  .page-head h1{
+    margin:16px 0 6px;font-size:clamp(30px,4vw,46px);line-height:1.05;
+    letter-spacing:-.02em;font-weight:900;
+  }
+  .page-head p{margin:0;max-width:680px;color:var(--md-on-surface-variant);font-size:16px;line-height:1.6;font-weight:500;}
+
+  /* spec-chips */
+  .specrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;}
+  .specrow span{
+    display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;
+    border-radius:var(--shape-xs);border:1px solid var(--md-outline-variant);
+    background:var(--md-surface-container-low);font-size:13px;font-weight:600;
+    color:var(--md-on-surface-variant);
+  }
+  .specrow span .ms{font-size:18px;color:var(--md-primary);}
+
+  /* ---------- Telefon galerisi ---------- */
+  .gallery{
+    display:flex;flex-wrap:wrap;gap:36px 30px;justify-content:center;
+    padding:34px 28px 80px;max-width:1320px;margin:0 auto;align-items:flex-start;
+  }
+  .device{width:360px;flex:0 0 auto;}
+  .device .label{
+    text-align:center;font-weight:700;font-size:14px;margin-bottom:14px;
+    color:var(--md-on-surface);letter-spacing:-.01em;
+  }
+  .device .label small{display:block;font-weight:500;color:var(--md-on-surface-variant);font-size:12px;margin-top:2px;}
+
+  /* telefon kasası */
+  .phone{
+    position:relative;width:360px;height:740px;border-radius:46px;
+    background:#0c0f0c;padding:11px;box-shadow:0 32px 70px rgba(20,30,24,.30),0 0 0 1px rgba(0,0,0,.5);
+  }
+  .screen{
+    position:relative;width:100%;height:100%;border-radius:36px;overflow:hidden;
+    background:var(--md-surface);display:flex;flex-direction:column;
+  }
+  /* status bar */
+  .statusbar{
+    flex:0 0 auto;height:34px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 22px;font-size:13px;font-weight:700;color:var(--md-on-surface);
+  }
+  .statusbar .icons{display:flex;gap:6px;align-items:center;}
+  .statusbar .ms{font-size:17px;}
+
+  /* M3 top app bar */
+  .appbar{
+    flex:0 0 auto;display:flex;align-items:center;gap:6px;height:60px;padding:0 6px 0 4px;
+    background:var(--md-surface);
+  }
+  .appbar.colored{background:var(--md-surface-container);}
+  .appbar .title{flex:1;font-size:21px;font-weight:700;letter-spacing:-.01em;padding-left:8px;}
+  .appbar.center .title{text-align:center;font-size:18px;}
+
+  /* M3 icon button (state layer) */
+  .iconbtn{
+    width:44px;height:44px;flex:0 0 44px;border:none;background:none;border-radius:var(--shape-full);
+    display:grid;place-items:center;cursor:pointer;color:var(--md-on-surface);
+    position:relative;transition:background .15s var(--ease);
+  }
+  .iconbtn .ms{font-size:24px;position:relative;z-index:1;}
+  .iconbtn:hover{background:rgba(0,0,0,.06);}
+  .iconbtn .badge{
+    position:absolute;top:6px;right:6px;min-width:16px;height:16px;padding:0 4px;
+    border-radius:var(--shape-full);background:var(--md-error);color:#fff;font-size:10px;
+    font-weight:700;display:grid;place-items:center;z-index:2;border:2px solid var(--md-surface);
+  }
+
+  /* scroll body */
+  .body{flex:1;overflow-y:auto;overflow-x:hidden;padding:4px 16px 96px;}
+  .body::-webkit-scrollbar{width:0;}
+
+  /* M3 search bar */
+  .searchbar{
+    display:flex;align-items:center;gap:12px;height:56px;padding:0 8px 0 16px;
+    border-radius:var(--shape-xl);background:var(--md-surface-container-high);
+    color:var(--md-on-surface-variant);font-size:15px;font-weight:500;margin:8px 0 14px;
+  }
+  .searchbar .ms{font-size:24px;}
+  .searchbar .avatar{
+    width:32px;height:32px;border-radius:var(--shape-full);margin-left:auto;
+    background:var(--md-tertiary-container);color:var(--md-on-tertiary-container);
+    display:grid;place-items:center;font-weight:700;font-size:13px;
+  }
+
+  /* M3 chips */
+  .chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;}
+  .chips::-webkit-scrollbar{height:0;}
+  .chip{
+    flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 14px;
+    border-radius:var(--shape-xs);border:1px solid var(--md-outline-variant);
+    background:transparent;color:var(--md-on-surface-variant);font-size:13px;font-weight:600;
+    cursor:pointer;white-space:nowrap;
+  }
+  .chip .ms{font-size:18px;}
+  .chip.sel{
+    background:var(--md-secondary-container);color:var(--md-on-secondary-container);
+    border-color:transparent;
+  }
+  .chip.sel .ms.check{font-size:18px;}
+
+  /* M3 product cards grid */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .pcard{
+    background:var(--md-surface-container-low);border-radius:var(--shape-md);overflow:hidden;
+    cursor:pointer;box-shadow:var(--md-e1);display:flex;flex-direction:column;
+  }
+  .pcard .media{position:relative;aspect-ratio:1/1;background:var(--md-surface-container-highest);}
+  .pcard .media img{width:100%;height:100%;object-fit:cover;display:block;}
+  .pcard .badge{
+    position:absolute;left:8px;top:8px;height:24px;display:inline-flex;align-items:center;
+    padding:0 9px;border-radius:var(--shape-xs);background:rgba(255,255,255,.92);
+    font-size:11px;font-weight:700;color:var(--md-on-surface);
+  }
+  .pcard .fav{
+    position:absolute;right:6px;top:6px;width:34px;height:34px;border-radius:var(--shape-full);
+    background:rgba(255,255,255,.86);display:grid;place-items:center;color:var(--md-on-surface);
+    border:none;cursor:pointer;
+  }
+  .pcard .fav .ms{font-size:19px;}
+  .pcard .pc-body{padding:12px 12px 14px;}
+  .pcard .pc-title{font-size:14px;font-weight:600;line-height:1.25;letter-spacing:-.01em;}
+  .pcard .pc-meta{display:flex;align-items:center;gap:4px;color:var(--md-on-surface-variant);font-size:12px;font-weight:500;margin-top:6px;}
+  .pcard .pc-meta .ms{font-size:15px;}
+  .pcard .pc-points{
+    display:inline-flex;align-items:center;gap:5px;margin-top:10px;height:28px;padding:0 10px;
+    border-radius:var(--shape-xs);background:var(--md-primary-container);
+    color:var(--md-on-primary-container);font-weight:700;font-size:13px;
+  }
+  .pcard .pc-points .ms{font-size:16px;}
+
+  .section-title{font-size:15px;font-weight:700;margin:20px 2px 12px;letter-spacing:-.01em;}
+
+  /* M3 FAB (extended) */
+  .fab{
+    position:absolute;right:16px;bottom:96px;z-index:6;display:inline-flex;align-items:center;gap:10px;
+    height:56px;padding:0 20px;border-radius:var(--shape-md);border:none;cursor:pointer;
+    background:var(--md-tertiary-container);color:var(--md-on-tertiary-container);
+    font-weight:700;font-size:15px;box-shadow:var(--md-e3);
+  }
+  .fab .ms{font-size:22px;}
+
+  /* M3 navigation bar (bottom) */
+  .navbar{
+    position:absolute;left:0;right:0;bottom:0;z-index:5;height:80px;display:flex;
+    background:var(--md-surface-container);padding:12px 4px 0;
+  }
+  .navitem{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;border:none;background:none;
+    cursor:pointer;color:var(--md-on-surface-variant);font-size:12px;font-weight:600;
+  }
+  .navitem .pill{
+    width:64px;height:32px;border-radius:var(--shape-full);display:grid;place-items:center;
+    transition:background .2s var(--ease);
+  }
+  .navitem .ms{font-size:24px;}
+  .navitem.active{color:var(--md-on-surface);}
+  .navitem.active .pill{background:var(--md-secondary-container);color:var(--md-on-secondary-container);}
+  .navitem.active .ms{font-variation-settings:"FILL" 1;}
+
+  /* ---------- Detay ekranı bileşenleri ---------- */
+  .hero-img{
+    position:relative;border-radius:var(--shape-lg);overflow:hidden;aspect-ratio:1/1;
+    background:var(--md-surface-container-highest);margin:6px 0 16px;box-shadow:var(--md-e1);
+  }
+  .hero-img img{width:100%;height:100%;object-fit:cover;display:block;}
+  .hero-img .badge{
+    position:absolute;left:12px;top:12px;height:28px;display:inline-flex;align-items:center;
+    padding:0 12px;border-radius:var(--shape-xs);background:rgba(255,255,255,.92);
+    font-size:12px;font-weight:700;
+  }
+  .detail-title{font-size:24px;font-weight:700;line-height:1.15;letter-spacing:-.02em;margin:0;}
+  .points-line{display:flex;align-items:baseline;gap:8px;margin:12px 0 14px;}
+  .points-line strong{font-size:34px;font-weight:900;letter-spacing:-.03em;color:var(--md-primary);}
+  .points-line span{color:var(--md-on-surface-variant);font-weight:600;font-size:14px;}
+  .meta-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+  .meta-chips .mc{
+    display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;
+    border-radius:var(--shape-xs);background:var(--md-surface-container-high);
+    color:var(--md-on-surface-variant);font-size:12px;font-weight:600;
+  }
+  .meta-chips .mc .ms{font-size:16px;color:var(--md-primary);}
+  .desc{color:var(--md-on-surface-variant);line-height:1.6;font-size:14px;font-weight:500;margin:0 0 16px;}
+
+  /* M3 filled card (güvenli havuz) */
+  .pool-card{
+    background:var(--md-primary-container);color:var(--md-on-primary-container);
+    border-radius:var(--shape-md);padding:16px;margin-bottom:14px;
+  }
+  .pool-card .ph{display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px;margin-bottom:8px;}
+  .pool-card .ph .ms{font-size:22px;}
+  .pool-card p{margin:0;font-size:13px;line-height:1.5;font-weight:500;opacity:.9;}
+
+  /* seller row */
+  .seller{
+    display:flex;align-items:center;gap:12px;padding:12px;border-radius:var(--shape-md);
+    background:var(--md-surface-container-low);box-shadow:var(--md-e1);margin-bottom:14px;
+  }
+  .seller .av{width:44px;height:44px;border-radius:var(--shape-full);background:var(--md-secondary-container);
+    color:var(--md-on-secondary-container);display:grid;place-items:center;font-weight:700;}
+  .seller .sn{font-weight:700;font-size:14px;}
+  .seller .ss{color:var(--md-on-surface-variant);font-size:12px;font-weight:500;display:flex;align-items:center;gap:4px;margin-top:2px;}
+  .seller .ss .ms{font-size:15px;color:var(--md-tertiary);}
+
+  /* M3 bottom action bar */
+  .actionbar{
+    position:absolute;left:0;right:0;bottom:0;z-index:5;display:flex;gap:12px;align-items:center;
+    padding:14px 16px 18px;background:var(--md-surface-container);
+  }
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;height:52px;
+    border-radius:var(--shape-full);border:none;cursor:pointer;font-weight:700;font-size:15px;
+  }
+  .btn .ms{font-size:20px;}
+  .btn-filled{flex:1;background:var(--md-primary);color:var(--md-on-primary);box-shadow:var(--md-e1);}
+  .btn-tonal{background:var(--md-secondary-container);color:var(--md-on-secondary-container);padding:0 22px;}
+  .btn-outline{flex:1;background:transparent;color:var(--md-primary);border:1px solid var(--md-outline);}
+  .btn-text{background:none;color:var(--md-primary);padding:0 16px;}
+  .icon-square{width:52px;height:52px;flex:0 0 52px;border-radius:var(--shape-md);
+    background:var(--md-surface-container-high);display:grid;place-items:center;border:none;cursor:pointer;color:var(--md-on-surface);}
+  .icon-square .ms{font-size:24px;}
+
+  /* ---------- Cüzdan ---------- */
+  .balance-card{
+    background:linear-gradient(135deg,#1f6b4f,#0f3d2c);color:#fff;border-radius:var(--shape-lg);
+    padding:22px;box-shadow:var(--md-e2);position:relative;overflow:hidden;margin:8px 0 18px;
+  }
+  .balance-card .glow{position:absolute;width:200px;height:200px;right:-70px;top:-90px;border-radius:50%;background:rgba(168,242,205,.18);}
+  .balance-card small{display:block;opacity:.75;font-weight:600;font-size:13px;position:relative;}
+  .balance-card .amt{font-size:44px;font-weight:900;letter-spacing:-.04em;margin:4px 0 2px;position:relative;}
+  .balance-card .sub{display:flex;gap:16px;margin-top:14px;position:relative;}
+  .balance-card .sub div{font-size:12px;font-weight:600;opacity:.85;}
+  .balance-card .sub b{display:block;font-size:16px;font-weight:800;opacity:1;margin-top:2px;}
+
+  .quick{display:flex;gap:10px;margin-bottom:20px;}
+  .quick button{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 0;
+    border-radius:var(--shape-md);border:1px solid var(--md-outline-variant);background:var(--md-surface-container-low);
+    cursor:pointer;font-weight:600;font-size:12px;color:var(--md-on-surface);
+  }
+  .quick button .ic{width:42px;height:42px;border-radius:var(--shape-full);background:var(--md-primary-container);
+    color:var(--md-on-primary-container);display:grid;place-items:center;}
+  .quick button .ms{font-size:22px;}
+
+  /* list items */
+  .litem{display:flex;align-items:center;gap:12px;padding:12px 4px;}
+  .litem .lic{width:44px;height:44px;flex:0 0 44px;border-radius:var(--shape-md);overflow:hidden;
+    background:var(--md-surface-container-high);display:grid;place-items:center;}
+  .litem .lic img{width:100%;height:100%;object-fit:cover;}
+  .litem .lic .ms{font-size:22px;color:var(--md-on-surface-variant);}
+  .litem .lt{flex:1;}
+  .litem .lt b{display:block;font-size:14px;font-weight:600;letter-spacing:-.01em;}
+  .litem .lt span{font-size:12px;color:var(--md-on-surface-variant);font-weight:500;}
+  .litem .lv{font-weight:800;font-size:15px;letter-spacing:-.02em;}
+  .litem .lv.pos{color:var(--md-primary);}
+  .litem .lv.pool{color:var(--md-tertiary);}
+  .divider{height:1px;background:var(--md-outline-variant);margin:2px 0;opacity:.6;}
+
+  /* ---------- Ekle / Puana çevir ---------- */
+  .upload{
+    border:2px dashed var(--md-outline);border-radius:var(--shape-lg);background:var(--md-surface-container-low);
+    aspect-ratio:16/10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+    color:var(--md-on-surface-variant);margin:8px 0 14px;position:relative;overflow:hidden;
+  }
+  .upload .ms{font-size:42px;color:var(--md-primary);}
+  .upload b{font-size:15px;color:var(--md-on-surface);}
+  .upload span{font-size:12px;font-weight:500;}
+  .thumbs{display:flex;gap:8px;margin-bottom:16px;}
+  .thumbs .t{flex:1;aspect-ratio:1/1;border-radius:var(--shape-sm);overflow:hidden;background:var(--md-surface-container-high);position:relative;}
+  .thumbs .t img{width:100%;height:100%;object-fit:cover;}
+  .thumbs .t .ms{position:absolute;inset:0;margin:auto;width:fit-content;height:fit-content;font-size:26px;color:var(--md-outline);}
+
+  .field-label{font-size:13px;font-weight:700;margin:0 2px 8px;color:var(--md-on-surface-variant);}
+  .seg{display:flex;gap:8px;margin-bottom:16px;}
+  .seg button{flex:1;height:40px;border-radius:var(--shape-xs);border:1px solid var(--md-outline-variant);
+    background:transparent;font-weight:600;font-size:13px;color:var(--md-on-surface-variant);cursor:pointer;}
+  .seg button.sel{background:var(--md-secondary-container);color:var(--md-on-secondary-container);border-color:transparent;}
+
+  /* AI durum kartı */
+  .ai-card{
+    display:flex;align-items:center;gap:12px;padding:14px;border-radius:var(--shape-md);
+    background:var(--md-surface-container-low);box-shadow:var(--md-e1);margin-bottom:14px;
+  }
+  .ai-card .ac-ic{width:42px;height:42px;border-radius:var(--shape-full);background:var(--md-primary);
+    color:#fff;display:grid;place-items:center;flex:0 0 42px;}
+  .ai-card .ac-ic .ms{font-size:22px;}
+  .ai-card b{display:block;font-size:14px;font-weight:700;}
+  .ai-card span{font-size:12px;color:var(--md-on-surface-variant);font-weight:500;}
+  .ai-card .ok{margin-left:auto;color:var(--md-primary);}
+  .ai-card .ok .ms{font-size:24px;}
+
+  /* puan hesap kartı */
+  .calc{background:var(--md-surface-container-low);border-radius:var(--shape-md);box-shadow:var(--md-e1);padding:6px 16px;margin-bottom:16px;}
+  .calc .row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;font-size:13px;font-weight:500;color:var(--md-on-surface-variant);border-bottom:1px solid var(--md-outline-variant);}
+  .calc .row:last-child{border-bottom:none;}
+  .calc .row b{color:var(--md-on-surface);font-weight:700;}
+  .calc-total{background:var(--md-primary);color:#fff;border-radius:var(--shape-md);padding:18px;display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:16px;}
+  .calc-total small{display:block;opacity:.8;font-weight:600;font-size:12px;}
+  .calc-total strong{font-size:34px;font-weight:900;letter-spacing:-.03em;}
+
+  /* ---------- Güvenli havuz stepper ---------- */
+  .stepper{padding:8px 0;}
+  .step{display:flex;gap:14px;position:relative;padding-bottom:8px;}
+  .step .rail{display:flex;flex-direction:column;align-items:center;flex:0 0 36px;}
+  .step .dot{width:36px;height:36px;border-radius:var(--shape-full);display:grid;place-items:center;font-weight:700;font-size:14px;z-index:1;}
+  .step .line{flex:1;width:2px;background:var(--md-outline-variant);margin:2px 0;}
+  .step:last-child .line{display:none;}
+  .step.done .dot{background:var(--md-primary);color:#fff;}
+  .step.done .line{background:var(--md-primary);}
+  .step.active .dot{background:var(--md-primary-container);color:var(--md-on-primary-container);border:2px solid var(--md-primary);}
+  .step.todo .dot{background:var(--md-surface-container-high);color:var(--md-on-surface-variant);}
+  .step .sc{padding-bottom:18px;}
+  .step .sc b{display:block;font-size:15px;font-weight:700;letter-spacing:-.01em;}
+  .step .sc p{margin:4px 0 0;font-size:13px;color:var(--md-on-surface-variant);line-height:1.5;font-weight:500;}
+  .step .sc .pill-status{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;margin-top:8px;border-radius:var(--shape-full);font-size:11px;font-weight:700;}
+  .step.done .pill-status{background:var(--md-primary-container);color:var(--md-on-primary-container);}
+  .step.active .pill-status{background:var(--md-tertiary-container);color:var(--md-on-tertiary-container);}
+  .step .pill-status .ms{font-size:14px;}
+
+  .trade-summary{background:var(--md-surface-container-low);border-radius:var(--shape-md);box-shadow:var(--md-e1);padding:14px;display:flex;align-items:center;gap:12px;margin:6px 0 18px;}
+  .trade-summary .ts-img{width:56px;height:56px;border-radius:var(--shape-sm);overflow:hidden;flex:0 0 56px;}
+  .trade-summary .ts-img img{width:100%;height:100%;object-fit:cover;}
+  .trade-summary b{font-size:14px;font-weight:700;}
+  .trade-summary span{font-size:12px;color:var(--md-on-surface-variant);font-weight:500;}
+
+  /* footer note */
+  .foot{max-width:1320px;margin:0 auto;padding:0 28px 60px;color:var(--md-on-surface-variant);font-size:13px;font-weight:500;text-align:center;line-height:1.7;}
+  .foot code{background:var(--md-surface-container-high);padding:2px 8px;border-radius:6px;font-size:12px;}
+</style>
+</head>
+<body>
+
+  <header class="page-head">
+    <span class="eyebrow"><span class="ms">design_services</span> Material Design 3 · Material You</span>
+    <h1>KIDS TRADE — Mobil Uygulama UI</h1>
+    <p>Puanlı çocuk ürünü takas pazaryerinin mobil arayüzü. Google Material Design 3 spesifikasyonuna sıkı uyum: top app bar, navigation bar, FAB, M3 chip/card/button bileşenleri ve state layer'lar. Marka yeşili (#1f6b4f) "primary seed" olarak alınıp tonal palete genişletildi; şeftali aksanı "tertiary" rolünde.</p>
+    <div class="specrow">
+      <span><span class="ms">palette</span> Tonal renk sistemi</span>
+      <span><span class="ms">touch_app</span> 48dp dokunma hedefi</span>
+      <span><span class="ms">rounded_corner</span> M3 shape scale</span>
+      <span><span class="ms">layers</span> Elevation 1–3</span>
+      <span><span class="ms">font_download</span> Roboto Flex + Material Symbols</span>
+    </div>
+  </header>
+
+  <main class="gallery">
+
+    <!-- ============ 1) ANA EKRAN / TAKAS RAFI ============ -->
+    <div class="device">
+      <div class="label">1 · Ana Ekran — Takas Rafı<small>Browse · top app bar + nav bar + FAB</small></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="icons"><span class="ms">signal_cellular_alt</span><span class="ms">wifi</span><span class="ms">battery_full</span></span></div>
+        <div class="appbar">
+          <div class="title">Takas Rafı</div>
+          <button class="iconbtn"><span class="ms">tune</span></button>
+          <button class="iconbtn"><span class="ms">notifications</span><span class="badge">3</span></button>
+        </div>
+        <div class="body">
+          <div class="searchbar">
+            <span class="ms">search</span>
+            <span style="flex:1">Oyuncak, kitap, montessori…</span>
+            <span class="avatar">EA</span>
+          </div>
+          <div class="chips">
+            <button class="chip sel"><span class="ms check">check</span>Tümü</button>
+            <button class="chip"><span class="ms">toys</span>Oyuncak</button>
+            <button class="chip"><span class="ms">menu_book</span>Kitap</button>
+            <button class="chip"><span class="ms">extension</span>Montessori</button>
+            <button class="chip">Kutu oyunu</button>
+          </div>
+          <div class="grid">
+            <div class="pcard">
+              <div class="media">
+                <img src="assets/product-wooden-blocks.jpg" alt="Ahşap blok seti">
+                <span class="badge">Az kullanılmış</span>
+                <button class="fav"><span class="ms">favorite</span></button>
+              </div>
+              <div class="pc-body">
+                <div class="pc-title">Montessori ahşap blok seti</div>
+                <div class="pc-meta"><span class="ms">location_on</span>Kadıköy · ★ 4.9</div>
+                <span class="pc-points"><span class="ms">paid</span>420 puan</span>
+              </div>
+            </div>
+            <div class="pcard">
+              <div class="media">
+                <img src="assets/product-color-sorter.jpg" alt="Renk ayırıcı">
+                <span class="badge">İyi durumda</span>
+                <button class="fav"><span class="ms">favorite</span></button>
+              </div>
+              <div class="pc-body">
+                <div class="pc-title">Ahşap renk ayırma oyunu</div>
+                <div class="pc-meta"><span class="ms">location_on</span>Beşiktaş · ★ 4.7</div>
+                <span class="pc-points"><span class="ms">paid</span>260 puan</span>
+              </div>
+            </div>
+            <div class="pcard">
+              <div class="media">
+                <img src="assets/product-montessori-rings.jpg" alt="Montessori halkalar">
+                <span class="badge">Yeni gibi</span>
+                <button class="fav"><span class="ms fill">favorite</span></button>
+              </div>
+              <div class="pc-body">
+                <div class="pc-title">Montessori halka kulesi</div>
+                <div class="pc-meta"><span class="ms">location_on</span>Üsküdar · ★ 5.0</div>
+                <span class="pc-points"><span class="ms">paid</span>340 puan</span>
+              </div>
+            </div>
+            <div class="pcard">
+              <div class="media">
+                <img src="assets/product-rings-close.jpg" alt="Halka yakın">
+                <span class="badge">Az kullanılmış</span>
+                <button class="fav"><span class="ms">favorite</span></button>
+              </div>
+              <div class="pc-body">
+                <div class="pc-title">Doğal ahşap denge halkaları</div>
+                <div class="pc-meta"><span class="ms">location_on</span>Şişli · ★ 4.8</div>
+                <span class="pc-points"><span class="ms">paid</span>300 puan</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="fab"><span class="ms">add_a_photo</span>Ürün ekle</button>
+        <nav class="navbar">
+          <button class="navitem active"><span class="pill"><span class="ms">storefront</span></span>Raf</button>
+          <button class="navitem"><span class="pill"><span class="ms">search</span></span>Keşfet</button>
+          <button class="navitem"><span class="pill"><span class="ms">swap_horiz</span></span>Takaslar</button>
+          <button class="navitem"><span class="pill"><span class="ms">account_balance_wallet</span></span>Cüzdan</button>
+          <button class="navitem"><span class="pill"><span class="ms">person</span></span>Profil</button>
+        </nav>
+      </div></div>
+    </div>
+
+    <!-- ============ 2) ÜRÜN DETAYI ============ -->
+    <div class="device">
+      <div class="label">2 · Ürün Detayı<small>Detail · güvenli havuz + action bar</small></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="icons"><span class="ms">signal_cellular_alt</span><span class="ms">wifi</span><span class="ms">battery_full</span></span></div>
+        <div class="appbar center">
+          <button class="iconbtn"><span class="ms">arrow_back</span></button>
+          <div class="title">Ürün</div>
+          <button class="iconbtn"><span class="ms">share</span></button>
+          <button class="iconbtn"><span class="ms">favorite</span></button>
+        </div>
+        <div class="body">
+          <div class="hero-img">
+            <img src="assets/product-wooden-blocks.jpg" alt="Ahşap blok seti">
+            <span class="badge">Az kullanılmış</span>
+          </div>
+          <h2 class="detail-title">Montessori ahşap blok seti</h2>
+          <div class="points-line"><strong>420</strong><span>Takas Puanı</span></div>
+          <div class="meta-chips">
+            <span class="mc"><span class="ms">verified</span>AI onaylı fotoğraf</span>
+            <span class="mc"><span class="ms">location_on</span>Kadıköy</span>
+            <span class="mc"><span class="ms">inventory_2</span>Tüm parçalar tam</span>
+          </div>
+          <p class="desc">Doğal kayın ağacından, 48 parçalık geometrik blok seti. 2 yıl kullanıldı, boyası dökülmemiş. Orijinal ahşap kutusuyla birlikte gönderilir.</p>
+          <div class="seller">
+            <div class="av">ZD</div>
+            <div style="flex:1">
+              <div class="sn">Zeynep D.</div>
+              <div class="ss"><span class="ms fill">workspace_premium</span>Güven skoru 96 · 38 takas</div>
+            </div>
+            <button class="iconbtn"><span class="ms">chat_bubble</span></button>
+          </div>
+          <div class="pool-card">
+            <div class="ph"><span class="ms">verified_user</span>Güvenli havuz korumalı</div>
+            <p>Takas talebinde puanın güvenli havuzda bekler. Ürün eline geçip onaylayana kadar satıcıya geçmez — alıcı da satıcı da korunur.</p>
+          </div>
+        </div>
+        <div class="actionbar">
+          <button class="icon-square"><span class="ms">bookmark_border</span></button>
+          <button class="btn btn-filled"><span class="ms">swap_horiz</span>Takas et · 420</button>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ============ 3) ÜRÜN EKLE / PUANA ÇEVİR ============ -->
+    <div class="device">
+      <div class="label">3 · Ürününü Puana Çevir<small>Add listing · AI kontrol + puan hesabı</small></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="icons"><span class="ms">signal_cellular_alt</span><span class="ms">wifi</span><span class="ms">battery_full</span></span></div>
+        <div class="appbar">
+          <button class="iconbtn"><span class="ms">close</span></button>
+          <div class="title">Ürün ekle</div>
+          <button class="btn btn-text" style="height:40px">Taslak</button>
+        </div>
+        <div class="body">
+          <div class="upload">
+            <span class="ms">add_a_photo</span>
+            <b>Kapak fotoğrafını çek</b>
+            <span>Gerçek çekim · AI kalite kontrolünden geçer</span>
+          </div>
+          <div class="thumbs">
+            <div class="t"><img src="assets/product-wooden-close.jpg" alt=""></div>
+            <div class="t"><img src="assets/product-wooden-blocks.jpg" alt=""></div>
+            <div class="t"><span class="ms">add</span></div>
+            <div class="t"><span class="ms">add</span></div>
+          </div>
+          <div class="ai-card">
+            <div class="ac-ic"><span class="ms">auto_awesome</span></div>
+            <div style="flex:1">
+              <b>AI fotoğraf kontrolü</b>
+              <span>Gerçek çekim · kategori: Montessori / ahşap</span>
+            </div>
+            <div class="ok"><span class="ms fill">check_circle</span></div>
+          </div>
+          <div class="field-label">KONDİSYON</div>
+          <div class="seg">
+            <button>İyi</button>
+            <button class="sel">Az kullanılmış</button>
+            <button>Yeni gibi</button>
+          </div>
+          <div class="field-label">PUAN HESABI</div>
+          <div class="calc">
+            <div class="row">Kategori taban puanı <b>500</b></div>
+            <div class="row">Kondisyon: az kullanılmış <b>× 0.90</b></div>
+            <div class="row">Tamlık: tüm parçalar <b>× 1.00</b></div>
+            <div class="row">Gerçek fotoğraf bonusu <b>+ 20</b></div>
+          </div>
+          <div class="calc-total">
+            <div><small>Önerilen takas değeri</small><strong>470</strong></div>
+            <b style="font-size:14px">puan</b>
+          </div>
+        </div>
+        <div class="actionbar">
+          <button class="btn btn-filled"><span class="ms">check</span>Rafa ekle</button>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ============ 4) GÜVENLİ HAVUZ TAKAS AKIŞI ============ -->
+    <div class="device">
+      <div class="label">4 · Güvenli Havuz Akışı<small>Escrow · 4 adımlı stepper</small></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="icons"><span class="ms">signal_cellular_alt</span><span class="ms">wifi</span><span class="ms">battery_full</span></span></div>
+        <div class="appbar center">
+          <button class="iconbtn"><span class="ms">arrow_back</span></button>
+          <div class="title">Takas durumu</div>
+          <button class="iconbtn"><span class="ms">help</span></button>
+        </div>
+        <div class="body">
+          <div class="trade-summary">
+            <div class="ts-img"><img src="assets/product-montessori-rings.jpg" alt=""></div>
+            <div style="flex:1">
+              <b>Montessori halka kulesi</b>
+              <span>Zeynep D. ile takas · 340 puan</span>
+            </div>
+            <span class="pc-points" style="margin:0"><span class="ms">lock</span>Havuzda</span>
+          </div>
+          <div class="stepper">
+            <div class="step done">
+              <div class="rail"><div class="dot"><span class="ms">check</span></div><div class="line"></div></div>
+              <div class="sc">
+                <b>Alıcı puanı havuza alındı</b>
+                <p>340 puan güvenli havuzda kilitlendi.</p>
+                <span class="pill-status"><span class="ms">check_circle</span>Tamamlandı</span>
+              </div>
+            </div>
+            <div class="step done">
+              <div class="rail"><div class="dot"><span class="ms">check</span></div><div class="line"></div></div>
+              <div class="sc">
+                <b>Paketleme kanıtı yüklendi</b>
+                <p>Satıcı kargo öncesi fotoğraf ve barkodu ekledi.</p>
+                <span class="pill-status"><span class="ms">check_circle</span>Tamamlandı</span>
+              </div>
+            </div>
+            <div class="step active">
+              <div class="rail"><div class="dot">3</div><div class="line"></div></div>
+              <div class="sc">
+                <b>Kargoda</b>
+                <p>Ürün yolda. Teslimat tahmini: 2 gün içinde.</p>
+                <span class="pill-status"><span class="ms">local_shipping</span>Devam ediyor</span>
+              </div>
+            </div>
+            <div class="step todo">
+              <div class="rail"><div class="dot">4</div><div class="line"></div></div>
+              <div class="sc">
+                <b>Teslim onayı · puan aktarımı</b>
+                <p>48 saat içinde sorun bildirilmezse puan satıcıya geçer.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="actionbar">
+          <button class="btn btn-outline"><span class="ms">report</span>Sorun bildir</button>
+          <button class="btn btn-tonal"><span class="ms">qr_code_scanner</span>Takip</button>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ============ 5) CÜZDAN ============ -->
+    <div class="device">
+      <div class="label">5 · Cüzdan<small>Wallet · bakiye + işlem geçmişi</small></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="icons"><span class="ms">signal_cellular_alt</span><span class="ms">wifi</span><span class="ms">battery_full</span></span></div>
+        <div class="appbar">
+          <div class="title">Cüzdan</div>
+          <button class="iconbtn"><span class="ms">history</span></button>
+          <button class="iconbtn"><span class="ms">more_vert</span></button>
+        </div>
+        <div class="body">
+          <div class="balance-card">
+            <div class="glow"></div>
+            <small>Kullanılabilir Takas Puanı</small>
+            <div class="amt">1.260</div>
+            <div class="sub">
+              <div>Havuzda<b>360</b></div>
+              <div>Bu ay kazanılan<b>+540</b></div>
+              <div>Güven skoru<b>96</b></div>
+            </div>
+          </div>
+          <div class="quick">
+            <button><span class="ic"><span class="ms">add_a_photo</span></span>Puan kazan</button>
+            <button><span class="ic"><span class="ms">swap_horiz</span></span>Takas yap</button>
+            <button><span class="ic"><span class="ms">card_giftcard</span></span>Davet et</button>
+          </div>
+          <div class="section-title">Son hareketler</div>
+          <div class="litem">
+            <div class="lic"><img src="assets/product-color-sorter.jpg" alt=""></div>
+            <div class="lt"><b>Renk ayırma oyunu eklendi</b><span>21 Haz · AI onaylı</span></div>
+            <div class="lv pos">+260</div>
+          </div>
+          <div class="divider"></div>
+          <div class="litem">
+            <div class="lic"><span class="ms">lock</span></div>
+            <div class="lt"><b>Halka kulesi · havuzda</b><span>Teslim onayı bekliyor</span></div>
+            <div class="lv pool">−340</div>
+          </div>
+          <div class="divider"></div>
+          <div class="litem">
+            <div class="lic"><img src="assets/product-wooden-blocks.jpg" alt=""></div>
+            <div class="lt"><b>Ahşap blok takası tamamlandı</b><span>18 Haz · güven +2</span></div>
+            <div class="lv pos">+420</div>
+          </div>
+          <div class="divider"></div>
+          <div class="litem">
+            <div class="lic"><span class="ms">card_giftcard</span></div>
+            <div class="lt"><b>Davet bonusu</b><span>15 Haz · arkadaş katıldı</span></div>
+            <div class="lv pos">+100</div>
+          </div>
+        </div>
+        <nav class="navbar">
+          <button class="navitem"><span class="pill"><span class="ms">storefront</span></span>Raf</button>
+          <button class="navitem"><span class="pill"><span class="ms">search</span></span>Keşfet</button>
+          <button class="navitem"><span class="pill"><span class="ms">swap_horiz</span></span>Takaslar</button>
+          <button class="navitem active"><span class="pill"><span class="ms">account_balance_wallet</span></span>Cüzdan</button>
+          <button class="navitem"><span class="pill"><span class="ms">person</span></span>Profil</button>
+        </nav>
+      </div></div>
+    </div>
+
+  </main>
+
+  <footer class="foot">
+    KIDS TRADE mobil UI · Material Design 3 referans tasarımı — tek dosya, bağımsız çalışır.<br>
+    Tarayıcıda açmak için: <code>mobile-app-ui.html</code> · Ürün görselleri <code>assets/</code> klasöründen gelir.
+  </footer>
+
+</body>
+</html>
