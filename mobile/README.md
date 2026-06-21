@@ -11,18 +11,41 @@ gönderilir. Material Design 3 tema, file-based routing (Expo Router) ile kurulm
 - **Expo SDK 52** + **React Native 0.76**
 - **Expo Router** (dosya tabanlı navigasyon, `app/` klasörü)
 - **TypeScript** (strict)
-- **@expo/vector-icons** (Material Icons)
+- **@expo/vector-icons** (Material Icons) · **react-native-svg** · **expo-linear-gradient**
+- **Supabase** (`@supabase/supabase-js`) — Auth + puan defteri okuma
 - **EAS Build / Submit** (mağaza derleme + yayın)
 
 ## Ekranlar
 | Yol | Ekran |
 |-----|-------|
-| `app/(tabs)/index.tsx` | Takas Rafı (browse + filtre + FAB) |
+| `app/onboarding.tsx` | Giriş/Onboarding (Google/Apple OAuth + e-posta) |
+| `app/sign-in.tsx` | E-posta/şifre giriş & kayıt |
+| `app/(tabs)/index.tsx` | Takas Rafı (öne çıkanlar + filtre + FAB) |
 | `app/(tabs)/discover.tsx` | Keşfet |
 | `app/(tabs)/trades.tsx` | Takas durumu (güvenli havuz stepper) |
-| `app/(tabs)/wallet.tsx` | Cüzdan (bakiye + işlem geçmişi) |
-| `app/(tabs)/profile.tsx` | Profil |
-| `app/product/[id].tsx` | Ürün detayı (güvenli havuz + action bar) |
+| `app/(tabs)/wallet.tsx` | Cüzdan (canlı bakiye + işlem geçmişi) |
+| `app/(tabs)/profile.tsx` | Profil & Güven (çıkış) |
+| `app/product/[id].tsx` | Ürün detayı (galeri + güvenli havuz) |
+
+## Backend bağlantısı (Supabase)
+Cüzdan ve auth, `../supabase/` altındaki puan defterine bağlanır.
+- `lib/supabase.ts` — ANON anahtarla istemci (PKCE akışı)
+- `lib/auth.tsx` — `AuthProvider` / `useAuth`: e-posta + Google/Apple OAuth, oturum
+- `lib/wallet.ts` + `hooks/useWallet.ts` — `wallets`/`wallet_entries` okuma
+
+**Ortam değişkenleri** (`.env.example` → `.env`):
+```
+EXPO_PUBLIC_SUPABASE_URL=https://<ref>.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+```
+> Anahtar **yoksa** uygulama otomatik **DEMO** modda çalışır (örnek veri, giriş
+> kapısı uygulanmaz) — tasarım incelemesi için idealdir. Anahtar + oturumla
+> cüzdan/profil **canlıya** döner (RLS `auth.uid()` üzerinden korunur).
+> `service_role` anahtarı **asla** mobilde olmaz; yalnızca backend'de.
+
+OAuth'un gerçek çalışması için Supabase dashboard'da Google/Apple provider'ları
+etkinleştirilmeli ve redirect URL'e `kidstrade://auth-callback` eklenmelidir.
+E-posta/şifre ise ekstra config gerektirmez.
 
 ## Yerel geliştirme
 ```bash
@@ -92,4 +115,6 @@ eas submit --platform android --profile production --latest
 - `assets/app/icon.png`, `adaptive-icon.png`, `splash.png` marka placeholder'larıdır;
   nihai görsellerle değiştirilebilir.
 - Ürün verisi şimdilik `data/products.ts` içinde statiktir; canlıya geçişte
-  backend/Supabase API'sine bağlanır.
+  `products` tablosuna bağlanır (cüzdan + auth zaten Supabase'e bağlı).
+- `metro.config.js`, `supabase-js`'in opsiyonel `@opentelemetry/api` importunu boş
+  modüle yönlendirir (web + native build için gerekli).
