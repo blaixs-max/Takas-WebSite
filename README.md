@@ -9,6 +9,7 @@ havuzda** bekler ve sistem hem alıcıyı hem satıcıyı korur.
 | Klasör | Açıklama |
 |--------|----------|
 | **`mobile/`** | **Aktif proje** — Expo + React Native mobil uygulaması (iOS + Android), Material Design 3 v2 tasarımı. |
+| `supabase/` | Ödeme backend'i — iyzico Checkout Form ile kargo tahsilatı + komisyon (Edge Functions) |
 | `screens/` | Tasarımın render edilmiş ekran görüntüleri (7 ekran) |
 | `archive/` | Önceki HTML projesi (web prototipi + tasarım mockup'ı) — referans amaçlı |
 
