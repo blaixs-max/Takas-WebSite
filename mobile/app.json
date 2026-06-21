@@ -31,6 +31,10 @@
       },
       "permissions": ["CAMERA", "READ_MEDIA_IMAGES"]
     },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
     "plugins": ["expo-router", "expo-font"],
     "experiments": {
       "typedRoutes": true
