@@ -1,13 +1,34 @@
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '../lib/auth';
 import { colors, elevation, shape } from '../theme/tokens';
 
 export default function Onboarding() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { configured, signInWithOAuth } = useAuth();
+  const [busy, setBusy] = useState<null | 'google' | 'apple'>(null);
+
+  async function oauth(provider: 'google' | 'apple') {
+    // Supabase yoksa demo: doğrudan uygulamaya gir
+    if (!configured) {
+      router.replace('/(tabs)');
+      return;
+    }
+    setBusy(provider);
+    const res = await signInWithOAuth(provider);
+    setBusy(null);
+    // Başarılıysa oturum dinleyicisi (_layout) yönlendirir.
+  }
+
+  function start() {
+    if (!configured) router.replace('/(tabs)');
+    else router.push('/sign-in');
+  }
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -45,25 +66,39 @@ export default function Onboarding() {
         </View>
 
         <View style={styles.cta}>
-          <Pressable style={styles.primary} onPress={() => router.replace('/(tabs)')}>
+          <Pressable style={styles.primary} onPress={start}>
             <MaterialIcons name="rocket-launch" size={22} color="#fff" />
             <Text style={styles.primaryText}>Hemen başla</Text>
           </Pressable>
           <View style={styles.social}>
-            <Pressable style={styles.socialBtn} onPress={() => router.replace('/(tabs)')}>
-              <View style={styles.gBadge}>
-                <Text style={styles.gBadgeText}>G</Text>
-              </View>
-              <Text style={styles.socialText}>Google</Text>
+            <Pressable style={styles.socialBtn} onPress={() => oauth('google')} disabled={busy !== null}>
+              {busy === 'google' ? (
+                <ActivityIndicator size="small" color={colors.onSurface} />
+              ) : (
+                <>
+                  <View style={styles.gBadge}>
+                    <Text style={styles.gBadgeText}>G</Text>
+                  </View>
+                  <Text style={styles.socialText}>Google</Text>
+                </>
+              )}
             </Pressable>
-            <Pressable style={styles.socialBtn} onPress={() => router.replace('/(tabs)')}>
-              <MaterialIcons name="phone-iphone" size={19} color={colors.onSurface} />
-              <Text style={styles.socialText}>Apple</Text>
+            <Pressable style={styles.socialBtn} onPress={() => oauth('apple')} disabled={busy !== null}>
+              {busy === 'apple' ? (
+                <ActivityIndicator size="small" color={colors.onSurface} />
+              ) : (
+                <>
+                  <MaterialIcons name="phone-iphone" size={19} color={colors.onSurface} />
+                  <Text style={styles.socialText}>Apple</Text>
+                </>
+              )}
             </Pressable>
           </View>
-          <Text style={styles.login}>
-            Zaten hesabın var mı? <Text style={styles.loginLink}>Giriş yap</Text>
-          </Text>
+          <Pressable onPress={start}>
+            <Text style={styles.login}>
+              Zaten hesabın var mı? <Text style={styles.loginLink}>Giriş yap</Text>
+            </Text>
+          </Pressable>
         </View>
       </View>
     </View>

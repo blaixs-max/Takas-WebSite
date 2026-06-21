@@ -3,6 +3,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '../../lib/auth';
 import { colors, elevation, shape } from '../../theme/tokens';
 
 const LISTINGS = [
@@ -46,6 +47,13 @@ function TrustRing({ score }: { score: number }) {
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const { user, signOut } = useAuth();
+  // Oturum varsa e-postadan ad türet; yoksa demo isim
+  const email = user?.email ?? null;
+  const displayName = email ? email.split('@')[0] : 'Emrah Atabek';
+  const parts = displayName.split(/[\s._-]+/).filter(Boolean);
+  const initials = (parts.length > 1 ? parts[0][0] + parts[1][0] : displayName.slice(0, 2)).toUpperCase();
+  const memberLine = email ? email : 'Kadıköy, İstanbul · 2024\'ten beri';
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.appbar}>
@@ -64,19 +72,19 @@ export default function ProfileScreen() {
           <LinearGradient colors={colors.coverGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.cover} />
           <View style={styles.id}>
             <View style={styles.av}>
-              <Text style={styles.avText}>EA</Text>
+              <Text style={styles.avText}>{initials}</Text>
               <View style={styles.avOk}>
                 <MaterialIcons name="check" size={13} color="#fff" />
               </View>
             </View>
             <View style={styles.meta}>
               <View style={styles.nameRow}>
-                <Text style={styles.name}>Emrah Atabek</Text>
+                <Text style={styles.name} numberOfLines={1}>{displayName}</Text>
                 <MaterialIcons name="verified" size={18} color={colors.primary} />
               </View>
               <View style={styles.locRow}>
-                <MaterialIcons name="place" size={15} color={colors.onSurfaceVariant} />
-                <Text style={styles.loc}>Kadıköy, İstanbul · 2024'ten beri</Text>
+                <MaterialIcons name={email ? 'mail-outline' : 'place'} size={15} color={colors.onSurfaceVariant} />
+                <Text style={styles.loc} numberOfLines={1}>{memberLine}</Text>
               </View>
             </View>
             <Pressable style={styles.iconBtn}>
@@ -124,7 +132,7 @@ export default function ProfileScreen() {
           </View>
 
           {/* Ayarlar */}
-          {SETTINGS.map((s, i) => (
+          {SETTINGS.map((s) => (
             <View key={s.label}>
               <View style={styles.setrow}>
                 <View style={styles.si}>
@@ -133,9 +141,19 @@ export default function ProfileScreen() {
                 <Text style={styles.st}>{s.label}</Text>
                 <MaterialIcons name="chevron-right" size={20} color={colors.outline} />
               </View>
-              {i < SETTINGS.length - 1 && <View style={styles.divider} />}
+              <View style={styles.divider} />
             </View>
           ))}
+
+          {/* Çıkış */}
+          <Pressable style={styles.setrow} onPress={signOut}>
+            <View style={[styles.si, { backgroundColor: colors.errorContainer }]}>
+              <MaterialIcons name="logout" size={21} color={colors.error} />
+            </View>
+            <Text style={[styles.st, { color: colors.error }]}>
+              {user ? 'Çıkış yap' : 'Çıkış yap (oturum yok)'}
+            </Text>
+          </Pressable>
         </View>
       </ScrollView>
     </View>
