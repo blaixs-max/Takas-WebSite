@@ -4,6 +4,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useProduct } from '../../hooks/useProducts';
+import { useFavorites } from '../../lib/favorites';
+import { shareProduct } from '../../lib/share';
 import { colors, elevation, shape } from '../../theme/tokens';
 
 export default function ProductDetail() {
@@ -11,7 +13,9 @@ export default function ProductDetail() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { product, loading } = useProduct(id);
+  const { isFavorite, toggle } = useFavorites();
   const [activeImg, setActiveImg] = useState(0);
+  const fav = product ? isFavorite(product.id) : false;
 
   if (loading && !product) {
     return (
@@ -40,11 +44,11 @@ export default function ProductDetail() {
           <MaterialIcons name="arrow-back" size={24} color={colors.onSurface} />
         </Pressable>
         <Text style={styles.appTitle}>Ürün detayı</Text>
-        <Pressable style={styles.iconBtn}>
+        <Pressable style={styles.iconBtn} onPress={() => shareProduct(product)}>
           <MaterialIcons name="share" size={24} color={colors.onSurface} />
         </Pressable>
-        <Pressable style={styles.iconBtn}>
-          <MaterialIcons name="favorite-border" size={24} color={colors.onSurface} />
+        <Pressable style={styles.iconBtn} onPress={() => toggle(product.id)}>
+          <MaterialIcons name={fav ? 'favorite' : 'favorite-border'} size={24} color={fav ? colors.tertiary : colors.onSurface} />
         </Pressable>
       </View>
 

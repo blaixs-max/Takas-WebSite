@@ -4,14 +4,15 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ProductCard } from '../components/ProductCard';
 import { useProducts } from '../hooks/useProducts';
+import { useFavorites } from '../lib/favorites';
 import { colors, shape } from '../theme/tokens';
 
 export default function Favorites() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { products } = useProducts();
-  // Demo: favori işaretli + ilk birkaç ürünü favori say
-  const favs = products.filter((p, i) => p.favorite || i < 3);
+  const { isFavorite } = useFavorites();
+  const favs = products.filter((p) => isFavorite(p.id));
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -35,7 +36,7 @@ export default function Favorites() {
           <View style={styles.grid}>
             {favs.map((p) => (
               <View key={p.id} style={styles.cell}>
-                <ProductCard product={{ ...p, favorite: true }} />
+                <ProductCard product={p} />
               </View>
             ))}
           </View>

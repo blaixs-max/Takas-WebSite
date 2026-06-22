@@ -2,10 +2,13 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { Product } from '../data/products';
+import { useFavorites } from '../lib/favorites';
 import { colors, elevation, shape } from '../theme/tokens';
 
 /** v2 ürün kartı — kondisyon rozeti, favori, puan pill'i + satıcı avatarı. */
 export function ProductCard({ product }: { product: Product }) {
+  const { isFavorite, toggle } = useFavorites();
+  const fav = isFavorite(product.id);
   return (
     <Link href={`/product/${product.id}`} asChild>
       <Pressable style={styles.card}>
@@ -14,13 +17,13 @@ export function ProductCard({ product }: { product: Product }) {
           <View style={styles.cond}>
             <Text style={styles.condText}>{product.condition}</Text>
           </View>
-          <View style={styles.fav}>
+          <Pressable style={styles.fav} onPress={() => toggle(product.id)} hitSlop={8}>
             <MaterialIcons
-              name={product.favorite ? 'favorite' : 'favorite-border'}
+              name={fav ? 'favorite' : 'favorite-border'}
               size={19}
-              color={product.favorite ? colors.tertiary : colors.onSurface}
+              color={fav ? colors.tertiary : colors.onSurface}
             />
-          </View>
+          </Pressable>
         </View>
         <View style={styles.pc}>
           <Text style={styles.tt} numberOfLines={2}>

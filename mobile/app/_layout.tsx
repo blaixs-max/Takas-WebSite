@@ -4,6 +4,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../lib/auth';
+import { FavoritesProvider } from '../lib/favorites';
 import { colors } from '../theme/tokens';
 
 const AUTH_ROUTES = ['onboarding', 'sign-in', 'auth-callback'];
@@ -63,7 +64,9 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <StatusBar style="dark" />
       <AuthProvider>
-        <RootNavigator />
+        <FavoritesProvider>
+          <RootNavigator />
+        </FavoritesProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );
