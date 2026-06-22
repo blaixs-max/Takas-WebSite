@@ -18,9 +18,15 @@ export default function ShelfScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [active, setActive] = useState('Tümü');
+  const [q, setQ] = useState('');
   const { products, featured, loading, refreshing, refresh } = useProducts();
 
-  const visible = active === 'Tümü' ? products : products.filter((p) => p.category === active);
+  const query = q.toLowerCase().trim();
+  const visible = products.filter(
+    (p) =>
+      (active === 'Tümü' || p.category === active) &&
+      (!query || p.title.toLowerCase().includes(query) || p.category.toLowerCase().includes(query)),
+  );
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -56,8 +62,16 @@ export default function ShelfScreen() {
               placeholder="Oyuncak, kitap, montessori…"
               placeholderTextColor={colors.onSurfaceVariant}
               style={styles.searchInput}
+              value={q}
+              onChangeText={setQ}
             />
-            <MaterialIcons name="mic" size={24} color={colors.onSurfaceVariant} />
+            {q.length > 0 ? (
+              <Pressable onPress={() => setQ('')}>
+                <MaterialIcons name="close" size={22} color={colors.onSurfaceVariant} />
+              </Pressable>
+            ) : (
+              <MaterialIcons name="mic" size={24} color={colors.onSurfaceVariant} />
+            )}
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>EA</Text>
             </View>

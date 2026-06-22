@@ -5,6 +5,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useProduct } from '../../hooks/useProducts';
 import { useFavorites } from '../../lib/favorites';
+import { useCart } from '../../lib/cart';
 import { shareProduct } from '../../lib/share';
 import { colors, elevation, shape } from '../../theme/tokens';
 
@@ -14,8 +15,10 @@ export default function ProductDetail() {
   const insets = useSafeAreaInsets();
   const { product, loading } = useProduct(id);
   const { isFavorite, toggle } = useFavorites();
+  const { inCart, toggle: toggleCart } = useCart();
   const [activeImg, setActiveImg] = useState(0);
   const fav = product ? isFavorite(product.id) : false;
+  const inSepet = product ? inCart(product.id) : false;
 
   if (loading && !product) {
     return (
@@ -143,8 +146,15 @@ export default function ProductDetail() {
       </ScrollView>
 
       <View style={[styles.actionbar, { paddingBottom: insets.bottom + 14 }]}>
-        <Pressable style={styles.iconSquare}>
-          <MaterialIcons name="bookmark-border" size={24} color={colors.onSurface} />
+        <Pressable
+          style={[styles.iconSquare, inSepet && { backgroundColor: colors.primaryContainer }]}
+          onPress={() => toggleCart(product.id)}
+        >
+          <MaterialIcons
+            name={inSepet ? 'shopping-cart' : 'add-shopping-cart'}
+            size={24}
+            color={inSepet ? colors.onPrimaryContainer : colors.onSurface}
+          />
         </Pressable>
         <Pressable style={styles.cta} onPress={() => router.push('/trades')}>
           <MaterialIcons name="swap-horiz" size={20} color="#fff" />

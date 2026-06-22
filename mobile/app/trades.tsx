@@ -1,7 +1,8 @@
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, elevation, shape } from '../../theme/tokens';
+import { colors, elevation, shape } from '../theme/tokens';
 
 type StepState = 'done' | 'active' | 'todo';
 type Step = {
@@ -30,8 +31,8 @@ const STEPS: Step[] = [
     status: 'Tamamlandı',
     icon: 'check-circle',
     proof: [
-      require('../../assets/products/product-rings-close.jpg'),
-      require('../../assets/products/product-montessori-rings.jpg'),
+      require('../assets/products/product-rings-close.jpg'),
+      require('../assets/products/product-montessori-rings.jpg'),
     ],
   },
   {
@@ -50,9 +51,13 @@ const STEPS: Step[] = [
 
 export default function TradesScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.appbar}>
+        <Pressable style={styles.iconBtn} onPress={() => router.back()}>
+          <MaterialIcons name="arrow-back" size={24} color={colors.onSurface} />
+        </Pressable>
         <Text style={styles.appTitle}>Takas durumu</Text>
         <View style={styles.iconBtn}>
           <MaterialIcons name="help-outline" size={24} color={colors.onSurface} />
@@ -62,7 +67,7 @@ export default function TradesScreen() {
       <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         <View style={styles.summary}>
           <View style={styles.summaryImg}>
-            <Image source={require('../../assets/products/product-montessori-rings.jpg')} style={{ width: '100%', height: '100%' }} />
+            <Image source={require('../assets/products/product-montessori-rings.jpg')} style={{ width: '100%', height: '100%' }} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.summaryTitle}>Montessori halka kulesi</Text>
@@ -131,7 +136,7 @@ export default function TradesScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
   appbar: { flexDirection: 'row', alignItems: 'center', height: 56, paddingHorizontal: 6 },
-  appTitle: { flex: 1, fontSize: 22, fontWeight: '700', paddingLeft: 10, color: colors.onSurface },
+  appTitle: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: colors.onSurface },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   summary: {
     flexDirection: 'row',

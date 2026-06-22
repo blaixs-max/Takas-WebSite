@@ -11,13 +11,13 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useWallet } from '../../hooks/useWallet';
-import { WalletTx } from '../../lib/wallet';
-import { colors, elevation, shape } from '../../theme/tokens';
+import { useWallet } from '../hooks/useWallet';
+import { WalletTx } from '../lib/wallet';
+import { colors, elevation, shape } from '../theme/tokens';
 
 const QUICK = [
   { icon: 'add-a-photo', label: 'Puan kazan', href: '/add-listing' },
-  { icon: 'swap-horiz', label: 'Takas yap', href: '/discover' },
+  { icon: 'shopping-cart', label: 'Sepetim', href: '/cart' },
   { icon: 'card-giftcard', label: 'Davet et', href: null },
 ] as const;
 
@@ -35,6 +35,9 @@ export default function WalletScreen() {
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.appbar}>
+        <Pressable style={styles.iconBtn} onPress={() => router.back()}>
+          <MaterialIcons name="arrow-back" size={24} color={colors.onSurface} />
+        </Pressable>
         <Text style={styles.appTitle}>Cüzdan</Text>
         {source === 'demo' && (
           <View style={styles.demoChip}>

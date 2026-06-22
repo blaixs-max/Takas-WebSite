@@ -2,6 +2,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle } from 'react-native-svg';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../lib/auth';
 import { colors, elevation, shape } from '../../theme/tokens';
@@ -47,6 +48,7 @@ function TrustRing({ score }: { score: number }) {
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { user, signOut } = useAuth();
   // Oturum varsa e-postadan ad türet; yoksa demo isim
   const email = user?.email ?? null;
@@ -113,6 +115,35 @@ export default function ProfileScreen() {
             <Stat value="38" label="Başarılı takas" />
             <Stat value="1.260" label="Takas Puanı" />
             <Stat value="4.9" label="★ Değerlendirme" />
+          </View>
+
+          {/* Hesabım — Takaslar & Cüzdan buraya taşındı */}
+          <Text style={styles.secTitle}>Hesabım</Text>
+          <View style={styles.account}>
+            <Pressable style={styles.accRow} onPress={() => router.push('/wallet')}>
+              <View style={[styles.accIc, { backgroundColor: colors.primaryContainer }]}>
+                <MaterialIcons name="account-balance-wallet" size={22} color={colors.onPrimaryContainer} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.accTitle}>Cüzdanım</Text>
+                <Text style={styles.accSub}>1.260 puan · 360 havuzda</Text>
+              </View>
+              <MaterialIcons name="chevron-right" size={22} color={colors.outline} />
+            </Pressable>
+            <View style={styles.divider} />
+            <Pressable style={styles.accRow} onPress={() => router.push('/trades')}>
+              <View style={[styles.accIc, { backgroundColor: colors.secondaryContainer }]}>
+                <MaterialIcons name="swap-horiz" size={22} color={colors.onSecondaryContainer} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.accTitle}>Takaslarım</Text>
+                <Text style={styles.accSub}>1 aktif takas · güvenli havuz</Text>
+              </View>
+              <View style={styles.accBadge}>
+                <Text style={styles.accBadgeText}>1</Text>
+              </View>
+              <MaterialIcons name="chevron-right" size={22} color={colors.outline} />
+            </Pressable>
           </View>
 
           {/* İlanlar */}
@@ -232,6 +263,13 @@ const styles = StyleSheet.create({
   },
   statValue: { fontSize: 22, fontWeight: '800', letterSpacing: -0.5, color: colors.onSurface },
   statLabel: { fontSize: 11.5, color: colors.onSurfaceVariant, fontWeight: '600', marginTop: 2 },
+  account: { backgroundColor: colors.surfaceContainerLow, borderRadius: shape.md, marginTop: 12, marginBottom: 20, paddingHorizontal: 14, ...elevation.level1 },
+  accRow: { flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 13 },
+  accIc: { width: 44, height: 44, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center' },
+  accTitle: { fontSize: 14, fontWeight: '700', color: colors.onSurface },
+  accSub: { fontSize: 12, color: colors.onSurfaceVariant, fontWeight: '500', marginTop: 2 },
+  accBadge: { minWidth: 20, height: 20, paddingHorizontal: 6, borderRadius: shape.full, backgroundColor: colors.error, alignItems: 'center', justifyContent: 'center', marginRight: 4 },
+  accBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
   sec: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 },
   secTitle: { fontSize: 16, fontWeight: '700', color: colors.onSurface },
   secLink: { fontSize: 13, fontWeight: '700', color: colors.primary },

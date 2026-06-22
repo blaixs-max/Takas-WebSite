@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../lib/auth';
 import { FavoritesProvider } from '../lib/favorites';
+import { CartProvider } from '../lib/cart';
 import { colors } from '../theme/tokens';
 
 const AUTH_ROUTES = ['onboarding', 'sign-in', 'auth-callback'];
@@ -50,6 +51,8 @@ function RootNavigator() {
       <Stack.Screen name="onboarding" />
       <Stack.Screen name="sign-in" options={{ presentation: 'modal' }} />
       <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="trades" options={{ presentation: 'card' }} />
+      <Stack.Screen name="wallet" options={{ presentation: 'card' }} />
       <Stack.Screen name="product/[id]" options={{ presentation: 'card' }} />
       <Stack.Screen name="add-listing" options={{ presentation: 'modal' }} />
       <Stack.Screen name="notifications" options={{ presentation: 'card' }} />
@@ -65,7 +68,9 @@ export default function RootLayout() {
       <StatusBar style="dark" />
       <AuthProvider>
         <FavoritesProvider>
-          <RootNavigator />
+          <CartProvider>
+            <RootNavigator />
+          </CartProvider>
         </FavoritesProvider>
       </AuthProvider>
     </SafeAreaProvider>

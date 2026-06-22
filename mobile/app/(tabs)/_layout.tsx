@@ -1,9 +1,11 @@
 import { Tabs } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, shape } from '../../theme/tokens';
+import { useCart } from '../../lib/cart';
 
-/** M3 Navigation Bar — aktif sekmede pill (secondary container) göstergesi. */
+/** M3 Navigation Bar — Raf · Sepet · Profil (Takaslar & Cüzdan, Profil altında) */
 export default function TabsLayout() {
+  const { count } = useCart();
   return (
     <Tabs
       screenOptions={{
@@ -31,33 +33,23 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="discover"
+        name="cart"
         options={{
-          title: 'Keşfet',
-          tabBarIcon: ({ color }) => <MaterialIcons name="explore" size={24} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="trades"
-        options={{
-          title: 'Takaslar',
-          tabBarBadge: 2,
-          tabBarBadgeStyle: { backgroundColor: colors.error, fontSize: 10 },
-          tabBarIcon: ({ color }) => <MaterialIcons name="swap-horiz" size={24} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="wallet"
-        options={{
-          title: 'Cüzdan',
-          tabBarIcon: ({ color }) => <MaterialIcons name="account-balance-wallet" size={24} color={color} />,
+          title: 'Sepet',
+          tabBarBadge: count > 0 ? count : undefined,
+          tabBarBadgeStyle: { backgroundColor: colors.primary, fontSize: 10 },
+          tabBarIcon: ({ color, focused }) => (
+            <MaterialIcons name="shopping-cart" size={24} color={focused ? colors.onSecondaryContainer : color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profil',
-          tabBarIcon: ({ color }) => <MaterialIcons name="person" size={24} color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <MaterialIcons name="person" size={24} color={focused ? colors.onSecondaryContainer : color} />
+          ),
         }}
       />
     </Tabs>
