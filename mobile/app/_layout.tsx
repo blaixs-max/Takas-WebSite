@@ -50,6 +50,10 @@ function RootNavigator() {
       <Stack.Screen name="sign-in" options={{ presentation: 'modal' }} />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="product/[id]" options={{ presentation: 'card' }} />
+      <Stack.Screen name="add-listing" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="notifications" options={{ presentation: 'card' }} />
+      <Stack.Screen name="favorites" options={{ presentation: 'card' }} />
+      <Stack.Screen name="chat/[id]" options={{ presentation: 'card' }} />
     </Stack>
   );
 }

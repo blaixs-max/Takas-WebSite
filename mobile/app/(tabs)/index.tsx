@@ -33,10 +33,10 @@ export default function ShelfScreen() {
           <Text style={styles.greeting}>Merhaba, Emrah</Text>
           <Text style={styles.sub}>Kadıköy · 1.248 ürün takasta</Text>
         </View>
-        <Pressable style={styles.iconBtn}>
+        <Pressable style={styles.iconBtn} onPress={() => router.push('/favorites')}>
           <MaterialIcons name="favorite-border" size={24} color={colors.onSurface} />
         </Pressable>
-        <Pressable style={styles.iconBtn}>
+        <Pressable style={styles.iconBtn} onPress={() => router.push('/notifications')}>
           <MaterialIcons name="notifications-none" size={24} color={colors.onSurface} />
           <View style={styles.badge}>
             <Text style={styles.badgeText}>3</Text>
@@ -130,7 +130,7 @@ export default function ShelfScreen() {
       </ScrollView>
 
       {/* Extended FAB */}
-      <Pressable style={styles.fab} onPress={() => router.push('/product/blocks')}>
+      <Pressable style={styles.fab} onPress={() => router.push('/add-listing')}>
         <MaterialIcons name="add-a-photo" size={22} color={colors.onTertiaryContainer} />
         <Text style={styles.fabText}>Ürün ekle</Text>
       </Pressable>

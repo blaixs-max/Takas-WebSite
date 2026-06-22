@@ -116,7 +116,7 @@ export default function ProductDetail() {
               </Text>
             </View>
           </View>
-          <Pressable style={styles.iconBtn}>
+          <Pressable style={styles.iconBtn} onPress={() => router.push(`/chat/${product.seller.initials}`)}>
             <MaterialIcons name="chat-bubble-outline" size={22} color={colors.onSurface} />
           </Pressable>
         </View>
@@ -142,7 +142,7 @@ export default function ProductDetail() {
         <Pressable style={styles.iconSquare}>
           <MaterialIcons name="bookmark-border" size={24} color={colors.onSurface} />
         </Pressable>
-        <Pressable style={styles.cta}>
+        <Pressable style={styles.cta} onPress={() => router.push('/trades')}>
           <MaterialIcons name="swap-horiz" size={20} color="#fff" />
           <Text style={styles.ctaText}>Takas et · {product.points} puan</Text>
         </Pressable>

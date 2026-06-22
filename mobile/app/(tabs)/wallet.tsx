@@ -1,5 +1,6 @@
 import {
   ActivityIndicator,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -8,15 +9,16 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useWallet } from '../../hooks/useWallet';
 import { WalletTx } from '../../lib/wallet';
 import { colors, elevation, shape } from '../../theme/tokens';
 
 const QUICK = [
-  { icon: 'add-a-photo', label: 'Puan kazan' },
-  { icon: 'swap-horiz', label: 'Takas yap' },
-  { icon: 'card-giftcard', label: 'Davet et' },
+  { icon: 'add-a-photo', label: 'Puan kazan', href: '/add-listing' },
+  { icon: 'swap-horiz', label: 'Takas yap', href: '/discover' },
+  { icon: 'card-giftcard', label: 'Davet et', href: null },
 ] as const;
 
 /** Binlik ayraçlı sayı (Hermes'te Intl'e bağımlı olmadan). */
@@ -26,6 +28,7 @@ const nf = {
 
 export default function WalletScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { data, loading, refreshing, refresh } = useWallet();
   const { balance, entries, source } = data;
 
@@ -79,12 +82,12 @@ export default function WalletScreen() {
         {/* Hızlı işlemler */}
         <View style={styles.quick}>
           {QUICK.map((q) => (
-            <View key={q.label} style={styles.quickBtn}>
+            <Pressable key={q.label} style={styles.quickBtn} onPress={() => q.href && router.push(q.href)}>
               <View style={styles.quickIc}>
                 <MaterialIcons name={q.icon} size={22} color={colors.onPrimaryContainer} />
               </View>
               <Text style={styles.quickLabel}>{q.label}</Text>
-            </View>
+            </Pressable>
           ))}
         </View>
 
