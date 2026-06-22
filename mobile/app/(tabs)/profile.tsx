@@ -68,30 +68,31 @@ export default function ProfileScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
-        {/* Kapak + kimlik */}
+        {/* Kapak + kimlik (tek yeşil kart) */}
         <View style={styles.head}>
-          <LinearGradient colors={colors.coverGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.cover} />
-          <View style={styles.id}>
-            <View style={styles.av}>
-              <Text style={styles.avText}>{initials}</Text>
-              <View style={styles.avOk}>
-                <MaterialIcons name="check" size={13} color="#fff" />
+          <LinearGradient colors={colors.coverGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.cover}>
+            <View style={styles.id}>
+              <View style={styles.av}>
+                <Text style={styles.avText}>{initials}</Text>
+                <View style={styles.avOk}>
+                  <MaterialIcons name="check" size={13} color="#fff" />
+                </View>
               </View>
+              <View style={styles.meta}>
+                <View style={styles.nameRow}>
+                  <Text style={styles.name} numberOfLines={1}>{displayName}</Text>
+                  <MaterialIcons name="verified" size={18} color="#fff" />
+                </View>
+                <View style={styles.locRow}>
+                  <MaterialIcons name={email ? 'mail-outline' : 'place'} size={15} color="rgba(255,255,255,0.85)" />
+                  <Text style={styles.loc} numberOfLines={1}>{memberLine}</Text>
+                </View>
+              </View>
+              <Pressable style={styles.iconBtn} onPress={() => router.push('/edit-profile')}>
+                <MaterialIcons name="edit" size={22} color="rgba(255,255,255,0.92)" />
+              </Pressable>
             </View>
-            <View style={styles.meta}>
-              <View style={styles.nameRow}>
-                <Text style={styles.name} numberOfLines={1}>{displayName}</Text>
-                <MaterialIcons name="verified" size={18} color={colors.primary} />
-              </View>
-              <View style={styles.locRow}>
-                <MaterialIcons name={email ? 'mail-outline' : 'place'} size={15} color={colors.onSurfaceVariant} />
-                <Text style={styles.loc} numberOfLines={1}>{memberLine}</Text>
-              </View>
-            </View>
-            <Pressable style={styles.iconBtn} onPress={() => router.push('/edit-profile')}>
-              <MaterialIcons name="edit" size={22} color={colors.onSurface} />
-            </Pressable>
-          </View>
+          </LinearGradient>
         </View>
 
         <View style={{ paddingHorizontal: 18 }}>
@@ -219,37 +220,37 @@ const styles = StyleSheet.create({
   appTitle: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: colors.onSurface },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   head: { paddingHorizontal: 18, paddingTop: 6 },
-  cover: { height: 78, borderRadius: shape.lg },
-  id: { flexDirection: 'row', alignItems: 'flex-end', gap: 14, marginTop: -26, paddingHorizontal: 4 },
+  cover: { borderRadius: shape.lg, paddingTop: 26, paddingBottom: 20, paddingHorizontal: 16 },
+  id: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   av: {
-    width: 84,
-    height: 84,
+    width: 72,
+    height: 72,
     borderRadius: shape.full,
     backgroundColor: colors.tertiary,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 4,
-    borderColor: colors.surface,
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.9)',
   },
-  avText: { fontSize: 30, fontWeight: '800', color: '#fff' },
+  avText: { fontSize: 26, fontWeight: '800', color: '#fff' },
   avOk: {
     position: 'absolute',
-    right: 2,
-    bottom: 2,
-    width: 24,
-    height: 24,
+    right: 0,
+    bottom: 0,
+    width: 22,
+    height: 22,
     borderRadius: shape.full,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
-    borderColor: colors.surface,
+    borderColor: '#fff',
   },
-  meta: { paddingBottom: 6, flex: 1 },
+  meta: { flex: 1 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  name: { fontSize: 20, fontWeight: '800', letterSpacing: -0.3, color: colors.onSurface },
-  locRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
-  loc: { color: colors.onSurfaceVariant, fontSize: 13, fontWeight: '500' },
+  name: { fontSize: 20, fontWeight: '800', letterSpacing: -0.3, color: '#fff' },
+  locRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
+  loc: { color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: '500' },
   trust: {
     flexDirection: 'row',
     alignItems: 'center',
