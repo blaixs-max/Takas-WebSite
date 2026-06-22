@@ -7,6 +7,7 @@ import { ProductCard } from '../../components/ProductCard';
 import { FeaturedCard } from '../../components/FeaturedCard';
 import { CATEGORIES, CATEGORY_ICONS } from '../../data/categories';
 import { useProducts } from '../../hooks/useProducts';
+import { useCart } from '../../lib/cart';
 import { colors, elevation, shape } from '../../theme/tokens';
 
 const FILTERS: { label: string; icon?: keyof typeof MaterialIcons.glyphMap }[] = [
@@ -20,6 +21,7 @@ export default function ShelfScreen() {
   const [active, setActive] = useState('Tümü');
   const [q, setQ] = useState('');
   const { products, featured, loading, refreshing, refresh } = useProducts();
+  const { count: cartCount } = useCart();
 
   const query = q.toLowerCase().trim();
   const visible = products.filter(
@@ -38,6 +40,14 @@ export default function ShelfScreen() {
         </View>
         <Pressable style={styles.iconBtn} onPress={() => router.push('/favorites')}>
           <MaterialIcons name="favorite-border" size={24} color={colors.onSurface} />
+        </Pressable>
+        <Pressable style={styles.iconBtn} onPress={() => router.push('/cart')}>
+          <MaterialIcons name="shopping-cart" size={24} color={colors.onSurface} />
+          {cartCount > 0 && (
+            <View style={[styles.badge, { backgroundColor: colors.primary }]}>
+              <Text style={styles.badgeText}>{cartCount}</Text>
+            </View>
+          )}
         </Pressable>
         <Pressable style={styles.iconBtn} onPress={() => router.push('/notifications')}>
           <MaterialIcons name="notifications-none" size={24} color={colors.onSurface} />
