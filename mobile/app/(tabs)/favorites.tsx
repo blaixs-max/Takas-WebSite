@@ -1,15 +1,13 @@
-import { ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ProductCard } from '../components/ProductCard';
-import { useProducts } from '../hooks/useProducts';
-import { useFavorites } from '../lib/favorites';
-import { colors, shape } from '../theme/tokens';
+import { ProductCard } from '../../components/ProductCard';
+import { useProducts } from '../../hooks/useProducts';
+import { useFavorites } from '../../lib/favorites';
+import { colors, shape } from '../../theme/tokens';
 
 export default function Favorites() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const { products } = useProducts();
   const { isFavorite } = useFavorites();
   const favs = products.filter((p) => isFavorite(p.id));
@@ -17,11 +15,7 @@ export default function Favorites() {
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.appbar}>
-        <Pressable style={styles.iconBtn} onPress={() => router.back()}>
-          <MaterialIcons name="arrow-back" size={24} color={colors.onSurface} />
-        </Pressable>
         <Text style={styles.appTitle}>Favorilerim</Text>
-        <View style={styles.iconBtn} />
       </View>
 
       {favs.length === 0 ? (
