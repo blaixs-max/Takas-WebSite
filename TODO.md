@@ -17,8 +17,9 @@ Son güncelleme: 2026-06-21 · Branch: `claude/happy-thompson-omacgb`
 - [x] Dokümanlar (README'ler + CLAUDE.md + bu dosya)
 
 ## ⏳ Sıradaki (öncelik sırası)
-- [ ] **Ürün listesi → Supabase** — `products` tablosu + migration; `data/products.ts`
-      yerine canlı veri; ilan ekleme (`Ürün ekle` FAB akışı)
+- [x] **Ürün listesi → Supabase** — `products` tablosu + RLS + seed; `useProducts`/
+      `useProduct` ile canlı/demo; ana ekran + detay bağlandı
+      - [ ] kalan: ilan ekleme (`Ürün ekle` FAB akışı — form + insert + görsel)
 - [ ] **Ödeme WebView ekranı** — `cargo-payment-init` token'ı ile iyzico ödeme
       ekranı (WebView) + `kidstrade://payment-result` deep-link dönüşü
 - [ ] **Takaslar ekranı → canlı `trades`** — gerçek durum makinesi + aksiyonlar
