@@ -13,10 +13,11 @@ const LISTINGS = [
   { img: require('../../assets/products/product-rings-close.jpg'), pts: 300 },
 ];
 
-const SETTINGS: { icon: keyof typeof MaterialIcons.glyphMap; label: string }[] = [
-  { icon: 'local-shipping', label: 'Adreslerim & kargo' },
-  { icon: 'verified-user', label: 'Güvenlik & doğrulama' },
-  { icon: 'help', label: 'Yardım & güvenli havuz' },
+const SETTINGS: { icon: keyof typeof MaterialIcons.glyphMap; label: string; href: string }[] = [
+  { icon: 'local-shipping', label: 'Adreslerim & kargo', href: '/addresses' },
+  { icon: 'verified-user', label: 'Güvenlik & doğrulama', href: '/security' },
+  { icon: 'card-giftcard', label: 'Davet et & kazan', href: '/invite' },
+  { icon: 'help', label: 'Yardım & güvenli havuz', href: '/help' },
 ];
 
 /** Güven skoru halkası — SVG ile dairesel ilerleme (96%). */
@@ -59,11 +60,9 @@ export default function ProfileScreen() {
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.appbar}>
-        <Pressable style={styles.iconBtn}>
-          <MaterialIcons name="arrow-back" size={24} color={colors.onSurface} />
-        </Pressable>
+        <View style={styles.iconBtn} />
         <Text style={styles.appTitle}>Profil</Text>
-        <Pressable style={styles.iconBtn}>
+        <Pressable style={styles.iconBtn} onPress={() => router.push('/security')}>
           <MaterialIcons name="settings" size={24} color={colors.onSurface} />
         </Pressable>
       </View>
@@ -89,7 +88,7 @@ export default function ProfileScreen() {
                 <Text style={styles.loc} numberOfLines={1}>{memberLine}</Text>
               </View>
             </View>
-            <Pressable style={styles.iconBtn}>
+            <Pressable style={styles.iconBtn} onPress={() => router.push('/edit-profile')}>
               <MaterialIcons name="edit" size={22} color={colors.onSurface} />
             </Pressable>
           </View>
@@ -144,6 +143,20 @@ export default function ProfileScreen() {
               </View>
               <MaterialIcons name="chevron-right" size={22} color={colors.outline} />
             </Pressable>
+            <View style={styles.divider} />
+            <Pressable style={styles.accRow} onPress={() => router.push('/messages')}>
+              <View style={[styles.accIc, { backgroundColor: colors.tertiaryContainer }]}>
+                <MaterialIcons name="chat-bubble-outline" size={20} color={colors.onTertiaryContainer} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.accTitle}>Mesajlarım</Text>
+                <Text style={styles.accSub}>2 okunmamış mesaj</Text>
+              </View>
+              <View style={styles.accBadge}>
+                <Text style={styles.accBadgeText}>2</Text>
+              </View>
+              <MaterialIcons name="chevron-right" size={22} color={colors.outline} />
+            </Pressable>
           </View>
 
           {/* İlanlar */}
@@ -165,13 +178,13 @@ export default function ProfileScreen() {
           {/* Ayarlar */}
           {SETTINGS.map((s) => (
             <View key={s.label}>
-              <View style={styles.setrow}>
+              <Pressable style={styles.setrow} onPress={() => router.push(s.href)}>
                 <View style={styles.si}>
                   <MaterialIcons name={s.icon} size={21} color={colors.onSurfaceVariant} />
                 </View>
                 <Text style={styles.st}>{s.label}</Text>
                 <MaterialIcons name="chevron-right" size={20} color={colors.outline} />
-              </View>
+              </Pressable>
               <View style={styles.divider} />
             </View>
           ))}
@@ -205,9 +218,9 @@ const styles = StyleSheet.create({
   appbar: { flexDirection: 'row', alignItems: 'center', height: 56, paddingHorizontal: 6 },
   appTitle: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: colors.onSurface },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  head: { paddingHorizontal: 18, paddingTop: 8 },
-  cover: { height: 96, borderRadius: shape.lg },
-  id: { flexDirection: 'row', alignItems: 'flex-end', gap: 14, marginTop: -42, paddingHorizontal: 4 },
+  head: { paddingHorizontal: 18, paddingTop: 6 },
+  cover: { height: 78, borderRadius: shape.lg },
+  id: { flexDirection: 'row', alignItems: 'flex-end', gap: 14, marginTop: -26, paddingHorizontal: 4 },
   av: {
     width: 84,
     height: 84,

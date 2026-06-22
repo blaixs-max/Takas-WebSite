@@ -55,7 +55,13 @@ function RootNavigator() {
       <Stack.Screen name="wallet" options={{ presentation: 'card' }} />
       <Stack.Screen name="product/[id]" options={{ presentation: 'card' }} />
       <Stack.Screen name="add-listing" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="edit-profile" options={{ presentation: 'modal' }} />
       <Stack.Screen name="notifications" options={{ presentation: 'card' }} />
+      <Stack.Screen name="messages" options={{ presentation: 'card' }} />
+      <Stack.Screen name="addresses" options={{ presentation: 'card' }} />
+      <Stack.Screen name="security" options={{ presentation: 'card' }} />
+      <Stack.Screen name="help" options={{ presentation: 'card' }} />
+      <Stack.Screen name="invite" options={{ presentation: 'card' }} />
       <Stack.Screen name="chat/[id]" options={{ presentation: 'card' }} />
     </Stack>
   );
