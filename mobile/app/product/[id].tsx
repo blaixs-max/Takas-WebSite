@@ -1,17 +1,25 @@
 import { useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getProduct } from '../../data/products';
+import { useProduct } from '../../hooks/useProducts';
 import { colors, elevation, shape } from '../../theme/tokens';
 
 export default function ProductDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const product = getProduct(id);
+  const { product, loading } = useProduct(id);
   const [activeImg, setActiveImg] = useState(0);
+
+  if (loading && !product) {
+    return (
+      <View style={[styles.root, styles.center]}>
+        <ActivityIndicator color={colors.primary} size="large" />
+      </View>
+    );
+  }
 
   if (!product) {
     return (

@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ProductCard } from '../../components/ProductCard';
 import { FeaturedCard } from '../../components/FeaturedCard';
-import { products, featured, Category } from '../../data/products';
+import { Category } from '../../data/products';
+import { useProducts } from '../../hooks/useProducts';
 import { colors, elevation, shape } from '../../theme/tokens';
 
 const FILTERS: { label: string; icon?: keyof typeof MaterialIcons.glyphMap; cat?: Category }[] = [
@@ -20,6 +21,7 @@ export default function ShelfScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [active, setActive] = useState('Tümü');
+  const { products, featured, loading, refreshing, refresh } = useProducts();
 
   const visible = active === 'Tümü' ? products : products.filter((p) => p.category === active);
 
@@ -42,7 +44,13 @@ export default function ShelfScreen() {
         </Pressable>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 120 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} colors={[colors.primary]} />
+        }
+      >
         {/* Arama */}
         <View style={styles.searchWrap}>
           <View style={styles.search}>
@@ -106,13 +114,19 @@ export default function ShelfScreen() {
           <Text style={styles.secTitle}>Yakınındaki raflar</Text>
           <Text style={styles.secLink}>Harita</Text>
         </View>
-        <View style={styles.grid}>
-          {visible.map((p) => (
-            <View key={p.id} style={styles.cell}>
-              <ProductCard product={p} />
-            </View>
-          ))}
-        </View>
+        {loading ? (
+          <View style={styles.loading}>
+            <ActivityIndicator color={colors.primary} />
+          </View>
+        ) : (
+          <View style={styles.grid}>
+            {visible.map((p) => (
+              <View key={p.id} style={styles.cell}>
+                <ProductCard product={p} />
+              </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
 
       {/* Extended FAB */}
@@ -191,6 +205,7 @@ const styles = StyleSheet.create({
   secTitle: { fontSize: 16, fontWeight: '700', letterSpacing: -0.2, color: colors.onSurface },
   secLink: { fontSize: 13, fontWeight: '700', color: colors.primary },
   carousel: { gap: 14, paddingHorizontal: 18 },
+  loading: { paddingVertical: 40, alignItems: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 11 },
   cell: { width: '50%', paddingHorizontal: 7, marginBottom: 14 },
   fab: {

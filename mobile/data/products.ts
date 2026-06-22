@@ -1,4 +1,5 @@
 import { ImageSourcePropType } from 'react-native';
+import { resolveImage, resolveGallery } from './productImages';
 
 export type Condition = 'İyi durumda' | 'Az kullanılmış' | 'Yeni gibi';
 export type Category = 'Oyuncak' | 'Kitap' | 'Montessori' | 'Kutu oyunu';
@@ -21,13 +22,48 @@ export interface Product {
   favorite?: boolean;
 }
 
-const blocks = require('../assets/products/product-wooden-blocks.jpg');
-const blocksClose = require('../assets/products/product-wooden-close.jpg');
-const sorter = require('../assets/products/product-color-sorter.jpg');
-const rings = require('../assets/products/product-montessori-rings.jpg');
-const ringsClose = require('../assets/products/product-rings-close.jpg');
+/** Supabase satırını uygulama tipine çevirir (görseli image_key'den çözer). */
+export interface ProductRow {
+  id: string;
+  title: string;
+  points: number;
+  condition: Condition;
+  category: Category;
+  location: string;
+  distance_km: number;
+  rating: number;
+  market_value: string | null;
+  badge: string | null;
+  description: string | null;
+  image_key: string;
+  gallery_keys: string[] | null;
+  seller_name: string;
+  seller_initials: string;
+  seller_trust: number;
+  seller_trades: number;
+}
 
-export const products: Product[] = [
+export function rowToProduct(r: ProductRow): Product {
+  return {
+    id: r.id,
+    title: r.title,
+    points: r.points,
+    condition: r.condition,
+    category: r.category,
+    location: r.location,
+    distanceKm: Number(r.distance_km),
+    rating: Number(r.rating),
+    marketValue: r.market_value ?? '',
+    badge: r.badge ?? undefined,
+    description: r.description ?? '',
+    image: resolveImage(r.image_key),
+    gallery: resolveGallery(r.gallery_keys),
+    seller: { name: r.seller_name, initials: r.seller_initials, trust: r.seller_trust, trades: r.seller_trades },
+  };
+}
+
+/** Anahtar/oturum yokken kullanılan demo ilanlar (seed ile aynı). */
+export const DEMO_PRODUCTS: Product[] = [
   {
     id: 'blocks',
     title: 'Montessori ahşap blok seti',
@@ -42,8 +78,8 @@ export const products: Product[] = [
     seller: { name: 'Zeynep D.', initials: 'ZD', trust: 96, trades: 38 },
     description:
       'Doğal kayın ağacından, 48 parçalık geometrik blok seti. 2 yıl kullanıldı, boyası dökülmemiş. Orijinal ahşap kutusuyla birlikte gönderilir.',
-    image: blocks,
-    gallery: [blocks, blocksClose, ringsClose, sorter],
+    image: resolveImage('wooden-blocks'),
+    gallery: resolveGallery(['wooden-blocks', 'wooden-close', 'rings-close', 'color-sorter']),
   },
   {
     id: 'sorter',
@@ -58,8 +94,8 @@ export const products: Product[] = [
     seller: { name: 'Murat K.', initials: 'MK', trust: 91, trades: 22 },
     description:
       'El becerisi ve renk eşleştirme için ahşap sıralama oyunu. Tüm parçalar tam, küçük kullanım izleri mevcut.',
-    image: sorter,
-    gallery: [sorter, blocksClose, blocks],
+    image: resolveImage('color-sorter'),
+    gallery: resolveGallery(['color-sorter', 'wooden-close', 'wooden-blocks']),
   },
   {
     id: 'rings',
@@ -75,8 +111,8 @@ export const products: Product[] = [
     seller: { name: 'Elif T.', initials: 'ET', trust: 98, trades: 51 },
     description:
       'Doğal boyalı ahşap halka kulesi. Neredeyse hiç kullanılmadı, kutusunda. Bebek ve yürüme dönemi için ideal.',
-    image: rings,
-    gallery: [rings, ringsClose, blocks],
+    image: resolveImage('montessori-rings'),
+    gallery: resolveGallery(['montessori-rings', 'rings-close', 'wooden-blocks']),
     favorite: true,
   },
   {
@@ -92,13 +128,7 @@ export const products: Product[] = [
     seller: { name: 'Can A.', initials: 'CA', trust: 89, trades: 17 },
     description:
       'Doğal yağ ile cilalanmış denge ve istifleme halkaları. Hafif kullanım izi var, tüm parçalar mevcut.',
-    image: ringsClose,
-    gallery: [ringsClose, rings, blocksClose],
+    image: resolveImage('rings-close'),
+    gallery: resolveGallery(['rings-close', 'montessori-rings', 'wooden-close']),
   },
 ];
-
-export const featured = products.filter((p) => p.badge);
-
-export function getProduct(id: string): Product | undefined {
-  return products.find((p) => p.id === id);
-}
