@@ -1,38 +1,57 @@
 # KIDS TRADE — Yol Haritası / TODO
 
-Son güncelleme: 2026-06-21 · Branch: `claude/happy-thompson-omacgb`
+Son güncelleme: 2026-06-22 · Branch: `claude/happy-thompson-omacgb` (main ile senkron)
 
 ## ✅ Tamamlandı
-- [x] Material Design 3 v2 tasarımı — 7 ekran (HTML mockup + render görüntüleri)
-- [x] Expo + React Native uygulama iskeleti (TS strict, Expo Router, EAS config)
-- [x] Marka uygulama ikonu + splash
-- [x] Önceki HTML projesi `archive/`'e taşındı
-- [x] Puan defteri (güvenli havuz): `wallets` / `wallet_entries` / `trades`
-  - [x] Atomik `earn` / `hold` / `release` / `refund` (yarış-koşulsuz, negatif/çift harcama engelli)
-  - [x] RLS + yerel Postgres'te uçtan uca test (`supabase/tests/`)
-- [x] iyzico Checkout Form backend — kargo tahsilatı + komisyon (Edge Functions)
-  - [x] IYZWSv2 imza (doğrulandı), init + callback (RETRIEVE doğrulamalı)
-- [x] Cüzdan ekranı → canlı puan defteri (loading + pull-to-refresh + demo fallback)
+
+### Tasarım & uygulama iskeleti
+- [x] Material Design 3 v2 tasarımı (HTML mockup + render görüntüleri, `archive/` + `screens/`)
+- [x] Expo SDK **54** + RN 0.81 + Expo Router (TS strict), EAS config
+- [x] Marka uygulama ikonu + splash; önceki HTML projesi `archive/`'e taşındı
+- [x] Expo Go ile cihazda çalıştırma doğrulandı
+
+### Gezinme (özel alt menü)
+- [x] `Anasayfa · Sepetim · Ürün Ekle (ortada yükseltilmiş) · Favoriler · Hesabım`
+- [x] Keşfet → Anasayfa'ya katıldı (arama + 14 kategori filtresi)
+- [x] Takaslar & Cüzdan → Hesabım (Profil) altına taşındı
+
+### Ekranlar (mock veri + tema uyumlu)
+- [x] Anasayfa, Ürün Detayı, Sepetim, Favoriler, Profil/Hesabım
+- [x] Ürün Ekle, Takas durumu, Cüzdan, Bildirimler, Sohbet, Mesajlarım
+- [x] Adreslerim, Güvenlik & doğrulama, Yardım & güvenli havuz, Davet et, Profili düzenle
+- [x] Onboarding + e-posta giriş/kayıt ekranı
+
+### İşlevler
+- [x] **Kategoriler** — 14 kategori (tek kaynak `data/categories.ts`, ikon eşlemeli)
+- [x] **Favori** — kalp toggle, AsyncStorage'da kalıcı (`lib/favorites.tsx`)
+- [x] **Sepet** — alma sepeti, toplam puan + bakiye kontrolü (`lib/cart.tsx`)
+- [x] **Paylaş** — native Share (WhatsApp/mesaj/e-posta)
+- [x] Tüm buton bağlantıları (dead-end yok)
+
+### Backend
+- [x] Puan defteri (güvenli havuz): `wallets`/`wallet_entries`/`trades`, atomik
+      `earn/hold/release/refund` (yarış-koşulsuz, negatif/çift harcama engelli, RLS + test)
+- [x] iyzico Checkout Form — kargo tahsilatı + komisyon (IYZWSv2 imza doğrulandı)
+- [x] Ürünler → Supabase `products` tablosu (RLS + seed); `useProducts`/`useProduct` canlı/demo
+- [x] Cüzdan → canlı puan defteri (loading + pull-to-refresh + demo fallback)
 - [x] Supabase Auth — Google/Apple OAuth (PKCE) + e-posta/şifre + oturum yönlendirme
-- [x] Dokümanlar (README'ler + CLAUDE.md + bu dosya)
 
 ## ⏳ Sıradaki (öncelik sırası)
-- [x] **Ürün listesi → Supabase** — `products` tablosu + RLS + seed; `useProducts`/
-      `useProduct` ile canlı/demo; ana ekran + detay bağlandı
-      - [ ] kalan: ilan ekleme (`Ürün ekle` FAB akışı — form + insert + görsel)
-- [ ] **Ödeme WebView ekranı** — `cargo-payment-init` token'ı ile iyzico ödeme
-      ekranı (WebView) + `kidstrade://payment-result` deep-link dönüşü
+- [ ] **İlan ekleme — gerçek insert** — Ürün Ekle formu Supabase `products`'a yazsın
+      (şu an UI hazır, kayıt yok) + görsel yükleme (Supabase Storage)
 - [ ] **Takaslar ekranı → canlı `trades`** — gerçek durum makinesi + aksiyonlar
-- [ ] **Kargo aggregator** (Navlungo/Kolay Gelsin) — `iyzico-callback` içindeki
-      etiket üretimi `TODO`'su; `carrier_cost`'u gerçek tarifeden al
+- [ ] **Ödeme WebView ekranı** — `cargo-payment-init` token'ı ile iyzico ödeme
+      (WebView) + `kidstrade://payment-result` deep-link dönüşü
+- [ ] **Kargo aggregator** (Navlungo/Kolay Gelsin) — `iyzico-callback` etiket üretimi
 
 ## 🔜 Sonra
-- [ ] "Ürününü Puana Çevir" tam ekran (kamera + AI fotoğraf kontrolü + puan hesabı)
-- [ ] Keşfet sekmesi gerçek içerik (konum/öneri)
-- [ ] Mesajlaşma (alıcı–satıcı)
-- [ ] Bildirimler (push) — takas/teslim/onay
+- [ ] Ürün Ekle: kamera + gerçek AI fotoğraf kontrolü + dinamik puan
+- [ ] Mesajlaşma/sohbet → gerçek zamanlı (Supabase Realtime)
+- [ ] Bildirimler → push (Expo Notifications)
+- [ ] Favori/Sepet → oturum açıkken Supabase'e senkron (cihaz + bulut)
 - [ ] Güven skoru hesaplama (zamanında kargo, düşük itiraz)
 - [ ] İtiraz/dispute akışı (DISPUTED → hakemlik)
+- [ ] Dekoratif linkler (Anasayfa "Tümü/Harita") → gerçek hedef
 
 ## 🚀 Yayın (config gerektirir)
 - [ ] Supabase dashboard: Google/Apple provider + redirect `kidstrade://auth-callback`
@@ -42,6 +61,6 @@ Son güncelleme: 2026-06-21 · Branch: `claude/happy-thompson-omacgb`
 
 ## 📌 Bağımlılıklar (bizde değil — kullanıcı sağlamalı)
 - iyzico sandbox/canlı API key + secret
-- Supabase proje ref + anon/service_role anahtarları
+- Supabase proje ref + anon/service_role anahtarları + dashboard OAuth config
 - Kargo aggregator hesabı + anlaşmalı tarife
 - Apple Developer + Google Play hesapları (mevcut)

@@ -15,17 +15,24 @@ gönderilir. Material Design 3 tema, file-based routing (Expo Router) ile kurulm
 - **Supabase** (`@supabase/supabase-js`) — Auth + puan defteri okuma
 - **EAS Build / Submit** (mağaza derleme + yayın)
 
-## Ekranlar
+## Gezinme & ekranlar
+Özel alt menü (`components/TabBar.tsx`): **Anasayfa · Sepetim · Ürün Ekle (ortada) · Favoriler · Hesabım**.
+Ortadaki "Ürün Ekle" yükseltilmiş primary buton, `/add-listing` modalını açar (sekme değil).
+
 | Yol | Ekran |
 |-----|-------|
-| `app/onboarding.tsx` | Giriş/Onboarding (Google/Apple OAuth + e-posta) |
-| `app/sign-in.tsx` | E-posta/şifre giriş & kayıt |
-| `app/(tabs)/index.tsx` | Takas Rafı (öne çıkanlar + filtre + FAB) |
-| `app/(tabs)/discover.tsx` | Keşfet |
-| `app/(tabs)/trades.tsx` | Takas durumu (güvenli havuz stepper) |
-| `app/(tabs)/wallet.tsx` | Cüzdan (canlı bakiye + işlem geçmişi) |
-| `app/(tabs)/profile.tsx` | Profil & Güven (çıkış) |
-| `app/product/[id].tsx` | Ürün detayı (galeri + güvenli havuz) |
+| `app/(tabs)/index.tsx` | Anasayfa — arama + 14 kategori + öne çıkanlar + ızgara |
+| `app/(tabs)/cart.tsx` | Sepetim — alma sepeti, toplam puan, "Takas et" |
+| `app/(tabs)/favorites.tsx` | Favoriler (kalp deposu) |
+| `app/(tabs)/profile.tsx` | Hesabım — güven skoru, Cüzdanım/Takaslarım/Mesajlarım, ayarlar |
+| `app/product/[id].tsx` | Ürün detayı (galeri, güvenli havuz, sepete ekle, paylaş) |
+| `app/add-listing.tsx` | Ürün Ekle (foto + AI + kategori/kondisyon + puan) |
+| `app/trades.tsx` · `app/wallet.tsx` | Takas durumu · Cüzdan (Hesabım altından) |
+| `app/messages.tsx` · `app/chat/[id].tsx` | Mesajlarım · Sohbet |
+| `app/addresses.tsx` · `app/security.tsx` · `app/help.tsx` · `app/invite.tsx` · `app/edit-profile.tsx` | Hesap alt sayfaları |
+| `app/onboarding.tsx` · `app/sign-in.tsx` | Giriş/Onboarding · e-posta giriş |
+
+İstemci durumları: `lib/favorites.tsx`, `lib/cart.tsx` (AsyncStorage). Kategoriler: `data/categories.ts`.
 
 ## Backend bağlantısı (Supabase)
 Cüzdan ve auth, `../supabase/` altındaki puan defterine bağlanır.

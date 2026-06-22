@@ -34,14 +34,20 @@ Kargo ödemesi ──► Edge Function ─► cargo_payments ──► Checkout 
 
 | Alan | Durum |
 |------|-------|
-| 7 ekranlık Material Design 3 arayüz | ✅ |
+| Material Design 3 v2 arayüz (Expo SDK 54, Expo Go'da çalışır) | ✅ |
+| Özel alt menü: Anasayfa · Sepetim · Ürün Ekle · Favoriler · Hesabım | ✅ |
+| Tüm ekranlar (mock veri) + dead-end yok | ✅ |
+| 14 kategori (tek kaynak) | ✅ |
+| Favori (kalp) + Sepet + Paylaş (WhatsApp) — kalıcı | ✅ |
 | Puan defteri — atomik HOLD/RELEASE/REFUND (testli) | ✅ |
 | iyzico Checkout Form — kargo tahsilatı + komisyon | ✅ (skeleton, sandbox testine hazır) |
 | Supabase Auth — Google/Apple OAuth + e-posta | ✅ |
-| Cüzdan → canlı puan defteri bağlantısı | ✅ |
-| Ürün listesi (statik → Supabase `products`) | ⏳ |
-| Kargo aggregator (etiket üretimi) | ⏳ |
+| Cüzdan + Ürün listesi → canlı Supabase (demo fallback) | ✅ |
+| İlan ekleme — gerçek insert + görsel yükleme | ⏳ |
+| Takaslar → canlı `trades` · Ödeme WebView · Kargo aggregator | ⏳ |
 | EAS mağaza derleme/gönderim | ⏳ (rehber hazır) |
+
+> Ayrıntılı yapılacaklar için `TODO.md`.
 
 ## Çalıştırma
 

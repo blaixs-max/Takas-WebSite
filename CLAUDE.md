@@ -11,10 +11,20 @@ montessori ürünleri **Takas Puanı**'na çevrilir; ürün teslim edilene kadar
 ## Mimari
 | Klasör | Ne |
 |--------|----|
-| `mobile/` | Expo SDK 52 + RN 0.76 + Expo Router (TS strict). Material Design 3 v2. Aktif proje. |
-| `supabase/` | Postgres migrations + Edge Functions (Deno). Puan defteri + iyzico kargo ödemesi. |
-| `screens/`, `rn-screens/` | Render edilmiş tasarım/uygulama görüntüleri. |
+| `mobile/` | Expo SDK **54** + RN 0.81 + Expo Router (TS strict). Material Design 3 v2. Aktif proje. |
+| `supabase/` | Postgres migrations + Edge Functions (Deno). Puan defteri + iyzico kargo + products. |
+| `screens/`, `rn-screens/`, `test-screens/` | Render edilmiş tasarım/uygulama görüntüleri. |
 | `archive/` | Eski HTML prototipi + mockup (referans). Yeni kod buraya YAZILMAZ. |
+
+## Gezinme & ekranlar
+- Özel alt menü (`components/TabBar.tsx`): **Anasayfa · Sepetim · [Ürün Ekle] · Favoriler · Hesabım**.
+  Ortadaki "Ürün Ekle" yükseltilmiş primary buton; `/add-listing` modalını açar (sekme değil).
+- Sekmeler: `app/(tabs)/` → index(Anasayfa), cart(Sepetim), favorites, profile(Hesabım).
+- Takaslar (`app/trades.tsx`) ve Cüzdan (`app/wallet.tsx`) sekme DEĞİL; Hesabım altından açılır.
+- Diğer rotalar `app/`: product/[id], add-listing, notifications, messages, chat/[id],
+  addresses, security, help, invite, edit-profile, onboarding, sign-in.
+- İstemci durumları: `lib/favorites.tsx` (kalp), `lib/cart.tsx` (sepet) — AsyncStorage'da kalıcı.
+- Kategoriler tek kaynak: `data/categories.ts` (14 kategori + ikon). Ürün görselleri `data/productImages.ts`.
 
 ## Kritik iş kuralları (mimariyi belirler)
 - **Güvenli havuz = PUAN tutar, gerçek para DEĞİL.** Escrow kendi çift girişli
