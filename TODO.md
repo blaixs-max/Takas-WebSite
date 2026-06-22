@@ -35,6 +35,7 @@ Son güncelleme: 2026-06-22 · Branch: `claude/happy-thompson-omacgb` (main ile 
 - [x] Ürünler → Supabase `products` tablosu (RLS + seed); `useProducts`/`useProduct` canlı/demo
 - [x] Cüzdan → canlı puan defteri (loading + pull-to-refresh + demo fallback)
 - [x] Supabase Auth — Google/Apple OAuth (PKCE) + e-posta/şifre + oturum yönlendirme
+- [x] SMS/OTP backend — Supabase Send SMS Hook → NetGSM OTP (imza doğrulamalı, skeleton)
 
 ## ⏳ Sıradaki (öncelik sırası)
 - [ ] **İlan ekleme — gerçek insert** — Ürün Ekle formu Supabase `products`'a yazsın

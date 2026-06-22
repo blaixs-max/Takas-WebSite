@@ -93,6 +93,20 @@ psql "$DATABASE_URL" -f supabase/tests/points_ledger_test.sql
 Senaryolar: kazanç → havuza al → teslim → satıcıya geçiş, iade, negatif bakiye
 engeli, çift harcama/idempotency engeli, çift-giriş tutarlılığı. (Hepsi doğrulandı.)
 
+## SMS / OTP (telefon doğrulama) — NetGSM
+`functions/send-sms/` — Supabase Auth **"Send SMS" Hook**. Telefonla giriş/doğrulamada
+Supabase OTP üretir, bu fonksiyon SMS'i **NetGSM OTP API** ile gönderir (OTP doğrulamasını
+Supabase yapar). Hook isteği "standard webhooks" imzasıyla doğrulanır.
+
+Kurulum:
+1. `supabase secrets set NETGSM_USERCODE=... NETGSM_PASSWORD=... NETGSM_HEADER=... SEND_SMS_HOOK_SECRET=...`
+2. `supabase functions deploy send-sms --no-verify-jwt`
+3. Dashboard → **Authentication → Hooks → Send SMS** → bu fonksiyonun URL'i + secret.
+4. Dashboard → Authentication → Providers → **Phone**'u etkinleştir.
+
+> Başlık (sender ID) NetGSM'de onaylı olmalı. OTP/servis SMS'i İYS'den muaftır;
+> ticari/pazarlama SMS'i ayrı İYS izni ister. API bilgileri yalnızca Edge Function'da.
+
 ## Sonraki adım
 - Kargo **aggregator** (Navlungo/Kolay Gelsin) entegrasyonu: `iyzico-callback` içinde
   `carrier_cost` ile etiket üretimi (şu an `TODO`).
