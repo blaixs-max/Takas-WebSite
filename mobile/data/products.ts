@@ -1,8 +1,9 @@
 import { ImageSourcePropType } from 'react-native';
 import { resolveImage, resolveGallery } from './productImages';
+import { Category } from './categories';
 
 export type Condition = 'İyi durumda' | 'Az kullanılmış' | 'Yeni gibi';
-export type Category = 'Oyuncak' | 'Kitap' | 'Montessori' | 'Kutu oyunu';
+export type { Category };
 
 export interface Product {
   id: string;
@@ -69,7 +70,7 @@ export const DEMO_PRODUCTS: Product[] = [
     title: 'Montessori ahşap blok seti',
     points: 420,
     condition: 'Az kullanılmış',
-    category: 'Montessori',
+    category: 'Oyuncak',
     location: 'Kadıköy',
     distanceKm: 2.4,
     rating: 4.9,
@@ -102,7 +103,7 @@ export const DEMO_PRODUCTS: Product[] = [
     title: 'Montessori halka kulesi',
     points: 340,
     condition: 'Yeni gibi',
-    category: 'Montessori',
+    category: 'Oyuncak',
     location: 'Üsküdar',
     distanceKm: 3.8,
     rating: 5.0,
@@ -120,7 +121,7 @@ export const DEMO_PRODUCTS: Product[] = [
     title: 'Doğal ahşap denge halkaları',
     points: 300,
     condition: 'Az kullanılmış',
-    category: 'Montessori',
+    category: 'Oyuncak',
     location: 'Şişli',
     distanceKm: 6.7,
     rating: 4.8,

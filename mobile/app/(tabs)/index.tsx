@@ -5,16 +5,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ProductCard } from '../../components/ProductCard';
 import { FeaturedCard } from '../../components/FeaturedCard';
-import { Category } from '../../data/products';
+import { CATEGORIES, CATEGORY_ICONS } from '../../data/categories';
 import { useProducts } from '../../hooks/useProducts';
 import { colors, elevation, shape } from '../../theme/tokens';
 
-const FILTERS: { label: string; icon?: keyof typeof MaterialIcons.glyphMap; cat?: Category }[] = [
-  { label: 'Tümü', icon: 'check' },
-  { label: 'Oyuncak', icon: 'toys', cat: 'Oyuncak' },
-  { label: 'Kitap', icon: 'menu-book', cat: 'Kitap' },
-  { label: 'Montessori', icon: 'extension', cat: 'Montessori' },
-  { label: 'Kutu oyunu', cat: 'Kutu oyunu' },
+const FILTERS: { label: string; icon?: keyof typeof MaterialIcons.glyphMap }[] = [
+  { label: 'Tümü', icon: 'apps' },
+  ...CATEGORIES.map((c) => ({ label: c, icon: CATEGORY_ICONS[c] })),
 ];
 
 export default function ShelfScreen() {

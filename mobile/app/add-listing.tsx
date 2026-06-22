@@ -3,20 +3,20 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Category, Condition } from '../data/products';
+import { Condition } from '../data/products';
+import { CATEGORIES, Category } from '../data/categories';
 import { resolveImage } from '../data/productImages';
 import { colors, elevation, shape } from '../theme/tokens';
 
 const CONDITIONS: Condition[] = ['İyi durumda', 'Az kullanılmış', 'Yeni gibi'];
 const COND_MULT: Record<Condition, number> = { 'İyi durumda': 0.8, 'Az kullanılmış': 0.9, 'Yeni gibi': 1.0 };
-const CATEGORIES: Category[] = ['Oyuncak', 'Kitap', 'Montessori', 'Kutu oyunu'];
 const BASE = 500;
 
 export default function AddListing() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [condition, setCondition] = useState<Condition>('Az kullanılmış');
-  const [category, setCategory] = useState<Category>('Montessori');
+  const [category, setCategory] = useState<Category>('Oyuncak');
   const [title, setTitle] = useState('');
 
   const mult = COND_MULT[condition];

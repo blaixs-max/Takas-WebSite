@@ -7,7 +7,10 @@ create table if not exists public.products (
   title            text not null,
   points           integer not null check (points > 0),
   condition        text not null check (condition in ('İyi durumda','Az kullanılmış','Yeni gibi')),
-  category         text not null check (category in ('Oyuncak','Kitap','Montessori','Kutu oyunu')),
+  category         text not null check (category in (
+                     'Annelere Özel','Oda & Dekorasyon','Giyim & Aksesuar','Tekstil',
+                     'Banyo & Bakım','Beslenme','Bebek & Çocuk Araç Gereç','Oto Koltuğu',
+                     'Oyuncak','Kitap & Kırtasiye','Parti & Kostüm','Güvenlik','Sağlık','Elektronik')),
   location         text not null,
   distance_km      numeric(5,1) not null default 0,
   rating           numeric(2,1) not null default 5.0,
@@ -60,7 +63,7 @@ insert into public.products
   (id, title, points, condition, category, location, distance_km, rating, market_value, badge,
    description, image_key, gallery_keys, seller_name, seller_initials, seller_trust, seller_trades)
 values
-  ('blocks', 'Montessori ahşap blok seti', 420, 'Az kullanılmış', 'Montessori', 'Kadıköy', 2.4, 4.9, '~520–610 ₺', 'Popüler',
+  ('blocks', 'Montessori ahşap blok seti', 420, 'Az kullanılmış', 'Oyuncak', 'Kadıköy', 2.4, 4.9, '~520–610 ₺', 'Popüler',
    'Doğal kayın ağacından, 48 parçalık geometrik blok seti. 2 yıl kullanıldı, boyası dökülmemiş. Orijinal ahşap kutusuyla birlikte gönderilir.',
    'wooden-blocks', '{wooden-blocks,wooden-close,rings-close,color-sorter}', 'Zeynep D.', 'ZD', 96, 38),
 
@@ -68,11 +71,11 @@ values
    'El becerisi ve renk eşleştirme için ahşap sıralama oyunu. Tüm parçalar tam, küçük kullanım izleri mevcut.',
    'color-sorter', '{color-sorter,wooden-close,wooden-blocks}', 'Murat K.', 'MK', 91, 22),
 
-  ('rings', 'Montessori halka kulesi', 340, 'Yeni gibi', 'Montessori', 'Üsküdar', 3.8, 5.0, '~400–470 ₺', 'Editör seçimi',
+  ('rings', 'Montessori halka kulesi', 340, 'Yeni gibi', 'Oyuncak', 'Üsküdar', 3.8, 5.0, '~400–470 ₺', 'Editör seçimi',
    'Doğal boyalı ahşap halka kulesi. Neredeyse hiç kullanılmadı, kutusunda. Bebek ve yürüme dönemi için ideal.',
    'montessori-rings', '{montessori-rings,rings-close,wooden-blocks}', 'Elif T.', 'ET', 98, 51),
 
-  ('rings-natural', 'Doğal ahşap denge halkaları', 300, 'Az kullanılmış', 'Montessori', 'Şişli', 6.7, 4.8, '~350–410 ₺', null,
+  ('rings-natural', 'Doğal ahşap denge halkaları', 300, 'Az kullanılmış', 'Oyuncak', 'Şişli', 6.7, 4.8, '~350–410 ₺', null,
    'Doğal yağ ile cilalanmış denge ve istifleme halkaları. Hafif kullanım izi var, tüm parçalar mevcut.',
    'rings-close', '{rings-close,montessori-rings,wooden-close}', 'Can A.', 'CA', 89, 17)
 on conflict (id) do nothing;

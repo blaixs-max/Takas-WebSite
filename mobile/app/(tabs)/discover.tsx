@@ -3,25 +3,23 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ProductCard } from '../../components/ProductCard';
+import { CATEGORIES, CATEGORY_ICONS } from '../../data/categories';
 import { useProducts } from '../../hooks/useProducts';
 import { colors, elevation, shape } from '../../theme/tokens';
 
-const CATS: { label: string; icon: keyof typeof MaterialIcons.glyphMap; color: string }[] = [
-  { label: 'Oyuncak', icon: 'toys', color: '#a8f2cd' },
-  { label: 'Kitap', icon: 'menu-book', color: '#ffdbcb' },
-  { label: 'Montessori', icon: 'extension', color: '#d3e8d8' },
-  { label: 'Kutu oyunu', icon: 'casino', color: '#e2e5dc' },
-];
+// Kategori kartlarına dönüşümlü zemin renkleri
+const CAT_COLORS = ['#a8f2cd', '#ffdbcb', '#d3e8d8', '#e2e5dc'];
 
-const POPULAR = ['Montessori', 'Ahşap oyuncak', 'Denge oyunu', 'Renk eşleştirme', '0-3 yaş'];
+const POPULAR = ['Oyuncak', 'Oto Koltuğu', 'Giyim & Aksesuar', 'Beslenme', '0-3 yaş'];
 
 export default function DiscoverScreen() {
   const insets = useSafeAreaInsets();
   const [q, setQ] = useState('');
   const { products } = useProducts();
 
-  const results = q.trim()
-    ? products.filter((p) => p.title.toLowerCase().includes(q.toLowerCase().trim()))
+  const query = q.toLowerCase().trim();
+  const results = query
+    ? products.filter((p) => p.title.toLowerCase().includes(query) || p.category.toLowerCase().includes(query))
     : products;
 
   return (
@@ -54,12 +52,14 @@ export default function DiscoverScreen() {
           <>
             <Text style={styles.secTitle}>Kategoriler</Text>
             <View style={styles.catGrid}>
-              {CATS.map((c) => (
-                <Pressable key={c.label} style={styles.catCard} onPress={() => setQ(c.label)}>
-                  <View style={[styles.catIc, { backgroundColor: c.color }]}>
-                    <MaterialIcons name={c.icon} size={24} color={colors.onSurface} />
+              {CATEGORIES.map((c, i) => (
+                <Pressable key={c} style={styles.catCard} onPress={() => setQ(c)}>
+                  <View style={[styles.catIc, { backgroundColor: CAT_COLORS[i % CAT_COLORS.length] }]}>
+                    <MaterialIcons name={CATEGORY_ICONS[c]} size={22} color={colors.onSurface} />
                   </View>
-                  <Text style={styles.catLabel}>{c.label}</Text>
+                  <Text style={styles.catLabel} numberOfLines={2}>
+                    {c}
+                  </Text>
                 </Pressable>
               ))}
             </View>
