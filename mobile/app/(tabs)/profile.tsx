@@ -2,7 +2,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle } from 'react-native-svg';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../lib/auth';
 import { colors, elevation, shape } from '../../theme/tokens';
@@ -13,7 +13,7 @@ const LISTINGS = [
   { img: require('../../assets/products/product-rings-close.jpg'), pts: 300 },
 ];
 
-const SETTINGS: { icon: keyof typeof MaterialIcons.glyphMap; label: string; href: string }[] = [
+const SETTINGS: { icon: keyof typeof MaterialIcons.glyphMap; label: string; href: Href }[] = [
   { icon: 'local-shipping', label: 'Adreslerim & kargo', href: '/addresses' },
   { icon: 'verified-user', label: 'Güvenlik & doğrulama', href: '/security' },
   { icon: 'card-giftcard', label: 'Davet et & kazan', href: '/invite' },
