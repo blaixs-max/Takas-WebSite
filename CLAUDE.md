@@ -8,6 +8,28 @@ oturuma başlarken önce burayı oku.
 montessori ürünleri **Takas Puanı**'na çevrilir; ürün teslim edilene kadar puan
 **güvenli havuzda** (escrow) bekler. Hedef pazar: Türkiye. Arayüz dili: **Türkçe**.
 
+## DAĞITIM ÖNCESİ KONTROL LİSTESİ (KURAL — atlanamaz)
+
+Her push ve her merge öncesinde, sırayla:
+
+1. **Dokümanlar güncel mi?** Yapılan değişiklik ilgili dokümanlara işlendi mi —
+   bu dosya, `TODO.md`, Ana Doküman ve karşı reponun dokümanları. Kod bir kararı
+   değiştiriyorsa önce doküman güncellenir, sonra kod yazılır.
+2. **İki repo da yerelde senkron mu?** Hem burada hem `blaixs-max/Takas-site`
+   içinde `git fetch origin` ardından `git status -sb`: ne ileri ne geri fark
+   olmalı, çözülmemiş çakışma olmamalı.
+3. **Kontroller geçiyor mu?** `cd mobile && npx tsc --noEmit`, ve para
+   fonksiyonlarına dokunulduysa pgTAP testleri.
+
+Üçü de doğrulanmadan push yok; push edilmeden merge yok. Bu sıra kısaltılmaz.
+
+## Karşı repo
+
+`blaixs-max/Takas-site` — ELDENELE pazarlama sitesi (Vite + React, Vercel).
+Veri tabanına bağlanmaz. Kategori listesi buradaki `mobile/data/categories.ts`
+dosyasının aynasını taşır (`src/data/categories.ts`); burada bir kategori
+eklenir ya da adı değişirse orası da aynı turda güncellenir.
+
 ## Mimari
 | Klasör | Ne |
 |--------|----|
