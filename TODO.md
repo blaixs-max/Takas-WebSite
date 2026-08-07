@@ -1,6 +1,6 @@
 # KIDS TRADE — Yol Haritası / TODO
 
-Son güncelleme: 2026-06-22 · Branch: `claude/happy-thompson-omacgb` (main ile senkron)
+Son güncelleme: 2026-08-07 · Branch: `claude/mobil-guvenlik-p0`
 
 ## ✅ Tamamlandı
 
@@ -28,6 +28,21 @@ Son güncelleme: 2026-06-22 · Branch: `claude/happy-thompson-omacgb` (main ile 
 - [x] **Paylaş** — native Share (WhatsApp/mesaj/e-posta)
 - [x] Tüm buton bağlantıları (dead-end yok)
 
+### Güvenlik (P0 — 2026-08-07)
+- [x] **Defter değişmezliği** — `wallet_entries` üzerinde UPDATE/DELETE trigger ile
+      engellendi; `service_role` dahil hiçbir rol geçemez
+- [x] **`earn_points` idempotent** — idempotency anahtarı zorunlu; tekrar denemede
+      bonus ikinci kez yazılmıyor. hold/release/refund'a türetilmiş anahtarlar eklendi
+- [x] **İlan fiyat kilidi** — satıcı `points` ve `status` kolonlarını doğrudan
+      değiştiremiyor; fiyat yalnızca `set_product_points()` ile ve yalnızca aşağı
+- [x] **Sunucu tarafı fiyatlandırma** — `shipping_rates` + `fee_settings` +
+      `quote_trade_price()`; tutar artık istek gövdesinden gelmiyor
+- [x] **Ödeme yetkilendirmesi** — `cargo-payment-init` çağıranı bearer token'dan
+      çözüyor ve takasın alıcısı olduğunu doğruluyor
+- [x] **Callback idempotency** — işlenmiş ödeme tekrar işlenmiyor; takas durumu
+      yalnızca POINTS_HELD → SHIPPED yönünde ilerliyor, geriye sarmıyor
+- [x] `supabase/config.toml` — JWT muafiyeti artık repoda yazılı, deploy bayrağında değil
+
 ### Backend
 - [x] Puan defteri (güvenli havuz): `wallets`/`wallet_entries`/`trades`, atomik
       `earn/hold/release/refund` (yarış-koşulsuz, negatif/çift harcama engelli, RLS + test)
@@ -38,6 +53,14 @@ Son güncelleme: 2026-06-22 · Branch: `claude/happy-thompson-omacgb` (main ile 
 - [x] SMS/OTP backend — Supabase Send SMS Hook → NetGSM OTP (imza doğrulamalı, skeleton)
 
 ## ⏳ Sıradaki (öncelik sırası)
+- [ ] **Para ve puan katmanını bağla** — ödeme başarılı olunca `hold_points`,
+      teslim onayında `release_points` çağrılsın. Şu an callback puana hiç dokunmuyor
+- [ ] **Ürün rezervasyonu** — `trades.product_id` `products`'a yabancı anahtar
+      değil ve takas açılınca ilan RESERVED olmuyor; aynı ürüne eşzamanlı iki
+      takas açılabiliyor
+- [ ] **İlan formuna desi kademesi** — `products.size_class` şemada var, formda yok;
+      fiyatlandırma buna bağlı
+- [ ] **48 saat otomatik onay** — zamanlanmış görev ve sayaç yok
 - [ ] **İlan ekleme — gerçek insert** — Ürün Ekle formu Supabase `products`'a yazsın
       (şu an UI hazır, kayıt yok) + görsel yükleme (Supabase Storage)
 - [ ] **Takaslar ekranı → canlı `trades`** — gerçek durum makinesi + aksiyonlar
