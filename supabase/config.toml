@@ -1,0 +1,22 @@
+# Supabase yerel/deploy yapılandırması.
+#
+# Bu dosya olmadan JWT muafiyeti dağıtım komutundaki bir bayrağa bağlıydı
+# (`--no-verify-jwt`). Bir sonraki dağıtımda unutulduğunda iyzico callback'i
+# 401 alıp ödeme akışı sessizce kırılırdı. Karar artık repoda yazılı.
+
+project_id = "kids-trade"
+
+[functions.cargo-payment-init]
+# Çağıran oturumlu bir kullanıcı olmalı; fonksiyon ayrıca çağıranın takasın
+# alıcısı olduğunu kendi içinde doğrular.
+verify_jwt = true
+
+[functions.iyzico-callback]
+# iyzico bir Supabase oturumu taşıyamaz; bu uç JWT'siz olmak ZORUNDA.
+# Güvenlik iki şeye dayanır: token'ın gizliliği ve sonucun iyzico'ya
+# RETRIEVE ile doğrulanması. Gövdeye asla güvenilmez.
+verify_jwt = false
+
+[functions.send-sms]
+# Supabase Auth Hook'u çağırır; imza doğrulaması fonksiyonun içindedir.
+verify_jwt = false
