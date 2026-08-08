@@ -14,12 +14,15 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 import {
   TradeRow,
   TradeStatus,
+  cancelTrade,
   confirmDelivery,
   loadMyTrades,
   openDispute,
+  uploadDisputeEvidence,
 } from '../lib/trades';
 import { supabaseConfigured } from '../lib/supabase';
 import { colors, elevation, shape } from '../theme/tokens';
@@ -141,6 +144,27 @@ export default function TradesScreen() {
     );
   }
 
+  async function iptalEt(t: TradeRow) {
+    Alert.alert(
+      'Takası iptal et',
+      `${t.points} puanınız hesabınıza geri döner ve ilan yeniden vitrine çıkar. Satıcı onayı gerekmez.`,
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        {
+          text: 'İptal et',
+          style: 'destructive',
+          onPress: async () => {
+            setIslemde(t.id);
+            const s = await cancelTrade(t.id);
+            setIslemde(null);
+            if (!s.ok) Alert.alert('İptal edilemedi', s.message);
+            await getir();
+          },
+        },
+      ],
+    );
+  }
+
   async function itirazGonder() {
     if (!itiraz) return;
     const hedef = itiraz;
@@ -153,6 +177,42 @@ export default function TradesScreen() {
     }
     setItiraz(null);
     setGerekce('');
+    await getir();
+
+    // Kanıt 24 saat içinde gelmezse sunucu talebi reddediyor. Kullanıcıyı
+    // burada yakalamazsak itirazı sessizce düşer — hemen soruyoruz.
+    if (s.kanitBekleniyor) {
+      Alert.alert(
+        'Şimdi bir fotoğraf ekleyin',
+        'Sorunu gösteren bir kare olmadan talep değerlendirilemez. 24 saat içinde eklenmezse itiraz kapanır ve onay sayacı kaldığı yerden devam eder.',
+        [
+          { text: 'Sonra', style: 'cancel' },
+          { text: 'Fotoğraf ekle', onPress: () => kanitEkle(s.disputeId) },
+        ],
+      );
+    }
+  }
+
+  async function kanitEkle(disputeId: string) {
+    const izin = await ImagePicker.requestCameraPermissionsAsync();
+    const secenekler: ImagePicker.ImagePickerOptions = {
+      mediaTypes: ['images'],
+      quality: 0.8,
+    };
+    const sonuc = izin.granted
+      ? await ImagePicker.launchCameraAsync(secenekler)
+      : await ImagePicker.launchImageLibraryAsync(secenekler);
+
+    if (sonuc.canceled || !sonuc.assets?.[0]?.uri) return;
+
+    setIslemde(disputeId);
+    const s = await uploadDisputeEvidence(disputeId, sonuc.assets[0].uri);
+    setIslemde(null);
+    if (!s.ok) {
+      Alert.alert('Kanıt eklenemedi', s.message);
+      return;
+    }
+    Alert.alert('Kanıt alındı', 'Talebiniz incelemeye alındı. Sonucu buradan takip edebilirsiniz.');
     await getir();
   }
 
@@ -233,6 +293,16 @@ export default function TradesScreen() {
                   <Text style={styles.gerekce}>Gerekçeniz: {t.disputeReason}</Text>
                 )}
 
+                {t.acikItiraz?.kanitBekleniyor && t.benAliciyim && (
+                  <View style={styles.uyari}>
+                    <MaterialIcons name="photo-camera" size={16} color={colors.error} />
+                    <Text style={styles.uyariText}>
+                      Kanıt bekleniyor. Fotoğraf eklenmezse talep kapanır ve onay sayacı kaldığı
+                      yerden devam eder.
+                    </Text>
+                  </View>
+                )}
+
                 {sure && (
                   <View style={styles.sayac}>
                     <MaterialIcons name="schedule" size={14} color={colors.onSurfaceVariant} />
@@ -244,12 +314,45 @@ export default function TradesScreen() {
                   <View style={styles.aksiyonlar}>
                     <Pressable
                       style={styles.birincil}
+                      disabled={islemde === t.id}
                       onPress={() =>
                         router.push({ pathname: '/payment', params: { trade: t.id } })
                       }
                     >
                       <MaterialIcons name="credit-card" size={18} color="#fff" />
                       <Text style={styles.birincilText}>Kargo bedelini öde</Text>
+                    </Pressable>
+                    <Pressable
+                      style={styles.ikincil}
+                      disabled={islemde === t.id}
+                      onPress={() => iptalEt(t)}
+                    >
+                      <Text style={styles.ikincilText}>İptal et</Text>
+                    </Pressable>
+                  </View>
+                )}
+
+                {t.acikItiraz && t.benAliciyim && (
+                  <View style={styles.aksiyonlar}>
+                    <Pressable
+                      style={t.acikItiraz.kanitBekleniyor ? styles.birincil : styles.ikincil}
+                      disabled={islemde === t.acikItiraz.id}
+                      onPress={() => kanitEkle(t.acikItiraz!.id)}
+                    >
+                      {islemde === t.acikItiraz.id ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={t.acikItiraz.kanitBekleniyor ? '#fff' : colors.onSurface}
+                        />
+                      ) : (
+                        <Text
+                          style={
+                            t.acikItiraz.kanitBekleniyor ? styles.birincilText : styles.ikincilText
+                          }
+                        >
+                          {t.acikItiraz.kanitBekleniyor ? 'Kanıt fotoğrafı ekle' : 'Kanıt ekle'}
+                        </Text>
+                      )}
                     </Pressable>
                   </View>
                 )}
@@ -382,6 +485,22 @@ const styles = StyleSheet.create({
     marginTop: 7,
   },
   gerekce: { fontSize: 12.5, color: colors.onSurface, fontWeight: '600', marginTop: 7 },
+  uyari: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    padding: 11,
+    borderRadius: shape.sm,
+    backgroundColor: colors.errorContainer,
+    marginTop: 10,
+  },
+  uyariText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '600',
+    color: colors.error,
+  },
   sayac: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 9 },
   sayacText: { fontSize: 12, fontWeight: '600', color: colors.onSurfaceVariant },
   aksiyonlar: { flexDirection: 'row', gap: 10, marginTop: 14 },

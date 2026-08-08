@@ -76,6 +76,12 @@ Bu ayrım her zaman geçerlidir.
   değil — adres tablosu bu karar verilmeden açılmaz.
 - **Her açık takasın bir sayacı vardır.** `deadline_at` doluysa takas bir şey
   bekliyordur; kapanınca null olur. Damgaları trigger basar, çağıran yer değil.
+- **İtiraz sayacı durdurur, SIFIRLAMAZ.** Kalan süre `deadline_remaining`'e
+  yazılır ve talep reddedilirse aynen sürer. Sıfırlansaydı arka arkaya açılan
+  asılsız talepler satıcının puanını süresiz rehin alırdı (Ana Doküman 5.4).
+- **İtiraza makine karar vermez.** `resolve_dispute` yalnızca `service_role`'da.
+  Otomatik olan tek şey kanıtsız talebin reddi — değerlendirilecek bir şey
+  olmadığı için. Ürünün ayıplı olup olmadığına her zaman insan karar verir.
 - **Moderasyonda şüphe onay değildir.** Yapay zekâ erişilemezse, anahtar yoksa ya
   da yanıt çözümlenemezse kare `pending` kalır — bu "geçti" demek değildir. Hiçbir
   kod yolu kareyi kendiliğinden `approved` yapmaz.

@@ -76,6 +76,23 @@ Son güncelleme: 2026-08-08 · Branch: `claude/expo-ilan-ve-satinalma`
       satıcıya geçiyor (`expire_stale_trades`)
 - [x] **Takaslar ekranı → canlı `trades`** — mock zaman çizelgesi kaldırıldı;
       durum, kalan süre, "Teslim aldım" ve "Sorun var" gerçek RPC'lere gidiyor
+- [x] **İade ve uyuşmazlık (Ana Doküman Bölüm 5)** — itiraz kapısı açıktı ama
+      arkası boştu: kanıt yüklenemiyor, karar verilemiyordu.
+      `disputes` + `dispute_evidence` (özel kova, klasör sahipliği) +
+      `seller_debts`; `open_dispute` artık kayıt açıyor ve kanıt istiyor,
+      `add_dispute_evidence` talebi karar kuyruğuna alıyor, `resolve_dispute`
+      500 puan eşiğine göre ürünün alıcıda mı kalacağına yoksa satıcıya mı
+      döneceğine karar veriyor (eşiğin üstünde iade kargosu satıcıya borç
+      yazılıyor). `cancel_trade` kargo öncesi iptali veriyor (5.1).
+      Karar **yalnızca `service_role`'da** — kendi itirazına karar verebilen bir
+      alıcı platformu boşaltırdı. Kanıt gelmezse makine reddediyor (kanıtsız
+      talep değerlendirilemez) ama ayıplı olup olmadığına asla karar vermiyor;
+      karar süresi aşılınca yalnızca kuyruğa alıyor
+- [x] **SAYAÇ HATASI DÜZELTİLDİ** — 5.4 "reddedilen talepte sayaç kaldığı yerden
+      devam eder, sıfırlanmaz" diyor. İlk yazdığımda durdururken kalan süreyi
+      siliyordum: her reddedilen talepten sonra alıcı sıfırdan 48 saat
+      kazanıyordu — dokümanın tam da uyardığı suistimal. `deadline_remaining`
+      ile kalan süre saklanıyor ve dönüşte aynen sürüyor
 - [x] **Ödeme ekranı — zincirin kopuk halkası** — `cargo-payment-init` yazılıydı
       ama uygulamada çağıran yoktu. Takas açılıyor, puan havuza giriyor, alıcı
       kargo bedelini ödeyemiyor ve bir saat sonra takas kendiliğinden iptal
@@ -95,9 +112,10 @@ Son güncelleme: 2026-08-08 · Branch: `claude/expo-ilan-ve-satinalma`
 - [x] SMS/OTP backend — Supabase Send SMS Hook → NetGSM OTP (imza doğrulamalı, skeleton)
 
 ## ⏳ Sıradaki (öncelik sırası)
-- [ ] **İade kararı yüzeyi** — `open_dispute()` itirazı açıyor ve sayacı
-      durduruyor ama kararı verecek kimse yok. `refund_points()` hâlâ yalnızca
-      `service_role`'da; itirazlı takasın puanı karar verilene kadar havuzda asılı
+- [ ] **Yönetim paneli** — `resolve_dispute()` yazıldı ve doğrulandı ama yalnızca
+      `service_role`'a açık; kararı verecek bir yüzey yok. Şu an itiraz kuyruğunu
+      görmenin tek yolu SQL. Aynı panel `pending` kalan ilan karelerini de
+      görmeli — iki kuyruk, tek yüzey
 - [ ] **Kare akışının cihazda denenmesi** — kamera bu ortamda test edilemiyor.
       Expo Go'da yedi karenin çekimi, yeniden çekim ve yayın kapısı elden geçirilmeli
 - [ ] **İnsan moderasyon kuyruğu** — `pending` kalan kareler için yönetim yüzeyi.

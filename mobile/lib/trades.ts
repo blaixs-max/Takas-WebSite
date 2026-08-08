@@ -80,6 +80,8 @@ export interface TradeRow {
   deadlineAt: string | null;
   deliveredAt: string | null;
   disputeReason: string | null;
+  /** Açık itiraz varsa kimliği ve durumu; yoksa null. */
+  acikItiraz: { id: string; kanitBekleniyor: boolean } | null;
 }
 
 /** Kullanıcının taraf olduğu takaslar, yenisi üstte. */
@@ -93,8 +95,10 @@ export async function loadMyTrades(): Promise<TradeRow[]> {
   // üzerinden geliyor, ayrı sorgu atmıyoruz.
   const { data, error } = await supabase
     .from('trades')
+    // Tek parça dize: birleştirilmiş bir select ifadesini supabase-js tip
+    // olarak çözemiyor ve satırlar `GenericStringError`'a düşüyor.
     .select(
-      'id, status, points, product_id, buyer_id, deadline_at, delivered_at, dispute_reason, products(title)',
+      'id, status, points, product_id, buyer_id, deadline_at, delivered_at, dispute_reason, products(title), disputes(id, status)',
     )
     .order('created_at', { ascending: false });
 
@@ -103,6 +107,10 @@ export async function loadMyTrades(): Promise<TradeRow[]> {
   return data.map((t) => {
     const urun = t.products as { title?: string } | { title?: string }[] | null;
     const baslik = Array.isArray(urun) ? (urun[0]?.title ?? null) : (urun?.title ?? null);
+
+    const itirazlar = (t.disputes ?? []) as { id: string; status: string }[];
+    const acik = itirazlar.find((d) => d.status === 'OPEN' || d.status === 'NEEDS_EVIDENCE');
+
     return {
       id: t.id as string,
       status: t.status as TradeStatus,
@@ -113,6 +121,7 @@ export async function loadMyTrades(): Promise<TradeRow[]> {
       deadlineAt: (t.deadline_at as string) ?? null,
       deliveredAt: (t.delivered_at as string) ?? null,
       disputeReason: (t.dispute_reason as string) ?? null,
+      acikItiraz: acik ? { id: acik.id, kanitBekleniyor: acik.status === 'NEEDS_EVIDENCE' } : null,
     };
   });
 }
@@ -133,8 +142,27 @@ export async function confirmDelivery(tradeId: string): Promise<ActionResult> {
   return { ok: true, status: (row?.status ?? 'COMPLETED') as TradeStatus };
 }
 
-/** İtiraz açar: 48 saatlik sayaç durur, karar insana kalır. */
-export async function openDispute(tradeId: string, reason: string): Promise<ActionResult> {
+/** Kargo öncesi iptal. Satıcı onayı gerekmez (Ana Doküman 5.1). */
+export async function cancelTrade(tradeId: string): Promise<ActionResult> {
+  if (!supabaseConfigured || !supabase) return { ok: false, message: 'Sunucu bağlantısı yok.' };
+  const { data, error } = await supabase.rpc('cancel_trade', { p_trade_id: tradeId });
+  if (error) return { ok: false, message: cevirAksiyon(error.message) };
+  const row = Array.isArray(data) ? data[0] : data;
+  return { ok: true, status: (row?.status ?? 'REFUNDED') as TradeStatus };
+}
+
+export type DisputeResult =
+  | { ok: true; disputeId: string; kanitBekleniyor: boolean }
+  | { ok: false; message: string };
+
+/**
+ * İtiraz açar: 48 saatlik sayaç durur ve kanıt istenir.
+ *
+ * Talep `NEEDS_EVIDENCE` doğar. 24 saat içinde kanıt yüklenmezse sunucu talebi
+ * reddeder ve sayaç kaldığı yerden devam eder — ekran kullanıcıyı kanıt
+ * yüklemeye yönlendirmek zorunda, yoksa itiraz sessizce düşer.
+ */
+export async function openDispute(tradeId: string, reason: string): Promise<DisputeResult> {
   if (!supabaseConfigured || !supabase) return { ok: false, message: 'Sunucu bağlantısı yok.' };
   const { data, error } = await supabase.rpc('open_dispute', {
     p_trade_id: tradeId,
@@ -142,7 +170,53 @@ export async function openDispute(tradeId: string, reason: string): Promise<Acti
   });
   if (error) return { ok: false, message: cevirAksiyon(error.message) };
   const row = Array.isArray(data) ? data[0] : data;
-  return { ok: true, status: (row?.status ?? 'DISPUTED') as TradeStatus };
+  if (!row?.id) return { ok: false, message: 'İtiraz açıldı ama kimliği alınamadı.' };
+  return {
+    ok: true,
+    disputeId: row.id as string,
+    kanitBekleniyor: row.status === 'NEEDS_EVIDENCE',
+  };
+}
+
+/** İtiraza görsel kanıt ekler. Yol düzeni: {kullanici_id}/{itiraz_id}/{ad}.jpg */
+export async function uploadDisputeEvidence(
+  disputeId: string,
+  localUri: string,
+  note?: string,
+): Promise<ActionResult> {
+  if (!supabaseConfigured || !supabase) return { ok: false, message: 'Sunucu bağlantısı yok.' };
+
+  const { data: oturum } = await supabase.auth.getUser();
+  const uid = oturum?.user?.id;
+  if (!uid) return { ok: false, message: 'Oturum bulunamadı.' };
+
+  const uzanti = localUri.split('.').pop()?.toLowerCase() === 'png' ? 'png' : 'jpg';
+  // Aynı itiraza birden çok kanıt eklenebilmeli; ad çakışmasın diye sıra veriyoruz.
+  const yol = `${uid}/${disputeId}/${Date.now()}.${uzanti}`;
+
+  let bytes: Uint8Array;
+  try {
+    const { File } = await import('expo-file-system');
+    bytes = await new File(localUri).bytes();
+  } catch {
+    return { ok: false, message: 'Fotoğraf okunamadı.' };
+  }
+
+  const { error: yuklemeHatasi } = await supabase.storage
+    .from('dispute-evidence')
+    .upload(yol, bytes, { contentType: uzanti === 'png' ? 'image/png' : 'image/jpeg' });
+  if (yuklemeHatasi) {
+    return { ok: false, message: 'Kanıt yüklenemedi. Bağlantınızı kontrol edin.' };
+  }
+
+  const { data, error } = await supabase.rpc('add_dispute_evidence', {
+    p_dispute_id: disputeId,
+    p_storage_path: yol,
+    p_note: note ?? null,
+  });
+  if (error) return { ok: false, message: cevirAksiyon(error.message) };
+  const row = Array.isArray(data) ? data[0] : data;
+  return { ok: true, status: (row?.status ?? 'OPEN') as TradeStatus };
 }
 
 function cevirAksiyon(mesaj: string): string {
@@ -153,6 +227,15 @@ function cevirAksiyon(mesaj: string): string {
   if (mesaj.includes('itiraz açılamaz')) return 'Bu aşamada itiraz açılamaz.';
   if (mesaj.includes('gerekçesi zorunludur')) return 'Lütfen itiraz gerekçesi yazın.';
   if (mesaj.includes('oturum bulunamadı')) return 'Giriş yapmalısınız.';
+  if (mesaj.includes('itiraz süresi geçmiş')) {
+    return 'İtiraz süresi geçmiş. Teslimattan sonra 48 saat içinde bildirilmeliydi.';
+  }
+  if (mesaj.includes('kargoya verildikten sonra iptal edilemez')) {
+    return 'Ürün kargoya verildi; artık iptal değil iade süreci işler.';
+  }
+  if (mesaj.includes('yalnızca alıcı iptal')) return 'Bu takası yalnızca alıcı iptal edebilir.';
+  if (mesaj.includes('kapanmış itiraza')) return 'Bu itiraz sonuçlanmış, kanıt eklenemez.';
+  if (mesaj.includes('kendi klasörünüzde')) return 'Kanıt yüklenemedi, tekrar deneyin.';
   return 'İşlem tamamlanamadı. Tekrar deneyin.';
 }
 
