@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Condition } from '../data/products';
 import { CATEGORIES, Category } from '../data/categories';
+import { SIZE_CLASSES, SIZE_INFO, SizeClass } from '../data/sizeClasses';
 import { resolveImage } from '../data/productImages';
+import { createListing } from '../lib/listings';
+import { useAuth } from '../lib/auth';
 import { colors, elevation, shape } from '../theme/tokens';
 
 const CONDITIONS: Condition[] = ['İyi durumda', 'Az kullanılmış', 'Yeni gibi'];
@@ -15,13 +18,48 @@ const BASE = 500;
 export default function AddListing() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { user } = useAuth();
   const [condition, setCondition] = useState<Condition>('Az kullanılmış');
   const [category, setCategory] = useState<Category>('Oyuncak');
+  const [sizeClass, setSizeClass] = useState<SizeClass>('S');
   const [title, setTitle] = useState('');
+  const [location, setLocation] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const mult = COND_MULT[condition];
   const photoBonus = 20;
   const total = Math.round(BASE * mult) + photoBonus;
+
+  const baslikTamam = title.trim().length >= 3;
+  const gonderilebilir = baslikTamam && !saving;
+
+  async function rafaEkle() {
+    if (!user) {
+      Alert.alert('Giriş gerekli', 'İlan vermek için önce giriş yapın.', [
+        { text: 'Vazgeç', style: 'cancel' },
+        { text: 'Giriş yap', onPress: () => router.push('/sign-in') },
+      ]);
+      return;
+    }
+    setSaving(true);
+    const sonuc = await createListing({
+      title: title.trim(),
+      category,
+      condition,
+      sizeClass,
+      points: total,
+      location: location.trim() || undefined,
+    });
+    setSaving(false);
+
+    if (!sonuc.ok) {
+      Alert.alert('İlan kaydedilemedi', sonuc.message);
+      return;
+    }
+    Alert.alert('İlan yayında', `${title.trim()} rafa eklendi.`, [
+      { text: 'Tamam', onPress: () => router.back() },
+    ]);
+  }
 
   return (
     <View style={styles.root}>
@@ -126,6 +164,35 @@ export default function AddListing() {
           })}
         </View>
 
+        {/* Boyut — kargo bedeli buradan hesaplanır, bu yüzden zorunlu */}
+        <Text style={styles.flabel}>BOYUT (KARGO)</Text>
+        <View style={styles.chips}>
+          {SIZE_CLASSES.map((sc) => {
+            const sel = sc === sizeClass;
+            return (
+              <Pressable key={sc} onPress={() => setSizeClass(sc)} style={[styles.chip, sel && styles.chipSel]}>
+                <Text style={[styles.chipText, sel && styles.chipTextSel]}>{sc}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <Text style={styles.sizeHint}>
+          {SIZE_INFO[sizeClass].ornek} · {SIZE_INFO[sizeClass].desi} · alıcı yaklaşık{' '}
+          {SIZE_INFO[sizeClass].kargoTl} ₺ kargo öder
+        </Text>
+
+        {/* Konum */}
+        <Text style={styles.flabel}>KONUM</Text>
+        <View style={styles.field}>
+          <TextInput
+            style={styles.input}
+            placeholder="Örn. Kadıköy"
+            placeholderTextColor={colors.onSurfaceVariant}
+            value={location}
+            onChangeText={setLocation}
+          />
+        </View>
+
         {/* Puan hesabı */}
         <Text style={styles.flabel}>PUAN HESABI</Text>
         <View style={styles.calc}>
@@ -148,10 +215,21 @@ export default function AddListing() {
       </ScrollView>
 
       <View style={[styles.actionbar, { paddingBottom: insets.bottom + 14 }]}>
-        <Pressable style={styles.cta} onPress={() => router.back()}>
-          <MaterialIcons name="check" size={20} color="#fff" />
-          <Text style={styles.ctaText}>Rafa ekle</Text>
+        <Pressable
+          style={[styles.cta, !gonderilebilir && styles.ctaOff]}
+          disabled={!gonderilebilir}
+          onPress={rafaEkle}
+        >
+          {saving ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <>
+              <MaterialIcons name="check" size={20} color="#fff" />
+              <Text style={styles.ctaText}>Rafa ekle</Text>
+            </>
+          )}
         </Pressable>
+        {!baslikTamam && <Text style={styles.ctaHint}>Devam etmek için bir başlık yazın</Text>}
       </View>
     </View>
   );
@@ -271,4 +349,7 @@ const styles = StyleSheet.create({
     ...elevation.level1,
   },
   ctaText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  ctaOff: { opacity: 0.45 },
+  ctaHint: { textAlign: 'center', color: colors.onSurfaceVariant, fontSize: 12, fontWeight: '500', marginTop: 8 },
+  sizeHint: { fontSize: 12, color: colors.onSurfaceVariant, fontWeight: '500', marginBottom: 4, marginTop: -2 },
 });

@@ -45,6 +45,12 @@ Son güncelleme: 2026-08-07 · Branch: `claude/mobil-guvenlik-p0`
 - [x] **Ürün rezervasyonu** — `create_trade()` ürünü kilitleyip rezerve ediyor;
       yabancı anahtar + kısmi benzersiz indeks aynı ürüne ikinci takası engelliyor;
       trigger ilan durumunu takasla senkron tutuyor (COMPLETED→SOLD, REFUNDED→ACTIVE)
+- [x] **İlan ekleme gerçek** — `create_listing()` RPC'si; form desi kademesi ve konum
+      soruyor, "Rafa ekle" gerçekten `products`'a yazıyor. Fotoğraf hâlâ yok
+- [x] **Satın alma gerçek** — "Takas et" `create_trade()` çağırıyor; onay diyaloğu,
+      sunucudan gelen kargo/hizmet/işlem payı kırılımı, hata mesajları
+- [x] **Satıcı kendi ilanını görebiliyor** — `products` SELECT politikası yalnızca
+      ACTIVE diyordu; satılan ilan "Yayınladığım İlanlar"dan düşüyordu
 
 ### Backend
 - [x] Puan defteri (güvenli havuz): `wallets`/`wallet_entries`/`trades`, atomik
@@ -61,14 +67,18 @@ Son güncelleme: 2026-08-07 · Branch: `claude/mobil-guvenlik-p0`
 - [ ] **İlan formuna desi kademesi** — `products.size_class` şemada var, formda yok;
       fiyatlandırma buna bağlı
 - [ ] **48 saat otomatik onay** — zamanlanmış görev ve sayaç yok
-- [ ] **İlan ekleme — gerçek insert** — Ürün Ekle formu Supabase `products`'a yazsın
-      (şu an UI hazır, kayıt yok) + görsel yükleme (Supabase Storage).
-      Form artık `size_class` (desi kademesi) de sormalı — fiyatlandırma buna bağlı
-- [ ] **Satın alma → `create_trade()`** — uygulama takası doğrudan insert etmemeli,
-      RPC'yi çağırmalı; rezervasyon ve emanet oradan işliyor
-- [ ] **Takaslar ekranı → canlı `trades`** — gerçek durum makinesi + aksiyonlar
+- [ ] **YEDİ KARE — AI yönlendirmeli fotoğraf çekimi** (sıradaki iş)
+      Ana Doküman 4.2'deki yedi kare, kullanıcı adım adım yönlendirilerek çekilir:
+      1 ön · 2 arka · 3 sol yan · 4 sağ yan · 5 etiket/CE — beşi zorunlu;
+      6 hasar yakın çekimi (hasar beyan edildiyse) · 7 parça bütünlüğü (set ise).
+      Gerekenler: `expo-image-picker`/kamera, Supabase Storage kovası + RLS,
+      `product_photos` tablosu (slot tipi + sıra), her karede AI kontrolü
+      (kadrajda çocuk yüzü, arka plan, internetten alınmış görsel, bulanıklık),
+      kapak seçimi ve kapağın üzerinde zorunlu durum rozeti.
+      `products.image_key` bu iş bitince emekliye ayrılır.
 - [ ] **Ödeme WebView ekranı** — `cargo-payment-init` token'ı ile iyzico ödeme
       (WebView) + `kidstrade://payment-result` deep-link dönüşü
+- [ ] **Takaslar ekranı → canlı `trades`** — gerçek durum makinesi + aksiyonlar
 - [ ] **Kargo aggregator** (Navlungo/Kolay Gelsin) — `iyzico-callback` etiket üretimi
 
 ## 🔜 Sonra

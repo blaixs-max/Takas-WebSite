@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,6 +7,8 @@ import { useProduct } from '../../hooks/useProducts';
 import { useFavorites } from '../../lib/favorites';
 import { useCart } from '../../lib/cart';
 import { shareProduct } from '../../lib/share';
+import { startTrade, quotePrice } from '../../lib/trades';
+import { useAuth } from '../../lib/auth';
 import { colors, elevation, shape } from '../../theme/tokens';
 
 export default function ProductDetail() {
@@ -16,9 +18,58 @@ export default function ProductDetail() {
   const { product, loading } = useProduct(id);
   const { isFavorite, toggle } = useFavorites();
   const { inCart, toggle: toggleCart } = useCart();
+  const { user } = useAuth();
   const [activeImg, setActiveImg] = useState(0);
+  const [takasEdiliyor, setTakasEdiliyor] = useState(false);
   const fav = product ? isFavorite(product.id) : false;
   const inSepet = product ? inCart(product.id) : false;
+
+  /**
+   * Takası gerçekten açar. Puan bu çağrıda güvenli havuza girer ve ilan
+   * rezerve edilir, o yüzden önce ne olacağı açıkça soruluyor.
+   */
+  async function takasEt() {
+    if (!product) return;
+    if (!user) {
+      Alert.alert('Giriş gerekli', 'Takas için önce giriş yapın.', [
+        { text: 'Vazgeç', style: 'cancel' },
+        { text: 'Giriş yap', onPress: () => router.push('/sign-in') },
+      ]);
+      return;
+    }
+
+    Alert.alert(
+      'Takası başlat',
+      `${product.points} puanınız güvenli havuza alınacak. Ürün elinize geçip onaylayana kadar satıcıya geçmez.`,
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        {
+          text: 'Onayla',
+          onPress: async () => {
+            setTakasEdiliyor(true);
+            const sonuc = await startTrade(product.id);
+            if (!sonuc.ok) {
+              setTakasEdiliyor(false);
+              Alert.alert('Takas başlatılamadı', sonuc.message);
+              return;
+            }
+            // Kargo bedeli sunucuda hesaplanır; kullanıcıya ödeyeceği tutarı
+            // tahminle değil o hesapla gösteriyoruz.
+            const fiyat = await quotePrice(sonuc.tradeId);
+            setTakasEdiliyor(false);
+            const satir = fiyat
+              ? `\n\nKargo ${fiyat.shippingTl.toFixed(2)} ₺ + hizmet ${fiyat.serviceFeeTl.toFixed(2)} ₺ + işlem payı ${fiyat.transactionFeeTl.toFixed(2)} ₺ = ${fiyat.totalTl.toFixed(2)} ₺`
+              : '';
+            Alert.alert(
+              'Takas açıldı',
+              `${sonuc.points} puan havuzda.${satir}\n\nKargo ödemesini Takaslar ekranından tamamlayın.`,
+              [{ text: 'Takaslara git', onPress: () => router.replace('/trades') }],
+            );
+          },
+        },
+      ],
+    );
+  }
 
   if (loading && !product) {
     return (
@@ -156,9 +207,19 @@ export default function ProductDetail() {
             color={inSepet ? colors.onPrimaryContainer : colors.onSurface}
           />
         </Pressable>
-        <Pressable style={styles.cta} onPress={() => router.push('/trades')}>
-          <MaterialIcons name="swap-horiz" size={20} color="#fff" />
-          <Text style={styles.ctaText}>Takas et · {product.points} puan</Text>
+        <Pressable
+          style={[styles.cta, takasEdiliyor && { opacity: 0.6 }]}
+          disabled={takasEdiliyor}
+          onPress={takasEt}
+        >
+          {takasEdiliyor ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <>
+              <MaterialIcons name="swap-horiz" size={20} color="#fff" />
+              <Text style={styles.ctaText}>Takas et · {product.points} puan</Text>
+            </>
+          )}
         </Pressable>
       </View>
     </View>

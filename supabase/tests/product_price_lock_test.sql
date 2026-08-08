@@ -8,9 +8,9 @@
 \echo ''
 \echo '=== Hazırlık: satıcıya ait bir ilan ==='
 insert into products (id, title, points, ai_suggested_points, condition, category,
-                      location, image_key, seller_id, seller_name, seller_initials)
+                      location, image_key, seller_id, seller_name, seller_initials, size_class)
 values ('test-urun', 'Test ürünü', 260, 260, 'İyi durumda', 'Oyuncak',
-        'Kadıköy', 'wooden-blocks', :'seller', 'Test Satıcı', 'TS')
+        'Kadıköy', 'wooden-blocks', :'seller', 'Test Satıcı', 'TS', 'S')
 on conflict (id) do update set points = 260, ai_suggested_points = 260, status = 'ACTIVE';
 select id, points, status from products where id = 'test-urun';
 
