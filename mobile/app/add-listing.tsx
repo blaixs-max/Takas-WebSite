@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Condition } from '../data/products';
 import { CATEGORIES, Category } from '../data/categories';
 import { SIZE_CLASSES, SIZE_INFO, SizeClass } from '../data/sizeClasses';
-import { resolveImage } from '../data/productImages';
 import { createListing } from '../lib/listings';
 import { useAuth } from '../lib/auth';
 import { colors, elevation, shape } from '../theme/tokens';
@@ -24,6 +23,8 @@ export default function AddListing() {
   const [sizeClass, setSizeClass] = useState<SizeClass>('S');
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
+  const [hasDamage, setHasDamage] = useState(false);
+  const [isSet, setIsSet] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const mult = COND_MULT[condition];
@@ -49,6 +50,8 @@ export default function AddListing() {
       sizeClass,
       points: total,
       location: location.trim() || undefined,
+      hasDamage,
+      isSet,
     });
     setSaving(false);
 
@@ -56,9 +59,17 @@ export default function AddListing() {
       Alert.alert('İlan kaydedilemedi', sonuc.message);
       return;
     }
-    Alert.alert('İlan yayında', `${title.trim()} rafa eklendi.`, [
-      { text: 'Tamam', onPress: () => router.back() },
-    ]);
+    // İlan taslak olarak açıldı. Yayına girmesi için kareler gerekiyor;
+    // kullanıcıyı doğrudan çekim akışına alıyoruz.
+    router.replace({
+      pathname: '/listing-photos',
+      params: {
+        id: sonuc.id,
+        hasDamage: hasDamage ? '1' : '0',
+        isSet: isSet ? '1' : '0',
+        title: title.trim(),
+      },
+    });
   }
 
   return (
@@ -81,46 +92,16 @@ export default function AddListing() {
           <View style={styles.step} />
         </View>
 
-        {/* Fotoğraf yükleme */}
-        <View style={styles.upload}>
-          <View style={styles.uploadIc}>
-            <MaterialIcons name="add-a-photo" size={30} color={colors.onPrimaryContainer} />
-          </View>
-          <Text style={styles.uploadTitle}>Kapak fotoğrafını çek</Text>
-          <Text style={styles.uploadSub}>Gerçek çekim · AI kalite kontrolünden geçer</Text>
-        </View>
-
-        <View style={styles.thumbs}>
-          <View style={styles.thumb}>
-            <Image source={resolveImage('wooden-close')} style={styles.thumbImg} />
-            <View style={styles.thumbX}>
-              <MaterialIcons name="close" size={14} color="#fff" />
-            </View>
-          </View>
-          <View style={styles.thumb}>
-            <Image source={resolveImage('wooden-blocks')} style={styles.thumbImg} />
-            <View style={styles.thumbX}>
-              <MaterialIcons name="close" size={14} color="#fff" />
-            </View>
-          </View>
-          <View style={[styles.thumb, styles.thumbAdd]}>
-            <MaterialIcons name="add" size={24} color={colors.outline} />
-          </View>
-          <View style={[styles.thumb, styles.thumbAdd]}>
-            <MaterialIcons name="add" size={24} color={colors.outline} />
-          </View>
-        </View>
-
-        {/* AI kontrol */}
-        <View style={styles.ai}>
-          <View style={styles.aiIc}>
-            <MaterialIcons name="auto-awesome" size={22} color="#fff" />
-          </View>
+        {/* Fotoğraflar bir sonraki adımda, yönlendirmeli çekimle alınır. */}
+        <View style={styles.fotoNot}>
+          <MaterialIcons name="photo-camera" size={22} color={colors.onPrimaryContainer} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.aiTitle}>AI fotoğraf kontrolü</Text>
-            <Text style={styles.aiSub}>Gerçek çekim · kategori önerisi: Montessori / ahşap</Text>
+            <Text style={styles.fotoNotBaslik}>Fotoğraflar sırada</Text>
+            <Text style={styles.fotoNotAlt}>
+              Bu adımdan sonra ürünü yedi açıdan, adım adım çekeceğiz. İlan ancak
+              kareler tamamlanınca yayına girer.
+            </Text>
           </View>
-          <MaterialIcons name="check-circle" size={26} color={colors.primary} />
         </View>
 
         {/* Başlık */}
@@ -163,6 +144,31 @@ export default function AddListing() {
             );
           })}
         </View>
+
+        {/* Beyanlar — hangi karelerin zorunlu olacağını bunlar belirler */}
+        <Text style={styles.flabel}>DURUM BEYANI</Text>
+        <Pressable style={styles.beyan} onPress={() => setHasDamage(!hasDamage)}>
+          <MaterialIcons
+            name={hasDamage ? 'check-box' : 'check-box-outline-blank'}
+            size={24}
+            color={hasDamage ? colors.primary : colors.outline}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.beyanText}>Üründe hasar veya kusur var</Text>
+            <Text style={styles.beyanAlt}>İşaretlerseniz hasarın yakın çekimini isteyeceğiz</Text>
+          </View>
+        </Pressable>
+        <Pressable style={styles.beyan} onPress={() => setIsSet(!isSet)}>
+          <MaterialIcons
+            name={isSet ? 'check-box' : 'check-box-outline-blank'}
+            size={24}
+            color={isSet ? colors.primary : colors.outline}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.beyanText}>Ürün bir set (birden çok parça)</Text>
+            <Text style={styles.beyanAlt}>Parçaların tamamını gösteren bir kare isteyeceğiz</Text>
+          </View>
+        </Pressable>
 
         {/* Boyut — kargo bedeli buradan hesaplanır, bu yüzden zorunlu */}
         <Text style={styles.flabel}>BOYUT (KARGO)</Text>
@@ -224,8 +230,8 @@ export default function AddListing() {
             <ActivityIndicator color="#fff" />
           ) : (
             <>
-              <MaterialIcons name="check" size={20} color="#fff" />
-              <Text style={styles.ctaText}>Rafa ekle</Text>
+              <MaterialIcons name="photo-camera" size={20} color="#fff" />
+              <Text style={styles.ctaText}>Devam et · fotoğraflar</Text>
             </>
           )}
         </Pressable>
@@ -253,58 +259,6 @@ const styles = StyleSheet.create({
   stepbar: { flexDirection: 'row', gap: 6, marginBottom: 16 },
   step: { flex: 1, height: 4, borderRadius: shape.full, backgroundColor: colors.surfaceContainerHighest },
   stepOn: { backgroundColor: colors.primary },
-  upload: {
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    borderColor: colors.outline,
-    borderRadius: shape.lg,
-    backgroundColor: colors.surfaceContainerLow,
-    aspectRatio: 16 / 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginBottom: 14,
-  },
-  uploadIc: {
-    width: 62,
-    height: 62,
-    borderRadius: shape.full,
-    backgroundColor: colors.primaryContainer,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  uploadTitle: { fontSize: 15, fontWeight: '700', color: colors.onSurface },
-  uploadSub: { fontSize: 12, fontWeight: '500', color: colors.onSurfaceVariant },
-  thumbs: { flexDirection: 'row', gap: 8, marginBottom: 18 },
-  thumb: { flex: 1, aspectRatio: 1, borderRadius: shape.sm, overflow: 'hidden', backgroundColor: colors.surfaceContainerHigh },
-  thumbImg: { width: '100%', height: '100%' },
-  thumbX: {
-    position: 'absolute',
-    right: 4,
-    top: 4,
-    width: 22,
-    height: 22,
-    borderRadius: shape.full,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  thumbAdd: { alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.outlineVariant, backgroundColor: 'transparent' },
-  ai: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 14,
-    borderRadius: shape.md,
-    backgroundColor: colors.surfaceContainerLow,
-    marginBottom: 16,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.primary,
-    ...elevation.level1,
-  },
-  aiIc: { width: 42, height: 42, borderRadius: shape.full, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  aiTitle: { fontSize: 14, fontWeight: '700', color: colors.onSurface },
-  aiSub: { fontSize: 12, color: colors.onSurfaceVariant, fontWeight: '500', marginTop: 2 },
   flabel: { fontSize: 12, fontWeight: '700', color: colors.onSurfaceVariant, letterSpacing: 0.4, marginBottom: 8, marginTop: 6 },
   field: { height: 52, paddingHorizontal: 16, borderRadius: shape.sm, backgroundColor: colors.surfaceContainerHigh, justifyContent: 'center', marginBottom: 6 },
   input: { fontSize: 15, color: colors.onSurface },
@@ -352,4 +306,18 @@ const styles = StyleSheet.create({
   ctaOff: { opacity: 0.45 },
   ctaHint: { textAlign: 'center', color: colors.onSurfaceVariant, fontSize: 12, fontWeight: '500', marginTop: 8 },
   sizeHint: { fontSize: 12, color: colors.onSurfaceVariant, fontWeight: '500', marginBottom: 4, marginTop: -2 },
+  beyan: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
+  beyanText: { fontSize: 14, fontWeight: '600', color: colors.onSurface },
+  beyanAlt: { fontSize: 12, color: colors.onSurfaceVariant, fontWeight: '500', marginTop: 2 },
+  fotoNot: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+    padding: 14,
+    borderRadius: shape.md,
+    backgroundColor: colors.primaryContainer,
+    marginBottom: 16,
+  },
+  fotoNotBaslik: { fontSize: 14, fontWeight: '700', color: colors.onPrimaryContainer },
+  fotoNotAlt: { fontSize: 12.5, color: colors.onPrimaryContainer, fontWeight: '500', marginTop: 3, lineHeight: 17 },
 });

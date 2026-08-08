@@ -52,6 +52,7 @@ Bu ayrım her zaman geçerlidir.
   addresses, security, help, invite, edit-profile, onboarding, sign-in.
 - İstemci durumları: `lib/favorites.tsx` (kalp), `lib/cart.tsx` (sepet) — AsyncStorage'da kalıcı.
 - Kategoriler tek kaynak: `data/categories.ts` (14 kategori + ikon). Ürün görselleri `data/productImages.ts`.
+- İlan açma iki adımdır: `add-listing` (beyanlar + desi) → `listing-photos` (yedi kare + yayın).
 
 ## Kritik iş kuralları (mimariyi belirler)
 - **Güvenli havuz = PUAN tutar, gerçek para DEĞİL.** Escrow kendi çift girişli
@@ -60,6 +61,12 @@ Bu ayrım her zaman geçerlidir.
   alt-üye YOK). Komisyon = alıcı kargo fiyatı − anlaşmalı kargo maliyeti.
 - Puanlar **parayla satın alınmaz** → e-para lisansı gerekmez. Kargo fiziksel
   hizmet → App Store/Play **IAP zorunlu değil** (iyzico serbest).
+- **İlan `DRAFT` doğar.** Vitrine çıkmanın tek yolu `publish_listing()`; kapı
+  zorunlu kareler eksikse ya da bir kare `approved` değilse reddeder. Zorunluluk
+  kuralının tek kaynağı `required_slots()`, `data/photoSlots.ts` onun aynasıdır.
+- **Moderasyonda şüphe onay değildir.** Yapay zekâ erişilemezse, anahtar yoksa ya
+  da yanıt çözümlenemezse kare `pending` kalır — bu "geçti" demek değildir. Hiçbir
+  kod yolu kareyi kendiliğinden `approved` yapmaz.
 
 ## Güvenlik kuralları (ASLA ihlal etme)
 - `service_role` / iyzico `secret key` **asla mobilde** olmaz; yalnızca backend.
@@ -81,13 +88,15 @@ npx tsc --noEmit                      # tip kontrolü (commit öncesi)
 npx expo start                        # geliştirme (Expo Go)
 EXPO_NO_TELEMETRY=1 CI=1 npx expo export --platform web   # derleme doğrulama
 
-# Supabase puan defteri testi (yerel geçici Postgres ile)
-psql "$DB" -f supabase/migrations/20260621130000_points_ledger.sql
-psql "$DB" -f supabase/tests/points_ledger_test.sql
+# Arka uç testleri (yerel geçici Postgres): migration'ları sırayla uygula,
+# sonra supabase/tests/ altındaki takımları koş. Testler sabit kimlikli satır
+# ekler — her koşu sıfırdan bir veri tabanıyla başlamalıdır.
+psql "$DB" -v ON_ERROR_STOP=1 -f supabase/tests/<takım>_test.sql
 ```
 
 ## Git akışı
-- Geliştirme branch'i: `claude/happy-thompson-omacgb`. Burada geliştir, commit, push.
+- Geliştirme branch'i her turda kullanıcının verdiği daldır (şu an
+  `claude/expo-ilan-ve-satinalma`). Burada geliştir, commit, push.
 - `main`'e merge yalnızca kullanıcı isteyince (fast-forward tercih).
 - Commit mesajları Türkçe + açıklayıcı.
 

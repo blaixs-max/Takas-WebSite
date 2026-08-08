@@ -17,6 +17,11 @@ verify_jwt = true
 # RETRIEVE ile doğrulanması. Gövdeye asla güvenilmez.
 verify_jwt = false
 
+[functions.photo-check]
+# Kareyi yükleyen kullanıcı çağırır; oturum zorunlu. Fonksiyon service_role ile
+# çalıştığı için muafiyet verilseydi herkes istediği kareyi inceletebilirdi.
+verify_jwt = true
+
 [functions.send-sms]
 # Supabase Auth Hook'u çağırır; imza doğrulaması fonksiyonun içindedir.
 verify_jwt = false

@@ -1,6 +1,6 @@
 # KIDS TRADE — Yol Haritası / TODO
 
-Son güncelleme: 2026-08-07 · Branch: `claude/mobil-guvenlik-p0`
+Son güncelleme: 2026-08-08 · Branch: `claude/expo-ilan-ve-satinalma`
 
 ## ✅ Tamamlandı
 
@@ -46,11 +46,22 @@ Son güncelleme: 2026-08-07 · Branch: `claude/mobil-guvenlik-p0`
       yabancı anahtar + kısmi benzersiz indeks aynı ürüne ikinci takası engelliyor;
       trigger ilan durumunu takasla senkron tutuyor (COMPLETED→SOLD, REFUNDED→ACTIVE)
 - [x] **İlan ekleme gerçek** — `create_listing()` RPC'si; form desi kademesi ve konum
-      soruyor, "Rafa ekle" gerçekten `products`'a yazıyor. Fotoğraf hâlâ yok
+      soruyor, "Rafa ekle" gerçekten `products`'a yazıyor
 - [x] **Satın alma gerçek** — "Takas et" `create_trade()` çağırıyor; onay diyaloğu,
       sunucudan gelen kargo/hizmet/işlem payı kırılımı, hata mesajları
 - [x] **Satıcı kendi ilanını görebiliyor** — `products` SELECT politikası yalnızca
       ACTIVE diyordu; satılan ilan "Yayınladığım İlanlar"dan düşüyordu
+- [x] **YEDİ KARE — yönlendirmeli fotoğraf çekimi** (Ana Doküman 4.2)
+      İlan artık `DRAFT` açılıyor ve vitrine ancak kareler tamamlanıp incelemeden
+      geçince çıkıyor. `product_photos` tablosu + `photo_slot` tipi, `listing-photos`
+      depolama kovası (klasör sahipliğine bağlı politikalar), `required_slots()` ve
+      `publish_listing()` kapısı. Uygulama tarafında `app/listing-photos.tsx` kullanıcıyı
+      ürünün etrafında dolaştırıyor: ön · arka · sol · sağ · etiket zorunlu, hasar beyan
+      edilmişse yakın çekim, set ise parça bütünlüğü. Her kare `photo-check` Edge
+      Function'ında yapay zekâya inceletiliyor (çocuk yüzü, arka plan, stok görsel,
+      bulanıklık, yanlış açı). **Şüphede onay yok:** servis erişilemezse kare `pending`
+      kalır, kapı `pending`i geçirmez, ilan insan kuyruğunda bekler.
+      Kapak `is_cover` ile işaretleniyor; `products.image_key` artık kapağın türevi
 
 ### Backend
 - [x] Puan defteri (güvenli havuz): `wallets`/`wallet_entries`/`trades`, atomik
@@ -64,25 +75,22 @@ Son güncelleme: 2026-08-07 · Branch: `claude/mobil-guvenlik-p0`
 ## ⏳ Sıradaki (öncelik sırası)
 - [ ] **Para ve puan katmanını bağla** — ödeme başarılı olunca `hold_points`,
       teslim onayında `release_points` çağrılsın. Şu an callback puana hiç dokunmuyor
-- [ ] **İlan formuna desi kademesi** — `products.size_class` şemada var, formda yok;
-      fiyatlandırma buna bağlı
 - [ ] **48 saat otomatik onay** — zamanlanmış görev ve sayaç yok
-- [ ] **YEDİ KARE — AI yönlendirmeli fotoğraf çekimi** (sıradaki iş)
-      Ana Doküman 4.2'deki yedi kare, kullanıcı adım adım yönlendirilerek çekilir:
-      1 ön · 2 arka · 3 sol yan · 4 sağ yan · 5 etiket/CE — beşi zorunlu;
-      6 hasar yakın çekimi (hasar beyan edildiyse) · 7 parça bütünlüğü (set ise).
-      Gerekenler: `expo-image-picker`/kamera, Supabase Storage kovası + RLS,
-      `product_photos` tablosu (slot tipi + sıra), her karede AI kontrolü
-      (kadrajda çocuk yüzü, arka plan, internetten alınmış görsel, bulanıklık),
-      kapak seçimi ve kapağın üzerinde zorunlu durum rozeti.
-      `products.image_key` bu iş bitince emekliye ayrılır.
+- [ ] **Kare akışının cihazda denenmesi** — kamera bu ortamda test edilemiyor.
+      Expo Go'da yedi karenin çekimi, yeniden çekim ve yayın kapısı elden geçirilmeli
+- [ ] **İnsan moderasyon kuyruğu** — `pending` kalan kareler için yönetim yüzeyi.
+      Şu an anahtar yoksa ya da model yanıt vermezse ilan sessizce bekliyor,
+      kimse bakmıyor. En azından bir liste ve onayla/reddet aksiyonu gerekiyor
+- [ ] **`AI_VISION_API_KEY` ayarlanması** — anahtar girilene kadar hiçbir kare
+      otomatik onaylanmaz (tasarım gereği güvenli taraf), yani yayın akışı durur
 - [ ] **Ödeme WebView ekranı** — `cargo-payment-init` token'ı ile iyzico ödeme
       (WebView) + `kidstrade://payment-result` deep-link dönüşü
 - [ ] **Takaslar ekranı → canlı `trades`** — gerçek durum makinesi + aksiyonlar
 - [ ] **Kargo aggregator** (Navlungo/Kolay Gelsin) — `iyzico-callback` etiket üretimi
 
 ## 🔜 Sonra
-- [ ] Ürün Ekle: kamera + gerçek AI fotoğraf kontrolü + dinamik puan
+- [ ] Ürün Ekle: dinamik puan önerisi (kareler ve kategoriden değerleme)
+- [ ] Kapakta zorunlu durum rozeti (hasar beyanı ilan kartında görünsün)
 - [ ] Mesajlaşma/sohbet → gerçek zamanlı (Supabase Realtime)
 - [ ] Bildirimler → push (Expo Notifications)
 - [ ] Favori/Sepet → oturum açıkken Supabase'e senkron (cihaz + bulut)

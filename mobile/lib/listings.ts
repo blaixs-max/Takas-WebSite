@@ -11,6 +11,10 @@ export interface NewListing {
   points: number;
   location?: string;
   description?: string;
+  /** Hasar beyanı — hasar yakın çekimi karesini zorunlu yapar. */
+  hasDamage?: boolean;
+  /** Set beyanı — parça bütünlüğü karesini zorunlu yapar. */
+  isSet?: boolean;
 }
 
 export type CreateResult =
@@ -23,6 +27,9 @@ export type CreateResult =
  * Doğrudan insert etmez, `create_listing` RPC'sini çağırır: satıcı kimliği,
  * görünen ad ve değerleme izi orada oturumdan türetilir, istemcinin
  * yazabileceği alan değildir.
+ *
+ * İlan TASLAK olarak açılır — vitrine çıkmaz. Yayına girmesi için yedi karenin
+ * zorunlu olanları çekilip incelemeden geçmelidir (`publishListing`).
  */
 export async function createListing(l: NewListing): Promise<CreateResult> {
   if (!supabaseConfigured || !supabase) {
@@ -37,6 +44,8 @@ export async function createListing(l: NewListing): Promise<CreateResult> {
     p_points: l.points,
     p_location: l.location ?? 'Belirtilmedi',
     p_description: l.description ?? null,
+    p_has_damage: l.hasDamage ?? false,
+    p_is_set: l.isSet ?? false,
   });
 
   if (error) return { ok: false, message: cevir(error.message) };

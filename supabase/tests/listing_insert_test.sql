@@ -21,10 +21,25 @@ select id, title, points, ai_suggested_points, size_class, status,
                       'Doğal ahşap, 12 parça, kutusunda.') \gset l_
 select title, points, ai_suggested_points, size_class, status, seller_name, seller_initials
   from products where id = :'l_id';
-\echo 'BEKLENEN: 380/380, M, ACTIVE, Zeynep Demir, ZD'
+\echo 'BEKLENEN: 380/380, M, DRAFT, Zeynep Demir, ZD'
 
 \echo ''
-\echo '=== 2) Yeni ilan hemen fiyatlanabiliyor ==='
+\echo '=== 1b) Vitrine çıkmak yedi kare kapısından geçmeyi gerektirir ==='
+insert into product_photos (product_id, slot, storage_path) values
+  (:'l_id', 'front', :'s' || '/' || :'l_id' || '/front.jpg'),
+  (:'l_id', 'back',  :'s' || '/' || :'l_id' || '/back.jpg'),
+  (:'l_id', 'left',  :'s' || '/' || :'l_id' || '/left.jpg'),
+  (:'l_id', 'right', :'s' || '/' || :'l_id' || '/right.jpg'),
+  (:'l_id', 'label', :'s' || '/' || :'l_id' || '/label.jpg');
+reset role;
+update product_photos set moderation_status = 'approved' where product_id = :'l_id';
+set session role authenticated;
+select set_config('test.uid', :'s', false);
+select status from publish_listing(:'l_id', 'front');
+\echo 'BEKLENEN: ACTIVE'
+
+\echo ''
+\echo '=== 2) Yayına alınan ilan fiyatlanabiliyor ==='
 reset role;
 select available_points from earn_points(:'b', 1000, 'test:alici-bakiye');
 set session role authenticated;
