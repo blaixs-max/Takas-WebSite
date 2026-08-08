@@ -42,6 +42,9 @@ Son güncelleme: 2026-08-07 · Branch: `claude/mobil-guvenlik-p0`
 - [x] **Callback idempotency** — işlenmiş ödeme tekrar işlenmiyor; takas durumu
       yalnızca POINTS_HELD → SHIPPED yönünde ilerliyor, geriye sarmıyor
 - [x] `supabase/config.toml` — JWT muafiyeti artık repoda yazılı, deploy bayrağında değil
+- [x] **Ürün rezervasyonu** — `create_trade()` ürünü kilitleyip rezerve ediyor;
+      yabancı anahtar + kısmi benzersiz indeks aynı ürüne ikinci takası engelliyor;
+      trigger ilan durumunu takasla senkron tutuyor (COMPLETED→SOLD, REFUNDED→ACTIVE)
 
 ### Backend
 - [x] Puan defteri (güvenli havuz): `wallets`/`wallet_entries`/`trades`, atomik
@@ -55,14 +58,14 @@ Son güncelleme: 2026-08-07 · Branch: `claude/mobil-guvenlik-p0`
 ## ⏳ Sıradaki (öncelik sırası)
 - [ ] **Para ve puan katmanını bağla** — ödeme başarılı olunca `hold_points`,
       teslim onayında `release_points` çağrılsın. Şu an callback puana hiç dokunmuyor
-- [ ] **Ürün rezervasyonu** — `trades.product_id` `products`'a yabancı anahtar
-      değil ve takas açılınca ilan RESERVED olmuyor; aynı ürüne eşzamanlı iki
-      takas açılabiliyor
 - [ ] **İlan formuna desi kademesi** — `products.size_class` şemada var, formda yok;
       fiyatlandırma buna bağlı
 - [ ] **48 saat otomatik onay** — zamanlanmış görev ve sayaç yok
 - [ ] **İlan ekleme — gerçek insert** — Ürün Ekle formu Supabase `products`'a yazsın
-      (şu an UI hazır, kayıt yok) + görsel yükleme (Supabase Storage)
+      (şu an UI hazır, kayıt yok) + görsel yükleme (Supabase Storage).
+      Form artık `size_class` (desi kademesi) de sormalı — fiyatlandırma buna bağlı
+- [ ] **Satın alma → `create_trade()`** — uygulama takası doğrudan insert etmemeli,
+      RPC'yi çağırmalı; rezervasyon ve emanet oradan işliyor
 - [ ] **Takaslar ekranı → canlı `trades`** — gerçek durum makinesi + aksiyonlar
 - [ ] **Ödeme WebView ekranı** — `cargo-payment-init` token'ı ile iyzico ödeme
       (WebView) + `kidstrade://payment-result` deep-link dönüşü
