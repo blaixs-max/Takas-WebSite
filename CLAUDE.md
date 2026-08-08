@@ -30,6 +30,11 @@ Veri tabanına bağlanmaz. Kategori listesi buradaki `mobile/data/categories.ts`
 dosyasının aynasını taşır (`src/data/categories.ts`); burada bir kategori
 eklenir ya da adı değişirse orası da aynı turda güncellenir.
 
+## Terimler
+**"Mobil"** dendiğinde kastedilen `mobile/` klasöründeki **Expo uygulamasıdır** —
+kullanıcının elindeki ekranlar. `supabase/` bundan ayrıdır ve "arka uç" diye anılır.
+Bu ayrım her zaman geçerlidir.
+
 ## Mimari
 | Klasör | Ne |
 |--------|----|
