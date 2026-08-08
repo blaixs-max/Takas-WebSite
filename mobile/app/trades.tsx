@@ -208,6 +208,10 @@ export default function TradesScreen() {
             const onaylanabilir =
               t.benAliciyim && (t.status === 'SHIPPED' || t.status === 'DELIVERED');
             const itirazEdilebilir = onaylanabilir;
+            // Ödeme yapılmadan takas ilerlemiyor ve süre dolunca iptal oluyor;
+            // bu yüzden ödeme kartın üzerindeki en görünür aksiyon.
+            const odenebilir =
+              t.benAliciyim && (t.status === 'POINTS_HELD' || t.status === 'CREATED');
 
             return (
               <View key={t.id} style={styles.kart}>
@@ -233,6 +237,20 @@ export default function TradesScreen() {
                   <View style={styles.sayac}>
                     <MaterialIcons name="schedule" size={14} color={colors.onSurfaceVariant} />
                     <Text style={styles.sayacText}>{sure}</Text>
+                  </View>
+                )}
+
+                {odenebilir && (
+                  <View style={styles.aksiyonlar}>
+                    <Pressable
+                      style={styles.birincil}
+                      onPress={() =>
+                        router.push({ pathname: '/payment', params: { trade: t.id } })
+                      }
+                    >
+                      <MaterialIcons name="credit-card" size={18} color="#fff" />
+                      <Text style={styles.birincilText}>Kargo bedelini öde</Text>
+                    </Pressable>
                   </View>
                 )}
 

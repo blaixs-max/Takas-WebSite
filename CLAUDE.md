@@ -67,6 +67,13 @@ Bu ayrım her zaman geçerlidir.
 - **Puanı havuzdan yalnızca iki şey çıkarır:** alıcının onayı (`confirm_delivery`)
   ya da süresi dolan sayaç (`expire_stale_trades`). Satıcı kendi takasını
   onaylayamaz — onaylayabilseydi ürünü göndermeden puanı alırdı.
+- **Kart bilgisi uygulamadan geçmez.** Ödeme `openAuthSessionAsync` ile sistem
+  tarayıcısında açılır, uygulama içi WebView'de değil. Tarayıcıdan dönen sonuç
+  bilgilendirmedir, kanıt değildir — gerçeği RETRIEVE ile doğrulayan
+  `iyzico-callback` belirler.
+- **Fatura bilgisi ve T.C. kimlik numarası saklanmaz.** Her ödemede sorulur ve
+  yalnızca o istekte iletilir. Saklamaya geçmek bir KVKK kararıdır, kod kararı
+  değil — adres tablosu bu karar verilmeden açılmaz.
 - **Her açık takasın bir sayacı vardır.** `deadline_at` doluysa takas bir şey
   bekliyordur; kapanınca null olur. Damgaları trigger basar, çağıran yer değil.
 - **Moderasyonda şüphe onay değildir.** Yapay zekâ erişilemezse, anahtar yoksa ya

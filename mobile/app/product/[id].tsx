@@ -60,10 +60,19 @@ export default function ProductDetail() {
             const satir = fiyat
               ? `\n\nKargo ${fiyat.shippingTl.toFixed(2)} ₺ + hizmet ${fiyat.serviceFeeTl.toFixed(2)} ₺ + işlem payı ${fiyat.transactionFeeTl.toFixed(2)} ₺ = ${fiyat.totalTl.toFixed(2)} ₺`
               : '';
+            // Doğrudan ödemeye götürüyoruz: ödeme penceresi dolarsa takas
+            // kendiliğinden iptal olur, kullanıcıyı arada bırakmayalım.
             Alert.alert(
               'Takas açıldı',
-              `${sonuc.points} puan havuzda.${satir}\n\nKargo ödemesini Takaslar ekranından tamamlayın.`,
-              [{ text: 'Takaslara git', onPress: () => router.replace('/trades') }],
+              `${sonuc.points} puan havuzda.${satir}\n\nSon adım kargo ödemesi.`,
+              [
+                { text: 'Sonra', style: 'cancel', onPress: () => router.replace('/trades') },
+                {
+                  text: 'Ödemeye geç',
+                  onPress: () =>
+                    router.replace({ pathname: '/payment', params: { trade: sonuc.tradeId } }),
+                },
+              ],
             );
           },
         },

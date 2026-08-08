@@ -76,6 +76,14 @@ Son güncelleme: 2026-08-08 · Branch: `claude/expo-ilan-ve-satinalma`
       satıcıya geçiyor (`expire_stale_trades`)
 - [x] **Takaslar ekranı → canlı `trades`** — mock zaman çizelgesi kaldırıldı;
       durum, kalan süre, "Teslim aldım" ve "Sorun var" gerçek RPC'lere gidiyor
+- [x] **Ödeme ekranı — zincirin kopuk halkası** — `cargo-payment-init` yazılıydı
+      ama uygulamada çağıran yoktu. Takas açılıyor, puan havuza giriyor, alıcı
+      kargo bedelini ödeyemiyor ve bir saat sonra takas kendiliğinden iptal
+      oluyordu. `app/payment.tsx` tutarı sunucudan alıyor, fatura bilgisini
+      soruyor, iyzico sayfasını `openAuthSessionAsync` ile sistem tarayıcısında
+      açıyor ve `kidstrade://payment-result` dönüşünü yakalıyor. Kart bilgisi
+      uygulamanın WebView'ünden geçmiyor. Dönen sonuç bilgilendirmedir; gerçeği
+      RETRIEVE ile doğrulayan `iyzico-callback` belirler
 
 ### Backend
 - [x] Puan defteri (güvenli havuz): `wallets`/`wallet_entries`/`trades`, atomik
@@ -97,8 +105,12 @@ Son güncelleme: 2026-08-08 · Branch: `claude/expo-ilan-ve-satinalma`
       kimse bakmıyor. En azından bir liste ve onayla/reddet aksiyonu gerekiyor
 - [ ] **`AI_VISION_API_KEY` ayarlanması** — anahtar girilene kadar hiçbir kare
       otomatik onaylanmaz (tasarım gereği güvenli taraf), yani yayın akışı durur
-- [ ] **Ödeme WebView ekranı** — `cargo-payment-init` token'ı ile iyzico ödeme
-      (WebView) + `kidstrade://payment-result` deep-link dönüşü
+- [ ] **iyzico sandbox ucundan uca test** — ödeme akışı yazıldı ama gerçek bir
+      kartla hiç koşmadı. Sandbox anahtarları olmadan 3D Secure dönüşü, callback
+      ve `SHIPPED`'e geçiş doğrulanamıyor
+- [ ] **Adres defteri kararı** — fatura bilgisi ve T.C. kimlik numarası şu an
+      saklanmıyor, her ödemede yeniden soruluyor. Saklamaya geçmek bir KVKK
+      kararıdır (Ana Doküman 7.4 · 7)
 - [ ] **Kargo aggregator** (Navlungo/Kolay Gelsin) — `iyzico-callback` etiket üretimi.
       Teslimat webhook'u `mark_delivered()` çağıracak; şu an o fonksiyonu
       çağıran kimse yok, yani 48 saatlik sayaç pratikte hiç başlamıyor
