@@ -64,6 +64,11 @@ Bu ayrım her zaman geçerlidir.
 - **İlan `DRAFT` doğar.** Vitrine çıkmanın tek yolu `publish_listing()`; kapı
   zorunlu kareler eksikse ya da bir kare `approved` değilse reddeder. Zorunluluk
   kuralının tek kaynağı `required_slots()`, `data/photoSlots.ts` onun aynasıdır.
+- **Puanı havuzdan yalnızca iki şey çıkarır:** alıcının onayı (`confirm_delivery`)
+  ya da süresi dolan sayaç (`expire_stale_trades`). Satıcı kendi takasını
+  onaylayamaz — onaylayabilseydi ürünü göndermeden puanı alırdı.
+- **Her açık takasın bir sayacı vardır.** `deadline_at` doluysa takas bir şey
+  bekliyordur; kapanınca null olur. Damgaları trigger basar, çağıran yer değil.
 - **Moderasyonda şüphe onay değildir.** Yapay zekâ erişilemezse, anahtar yoksa ya
   da yanıt çözümlenemezse kare `pending` kalır — bu "geçti" demek değildir. Hiçbir
   kod yolu kareyi kendiliğinden `approved` yapmaz.

@@ -62,6 +62,20 @@ Son güncelleme: 2026-08-08 · Branch: `claude/expo-ilan-ve-satinalma`
       bulanıklık, yanlış açı). **Şüphede onay yok:** servis erişilemezse kare `pending`
       kalır, kapı `pending`i geçirmez, ilan insan kuyruğunda bekler.
       Kapak `is_cover` ile işaretleniyor; `products.image_key` artık kapağın türevi
+- [x] **Puan havuzdan çıkıyor** — puanı havuza alan uç bağlıydı, çıkaran uç açıktı:
+      `release_points()` yazılıydı ama kimse çağırmıyordu, satıcı puanını hiç
+      alamıyordu. Ayrıca kargo bedelini ödemeyen alıcının puanı sonsuza kadar
+      havuzda kalıyor, ilan `RESERVED`'de takılıyordu — sessiz sızıntı.
+      Gelenler: `trade_timings` (1 saat ödeme · 3 gün şube · 48 saat onay),
+      takvim kolonları ve damgaları trigger'da basan `trades_stamp_timeline()`,
+      alıcıya `confirm_delivery()` ve `open_dispute()`, kargo tarafına
+      `mark_delivered()`, hepsini toplayan `expire_stale_trades()` ve saatlik
+      pg_cron görevi. Satıcı kendi takasını onaylayamaz; itiraz sayacı durdurur;
+      ödemesi alınmış takas zaman aşımıyla iade edilmez, uyarı verip insana kalır
+- [x] **48 saat otomatik onay** — teslimattan sonra sayaç işliyor, dolunca puan
+      satıcıya geçiyor (`expire_stale_trades`)
+- [x] **Takaslar ekranı → canlı `trades`** — mock zaman çizelgesi kaldırıldı;
+      durum, kalan süre, "Teslim aldım" ve "Sorun var" gerçek RPC'lere gidiyor
 
 ### Backend
 - [x] Puan defteri (güvenli havuz): `wallets`/`wallet_entries`/`trades`, atomik
@@ -73,9 +87,9 @@ Son güncelleme: 2026-08-08 · Branch: `claude/expo-ilan-ve-satinalma`
 - [x] SMS/OTP backend — Supabase Send SMS Hook → NetGSM OTP (imza doğrulamalı, skeleton)
 
 ## ⏳ Sıradaki (öncelik sırası)
-- [ ] **Para ve puan katmanını bağla** — ödeme başarılı olunca `hold_points`,
-      teslim onayında `release_points` çağrılsın. Şu an callback puana hiç dokunmuyor
-- [ ] **48 saat otomatik onay** — zamanlanmış görev ve sayaç yok
+- [ ] **İade kararı yüzeyi** — `open_dispute()` itirazı açıyor ve sayacı
+      durduruyor ama kararı verecek kimse yok. `refund_points()` hâlâ yalnızca
+      `service_role`'da; itirazlı takasın puanı karar verilene kadar havuzda asılı
 - [ ] **Kare akışının cihazda denenmesi** — kamera bu ortamda test edilemiyor.
       Expo Go'da yedi karenin çekimi, yeniden çekim ve yayın kapısı elden geçirilmeli
 - [ ] **İnsan moderasyon kuyruğu** — `pending` kalan kareler için yönetim yüzeyi.
@@ -85,8 +99,11 @@ Son güncelleme: 2026-08-08 · Branch: `claude/expo-ilan-ve-satinalma`
       otomatik onaylanmaz (tasarım gereği güvenli taraf), yani yayın akışı durur
 - [ ] **Ödeme WebView ekranı** — `cargo-payment-init` token'ı ile iyzico ödeme
       (WebView) + `kidstrade://payment-result` deep-link dönüşü
-- [ ] **Takaslar ekranı → canlı `trades`** — gerçek durum makinesi + aksiyonlar
-- [ ] **Kargo aggregator** (Navlungo/Kolay Gelsin) — `iyzico-callback` etiket üretimi
+- [ ] **Kargo aggregator** (Navlungo/Kolay Gelsin) — `iyzico-callback` etiket üretimi.
+      Teslimat webhook'u `mark_delivered()` çağıracak; şu an o fonksiyonu
+      çağıran kimse yok, yani 48 saatlik sayaç pratikte hiç başlamıyor
+- [ ] **pg_cron doğrulaması** — görev yalnızca uzantı kuruluysa kuruluyor.
+      Supabase panelinde `cron.job` içinde `kt-expire-stale-trades` görünmeli
 
 ## 🔜 Sonra
 - [ ] Ürün Ekle: dinamik puan önerisi (kareler ve kategoriden değerleme)

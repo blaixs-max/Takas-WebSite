@@ -59,6 +59,103 @@ export async function quotePrice(tradeId: string): Promise<PriceQuote | null> {
   };
 }
 
+export type TradeStatus =
+  | 'CREATED'
+  | 'POINTS_HELD'
+  | 'SHIPPED'
+  | 'DELIVERED'
+  | 'COMPLETED'
+  | 'DISPUTED'
+  | 'REFUNDED';
+
+export interface TradeRow {
+  id: string;
+  status: TradeStatus;
+  points: number;
+  productId: string | null;
+  productTitle: string | null;
+  /** Oturumdaki kullanıcı bu takasın alıcısı mı? Aksiyonlar buna bağlı. */
+  benAliciyim: boolean;
+  /** Sayaç dolduğunda ne olacağı duruma göre değişir; null ise sayaç yok. */
+  deadlineAt: string | null;
+  deliveredAt: string | null;
+  disputeReason: string | null;
+}
+
+/** Kullanıcının taraf olduğu takaslar, yenisi üstte. */
+export async function loadMyTrades(): Promise<TradeRow[]> {
+  if (!supabaseConfigured || !supabase) return [];
+  const { data: oturum } = await supabase.auth.getUser();
+  const uid = oturum?.user?.id;
+  if (!uid) return [];
+
+  // RLS zaten yalnızca taraf olunan takasları veriyor; ürün başlığı ilişki
+  // üzerinden geliyor, ayrı sorgu atmıyoruz.
+  const { data, error } = await supabase
+    .from('trades')
+    .select(
+      'id, status, points, product_id, buyer_id, deadline_at, delivered_at, dispute_reason, products(title)',
+    )
+    .order('created_at', { ascending: false });
+
+  if (error || !data) return [];
+
+  return data.map((t) => {
+    const urun = t.products as { title?: string } | { title?: string }[] | null;
+    const baslik = Array.isArray(urun) ? (urun[0]?.title ?? null) : (urun?.title ?? null);
+    return {
+      id: t.id as string,
+      status: t.status as TradeStatus,
+      points: Number(t.points ?? 0),
+      productId: (t.product_id as string) ?? null,
+      productTitle: baslik,
+      benAliciyim: t.buyer_id === uid,
+      deadlineAt: (t.deadline_at as string) ?? null,
+      deliveredAt: (t.delivered_at as string) ?? null,
+      disputeReason: (t.dispute_reason as string) ?? null,
+    };
+  });
+}
+
+export type ActionResult = { ok: true; status: TradeStatus } | { ok: false; message: string };
+
+/**
+ * "Teslim aldım" — puanı havuzdan çıkarıp satıcıya geçirir.
+ *
+ * Geri alınamaz: onaydan sonra itiraz kapısı kapanır. Ekran bunu sormadan
+ * çağırmamalı.
+ */
+export async function confirmDelivery(tradeId: string): Promise<ActionResult> {
+  if (!supabaseConfigured || !supabase) return { ok: false, message: 'Sunucu bağlantısı yok.' };
+  const { data, error } = await supabase.rpc('confirm_delivery', { p_trade_id: tradeId });
+  if (error) return { ok: false, message: cevirAksiyon(error.message) };
+  const row = Array.isArray(data) ? data[0] : data;
+  return { ok: true, status: (row?.status ?? 'COMPLETED') as TradeStatus };
+}
+
+/** İtiraz açar: 48 saatlik sayaç durur, karar insana kalır. */
+export async function openDispute(tradeId: string, reason: string): Promise<ActionResult> {
+  if (!supabaseConfigured || !supabase) return { ok: false, message: 'Sunucu bağlantısı yok.' };
+  const { data, error } = await supabase.rpc('open_dispute', {
+    p_trade_id: tradeId,
+    p_reason: reason,
+  });
+  if (error) return { ok: false, message: cevirAksiyon(error.message) };
+  const row = Array.isArray(data) ? data[0] : data;
+  return { ok: true, status: (row?.status ?? 'DISPUTED') as TradeStatus };
+}
+
+function cevirAksiyon(mesaj: string): string {
+  if (mesaj.includes('yalnızca alıcı onaylayabilir'))
+    return 'Bu takası yalnızca alıcı onaylayabilir.';
+  if (mesaj.includes('yalnızca alıcı itiraz')) return 'Bu takasa yalnızca alıcı itiraz edebilir.';
+  if (mesaj.includes('onaylanabilir durumda değil')) return 'Ürün henüz kargoya verilmedi.';
+  if (mesaj.includes('itiraz açılamaz')) return 'Bu aşamada itiraz açılamaz.';
+  if (mesaj.includes('gerekçesi zorunludur')) return 'Lütfen itiraz gerekçesi yazın.';
+  if (mesaj.includes('oturum bulunamadı')) return 'Giriş yapmalısınız.';
+  return 'İşlem tamamlanamadı. Tekrar deneyin.';
+}
+
 function cevir(mesaj: string): string {
   if (mesaj.includes('yetersiz bakiye')) return 'Takas puanınız yetmiyor.';
   if (mesaj.includes('kendi ilanınızı')) return 'Kendi ilanınızı takas edemezsiniz.';
