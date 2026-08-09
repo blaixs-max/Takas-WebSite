@@ -43,10 +43,14 @@ export interface PriceQuote {
 /**
  * Takasın kargo + hizmet + işlem payı kırılımını sunucudan alır.
  * Bu rakamlar istemcide hesaplanmaz; tarifeden türetilir.
+ *
+ * quote_trade_price() değil my_trade_quote() çağrılır: iç fonksiyon çağıranı
+ * doğrulamıyordu ve kargo maliyeti ile komisyonu da döndürüyordu. Sarmalayıcı
+ * çağıranın takasın tarafı olduğunu doğrular, marjı döndürmez.
  */
 export async function quotePrice(tradeId: string): Promise<PriceQuote | null> {
   if (!supabaseConfigured || !supabase) return null;
-  const { data, error } = await supabase.rpc('quote_trade_price', { p_trade_id: tradeId });
+  const { data, error } = await supabase.rpc('my_trade_quote', { p_trade_id: tradeId });
   if (error) return null;
   const q = Array.isArray(data) ? data[0] : data;
   if (!q) return null;

@@ -1,6 +1,22 @@
 # KIDS TRADE — Yol Haritası / TODO
 
-Son güncelleme: 2026-08-08 · Branch: `claude/expo-ilan-ve-satinalma`
+Son güncelleme: 2026-08-09 · Branch: `claude/expo-ilan-ve-satinalma`
+
+## 🟢 Supabase artık gerçek
+
+Proje **kids-trade** · ref `fauhxnbxwcpsdfcvfodz` · eu-central-1 (Frankfurt) ·
+PostgreSQL 17.6 · "Bot" organizasyonu (Pro).
+URL: `https://fauhxnbxwcpsdfcvfodz.supabase.co`
+
+Bugüne kadar 21 göç ve 16 test paketi **yalnızca yereldeki test Postgres'inde**
+koşmuştu. Artık şema gerçek projede: 24 tablo (hepsinde RLS), 43 politika,
+7 depolama politikası, 67 fonksiyon, 2 cron görevi, 2 kova. Dört Edge Function
+da yayında — `config.toml`'daki JWT kararlarıyla: `iyzico-callback` ve
+`send-sms` muaf, `cargo-payment-init` ve `photo-check` oturum ister.
+
+Bir sapma: `products` göçündeki **4 demo ilanı uygulanmadı**. `seller_id`
+alanları boş olduğu için `create_trade()` onları reddediyor; rafta durup
+alınamayan sahte ilan olurlardı.
 
 ## ✅ Tamamlandı
 
@@ -189,10 +205,34 @@ Son güncelleme: 2026-08-08 · Branch: `claude/expo-ilan-ve-satinalma`
 - [x] Supabase Auth — Google/Apple OAuth (PKCE) + e-posta/şifre + oturum yönlendirme
 - [x] SMS/OTP backend — Supabase Send SMS Hook → NetGSM OTP (imza doğrulamalı, skeleton)
 
+### Güvenlik (P0 — 2026-08-09, canlıya çıkınca görülenler)
+- [x] **RPC yetkileri** — `public` şemasındaki HER fonksiyon `anon` rolüne
+      açıktı. Anon anahtarı uygulamaya gömülüdür, gizli değildir; elinde
+      olan herkes `/rest/v1/rpc/earn_points` çağırıp istediği hesaba istediği
+      kadar puan basabilirdi. Kapalı devre ekonomi tek çağrıyla çökerdi.
+      `release_points`, `refund_points`, `grant_campaign_points` ve
+      `resolve_dispute` de aynı şekilde açıktı. Yerelde PostgREST olmadığı
+      için hiçbir test bunu göremezdi.
+      Artık anon **hiçbir** fonksiyonu çağıramıyor; `authenticated` yalnızca
+      çağıranını kendi doğrulayan 29 fonksiyonu çağırabiliyor
+- [x] **Ciro sızıntısı** — `daily_commission` görünümü anon'a okumaya açıktı
+      ve SECURITY DEFINER olduğu için `cargo_payments`'ın RLS'ini aşıyordu.
+      Tek istekle günlük ciro, kargo maliyeti ve komisyon görünüyordu.
+      Artık `security_invoker` ve yalnızca `service_role` okuyor
+- [x] **`my_trade_quote()`** — `quote_trade_price()` çağıranı doğrulamıyor ve
+      marjımızı (kargo maliyeti + komisyon) döndürüyordu. Takasın tarafı
+      olduğunu doğrulayan, marjı döndürmeyen sarmalayıcı yazıldı
+- [x] **Sabit `search_path`** — dört tetikleyici fonksiyonunda eksikti
+
 ## ⏳ Sıradaki (öncelik sırası)
-- [ ] **İlk yöneticiyi ekle** — `admins` tablosu boş. Panel çalışıyor ama
-      kimsenin yetkisi yok; ilk satır Supabase panelinden elle girilmeli:
+- [ ] **İlk yöneticiyi ekle** — `auth.users` henüz **boş**; bu yüzden yönetici
+      satırı da yok. İlk kayıttan hemen sonra Supabase SQL editöründen:
       `insert into admins (user_id, note) values ('<uuid>', 'kurucu');`
+- [ ] **Edge Function ortam değişkenleri** — fonksiyonlar yayında ama gizli
+      değerleri yok. Panelden girilecek: `IYZICO_API_KEY`, `IYZICO_SECRET_KEY`,
+      `IYZICO_CALLBACK_URL`, `APP_RETURN_URL`, `AI_VISION_API_KEY`,
+      `NETGSM_USERCODE`, `NETGSM_PASSWORD`, `NETGSM_HEADER`,
+      `SEND_SMS_HOOK_SECRET`
 - [ ] **Kare akışının cihazda denenmesi** — kamera bu ortamda test edilemiyor.
       Expo Go'da yedi karenin çekimi, yeniden çekim ve yayın kapısı elden geçirilmeli
 - [ ] **İnsan moderasyon kuyruğu** — `pending` kalan kareler için yönetim yüzeyi.
@@ -209,8 +249,8 @@ Son güncelleme: 2026-08-08 · Branch: `claude/expo-ilan-ve-satinalma`
 - [ ] **Kargo aggregator** (Navlungo/Kolay Gelsin) — `iyzico-callback` etiket üretimi.
       Teslimat webhook'u `mark_delivered()` çağıracak; şu an o fonksiyonu
       çağıran kimse yok, yani 48 saatlik sayaç pratikte hiç başlamıyor
-- [ ] **pg_cron doğrulaması** — görev yalnızca uzantı kuruluysa kuruluyor.
-      Supabase panelinde `cron.job` içinde `kt-expire-stale-trades` görünmeli
+- [x] **pg_cron doğrulaması** — canlıda bakıldı: `kt-expire-stale-trades`
+      (`7 * * * *`) ve `kt-expire-stale-disputes` (`22 * * * *`), ikisi de aktif
 
 ## 🔜 Sonra
 - [ ] Ürün Ekle: dinamik puan önerisi (kareler ve kategoriden değerleme)
@@ -236,6 +276,6 @@ Son güncelleme: 2026-08-08 · Branch: `claude/expo-ilan-ve-satinalma`
 
 ## 📌 Bağımlılıklar (bizde değil — kullanıcı sağlamalı)
 - iyzico sandbox/canlı API key + secret
-- Supabase proje ref + anon/service_role anahtarları + dashboard OAuth config
+- Supabase dashboard OAuth config (proje ve anahtarlar artık hazır)
 - Kargo aggregator hesabı + anlaşmalı tarife
 - Apple Developer + Google Play hesapları (mevcut)

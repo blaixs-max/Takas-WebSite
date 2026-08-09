@@ -26,3 +26,7 @@ yarn-error.*
 
 # macOS
 .DS_Store
+
+# Yerel ortam (anon anahtar zaten eas.json içinde; .env kişisel denemeler için)
+.env
+.env.local

@@ -20,8 +20,61 @@ Her push ve her merge öncesinde, sırayla:
    olmalı, çözülmemiş çakışma olmamalı.
 3. **Kontroller geçiyor mu?** `cd mobile && npx tsc --noEmit`, ve para
    fonksiyonlarına dokunulduysa pgTAP testleri.
+4. **Göç uygulandıysa yetki denetimi.** Yeni bir fonksiyon canlıya çıktıysa
+   `anon`'un çağırabildiği fonksiyon sayısı **0** olmalı (sorgu aşağıda).
 
-Üçü de doğrulanmadan push yok; push edilmeden merge yok. Bu sıra kısaltılmaz.
+Dördü de doğrulanmadan push yok; push edilmeden merge yok. Bu sıra kısaltılmaz.
+
+## Supabase projesi (gerçek)
+
+| | |
+|---|---|
+| Proje | **kids-trade** |
+| Ref | `fauhxnbxwcpsdfcvfodz` |
+| URL | `https://fauhxnbxwcpsdfcvfodz.supabase.co` |
+| Bölge | eu-central-1 (Frankfurt) · PostgreSQL 17.6 |
+| Organizasyon | "Bot" (Pro) |
+
+Anon anahtarı `mobile/eas.json` içindeki üç build profilinde yazılıdır; gizli
+değildir, uygulama paketine zaten gömülür. `service_role` anahtarı repoda
+**hiçbir yerde bulunmaz** — yalnızca Edge Function ortamında.
+
+## Arka uç kuralları (canlıda öğrenildi)
+
+- **Fonksiyon oluşturan her göç, yetki revoke'unu SON adım olarak yazar.**
+  PostgreSQL, oluşturduğu her fonksiyonun EXECUTE yetkisini PUBLIC'e verir;
+  Supabase ayrıca anon + authenticated'a verir. `alter default privileges`
+  bunların yalnızca bir kısmını kapatır — PUBLIC'e verilen yerleşik yetki
+  kapanmaz (canlıda iki kez denendi). Tek güvenilir yol açık revoke'tur:
+
+  ```sql
+  revoke execute on all functions in schema public from public, anon, authenticated;
+  -- ardından yalnızca istemciye açılacaklar tek tek grant edilir
+  ```
+
+- **Bir fonksiyon istemciye ancak çağıranını KENDİ doğruluyorsa açılır**
+  (`auth.uid()` ya da `is_admin()`). Doğrulamayan fonksiyon iç fonksiyondur;
+  yalnızca `service_role` ve tetikleyiciler üzerinden çalışır. Kalıp:
+  iç fonksiyon denetimsiz kalır, üstüne ince bir sarmalayıcı yazılır
+  (`resolve_dispute` / `admin_resolve_dispute`, `quote_trade_price` /
+  `my_trade_quote`).
+
+- **anon'a hiçbir RPC açılmaz.** Giriş yapmamış kullanıcı vitrini tablo SELECT
+  politikalarıyla görür; RPC'ye ihtiyacı yoktur.
+
+- **Görünümlerde RLS yoktur.** `public` şemasına eklenen her görünüm
+  `security_invoker = on` alır ve istemci rollerinden revoke edilir; yoksa
+  altındaki tablonun RLS'ini sessizce aşar.
+
+- **Yerel test Postgres'i yetki katmanını göremez.** PostgREST orada yok;
+  `anon`/`authenticated` yetkileri yalnızca canlıda anlam taşır. Göç
+  uygulandıktan sonra denetim sorgusu koşulur:
+
+  ```sql
+  select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute');
+  -- 0 dönmeli
+  ```
 
 ## Karşı repo
 
