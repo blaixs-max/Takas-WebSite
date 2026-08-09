@@ -83,6 +83,10 @@ Bu ayrım her zaman geçerlidir.
   yenilenene kadar geçerli olmaz; yetkisi alınan biri elindeki token'la karar
   vermeye devam edemez. Kontrol her zaman sunucudaki `is_admin()` ile yapılır —
   ekranı gizlemek önlem değildir.
+- **Kampanya puanı ilan yayına girince doğar, satışta değil.** Soğuk başlangıcı
+  kıran şey bu sıra; tersine çevrilirse kilit geri gelir (Ana Doküman 2.4).
+  Hak verme sessizdir: koşul sağlanmazsa hata vermez, yalnızca hak vermez —
+  kampanya kuralı bir ilanın yayına girmesini engellememelidir.
 - **Gerekçesiz karar yoktur.** Kare reddi ve itiraz kararı gerekçe ister;
   gerekçe `audit_logs`'a yazılır ve o kayıt değiştirilemez, silinemez.
 - **İtiraza makine karar vermez.** `resolve_dispute` yalnızca `service_role`'da.

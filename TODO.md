@@ -76,6 +76,16 @@ Son güncelleme: 2026-08-08 · Branch: `claude/expo-ilan-ve-satinalma`
       satıcıya geçiyor (`expire_stale_trades`)
 - [x] **Takaslar ekranı → canlı `trades`** — mock zaman çizelgesi kaldırıldı;
       durum, kalan süre, "Teslim aldım" ve "Sorun var" gerçek RPC'lere gidiyor
+- [x] **Kampanya puanı motoru (Ana Doküman 2.4)** — soğuk başlangıcı kıran
+      mekanizma. Hak **ilan yayına girdiğinde** doğuyor (satışta değil):
+      `campaign_grants` + trigger'lar. Dört kapı: telefon doğrulanmamışsa hak
+      yok, hesap başına bir kez, aynı numara ikinci hesapla aynı hakkı alamaz,
+      1000 kullanıcı kontenjanı. Yüklenen hak geri alınmıyor — kaydı silmek
+      defterdeki hareketi bırakıp hakkı serbest bırakmak olurdu.
+      Hak verme **sessiz**: koşul sağlanmazsa hata vermiyor, çünkü kampanya
+      kuralı yüzünden bir ilanın yayına girmemesi kabul edilemez.
+      `campaign_status()` dağıtılan toplamı ve kalan kontenjanı panelde
+      gösteriyor — 500.000 puan kalıcı bir yükümlülük, ölçülmezse yönetilemez
 - [x] **Yönetim paneli — iki kuyruk, tek ekran** (`app/admin.tsx`)
       Yetki `admins` tablosunda, JWT'de değil: rol iddiası oturum yenilenene
       kadar geçerli olmaz ve yetkisi alınmış bir yönetici elindeki token'la

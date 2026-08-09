@@ -67,6 +67,34 @@ export async function loadDisputeQueue(): Promise<DisputeQueueRow[]> {
   }));
 }
 
+export interface CampaignStatus {
+  aktif: boolean;
+  kullaniciSayisi: number;
+  kalanKontenjan: number;
+  dagitilanPuan: number;
+}
+
+/**
+ * Kampanya yükümlülüğü.
+ *
+ * Dağıtılan puan kalıcı bir borçtur ve süresi olmadığı için kendiliğinden
+ * sönmez (Ana Doküman 2.4). Panelde durmasının sebebi bu: ölçülmeyen bütçe
+ * yönetilemez.
+ */
+export async function campaignStatus(): Promise<CampaignStatus | null> {
+  if (!supabaseConfigured || !supabase) return null;
+  const { data, error } = await supabase.rpc('campaign_status');
+  if (error || !data) return null;
+  const r = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | undefined;
+  if (!r) return null;
+  return {
+    aktif: r.aktif === true,
+    kullaniciSayisi: Number(r.kullanici_sayisi ?? 0),
+    kalanKontenjan: Number(r.kalan_kontenjan ?? 0),
+    dagitilanPuan: Number(r.dagitilan_puan ?? 0),
+  };
+}
+
 export type AdminResult = { ok: true } | { ok: false; message: string };
 
 export async function moderatePhoto(

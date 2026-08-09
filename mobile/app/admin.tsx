@@ -16,9 +16,11 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
+  CampaignStatus,
   DisputeQueueRow,
   PhotoQueueRow,
   amIAdmin,
+  campaignStatus,
   disputeEvidenceUrls,
   imzaliBaglantilar,
   loadDisputeQueue,
@@ -37,6 +39,11 @@ import { colors, elevation, shape } from '../theme/tokens';
  *
  * Karar veren her aksiyon gerekçe ister ve denetim kaydına yazılır.
  */
+
+/** Binlik ayracı — Hermes'te Intl güvenilir değil, elle yazıyoruz. */
+function binlik(n: number): string {
+  return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
 
 const SLOT_ADI: Record<string, string> = {
   front: 'Ön',
@@ -57,6 +64,7 @@ export default function AdminScreen() {
   const [kareler, setKareler] = useState<PhotoQueueRow[]>([]);
   const [kareUrl, setKareUrl] = useState<Record<string, string>>({});
   const [itirazlar, setItirazlar] = useState<DisputeQueueRow[]>([]);
+  const [kampanya, setKampanya] = useState<CampaignStatus | null>(null);
   const [yenileniyor, setYenileniyor] = useState(false);
   const [islemde, setIslemde] = useState<string | null>(null);
 
@@ -70,9 +78,10 @@ export default function AdminScreen() {
   const [iadeKargo, setIadeKargo] = useState('');
 
   const getir = useCallback(async () => {
-    const [k, i] = await Promise.all([loadPhotoQueue(), loadDisputeQueue()]);
+    const [k, i, c] = await Promise.all([loadPhotoQueue(), loadDisputeQueue(), campaignStatus()]);
     setKareler(k);
     setItirazlar(i);
+    setKampanya(c);
 
     // Özel kova: görselleri göstermek için kısa ömürlü bağlantı gerekiyor.
     // Eşlemeyi yol üzerinden kuruyoruz; sıraya güvenmek, bir bağlantı
@@ -207,6 +216,28 @@ export default function AdminScreen() {
           />
         }
       >
+        {/* Kampanya yükümlülüğü: dağıtılan puan kalıcı bir borçtur, görünür dursun */}
+        {kampanya && (
+          <View style={styles.kampanya}>
+            <View style={styles.kampanyaSatir}>
+              <Text style={styles.kampanyaEtiket}>Kampanya</Text>
+              <Text style={styles.kampanyaDeger}>
+                {kampanya.aktif ? 'açık' : 'kapalı'}
+              </Text>
+            </View>
+            <View style={styles.kampanyaSatir}>
+              <Text style={styles.kampanyaEtiket}>Dağıtılan puan (yükümlülük)</Text>
+              <Text style={styles.kampanyaDeger}>{binlik(kampanya.dagitilanPuan)}</Text>
+            </View>
+            <View style={styles.kampanyaSatir}>
+              <Text style={styles.kampanyaEtiket}>Kalan kontenjan</Text>
+              <Text style={styles.kampanyaDeger}>
+                {kampanya.kalanKontenjan} kullanıcı
+              </Text>
+            </View>
+          </View>
+        )}
+
         {sekme === 'kare' && kareler.length === 0 && (
           <Bos ikon="check-circle" metin="Bekleyen kare yok. Kuyruk temiz." />
         )}
@@ -451,6 +482,16 @@ const styles = StyleSheet.create({
   sekmeAktif: { backgroundColor: colors.primaryContainer },
   sekmeText: { fontSize: 13.5, fontWeight: '700', color: colors.onSurfaceVariant },
   sekmeTextAktif: { color: colors.onPrimaryContainer },
+  kampanya: {
+    padding: 13,
+    borderRadius: shape.md,
+    backgroundColor: colors.surfaceContainerHigh,
+    marginBottom: 14,
+    gap: 5,
+  },
+  kampanyaSatir: { flexDirection: 'row', justifyContent: 'space-between' },
+  kampanyaEtiket: { fontSize: 12.5, fontWeight: '600', color: colors.onSurfaceVariant },
+  kampanyaDeger: { fontSize: 12.5, fontWeight: '800', color: colors.onSurface },
   kart: {
     padding: 14,
     borderRadius: shape.md,
