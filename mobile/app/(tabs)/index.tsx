@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,6 +7,7 @@ import { ProductCard } from '../../components/ProductCard';
 import { FeaturedCard } from '../../components/FeaturedCard';
 import { CATEGORIES, CATEGORY_ICONS } from '../../data/categories';
 import { useProducts } from '../../hooks/useProducts';
+import { unreadCount } from '../../lib/notifications';
 import { colors, elevation, shape } from '../../theme/tokens';
 
 const FILTERS: { label: string; icon?: keyof typeof MaterialIcons.glyphMap }[] = [
@@ -18,6 +19,19 @@ export default function ShelfScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [active, setActive] = useState('Tümü');
+  // Rozet sabit '3' yazıyordu; gerçek sayı olmadan bir bildirim rozeti
+  // kullanıcıya yalan söyler ve tıklanmayı bırakır.
+  const [okunmamis, setOkunmamis] = useState(0);
+
+  useEffect(() => {
+    let iptal = false;
+    unreadCount().then((n) => {
+      if (!iptal) setOkunmamis(n);
+    });
+    return () => {
+      iptal = true;
+    };
+  }, []);
   const [q, setQ] = useState('');
   const { products, featured, loading, refreshing, refresh } = useProducts();
 
@@ -38,9 +52,11 @@ export default function ShelfScreen() {
         </View>
         <Pressable style={styles.iconBtn} onPress={() => router.push('/notifications')}>
           <MaterialIcons name="notifications-none" size={24} color={colors.onSurface} />
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>3</Text>
-          </View>
+          {okunmamis > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{okunmamis > 9 ? '9+' : okunmamis}</Text>
+            </View>
+          )}
         </Pressable>
       </View>
 

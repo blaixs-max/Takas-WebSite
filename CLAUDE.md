@@ -83,6 +83,10 @@ Bu ayrım her zaman geçerlidir.
   yenilenene kadar geçerli olmaz; yetkisi alınan biri elindeki token'la karar
   vermeye devam edemez. Kontrol her zaman sunucudaki `is_admin()` ile yapılır —
   ekranı gizlemek önlem değildir.
+- **Bildirim metnini sunucu yazar.** Kayıtları trigger üretir; uygulama yalnızca
+  okur ve okundu işaretler. Metin uygulamada kurulsaydı aynı olay iki yerde iki
+  farklı cümleyle anlatılırdı. Yeni bir durum eklerken bildirimi de aynı
+  migration'da ekleyin.
 - **Kampanya puanı ilan yayına girince doğar, satışta değil.** Soğuk başlangıcı
   kıran şey bu sıra; tersine çevrilirse kilit geri gelir (Ana Doküman 2.4).
   Hak verme sessizdir: koşul sağlanmazsa hata vermez, yalnızca hak vermez —

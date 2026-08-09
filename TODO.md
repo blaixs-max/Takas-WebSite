@@ -76,6 +76,15 @@ Son güncelleme: 2026-08-08 · Branch: `claude/expo-ilan-ve-satinalma`
       satıcıya geçiyor (`expire_stale_trades`)
 - [x] **Takaslar ekranı → canlı `trades`** — mock zaman çizelgesi kaldırıldı;
       durum, kalan süre, "Teslim aldım" ve "Sorun var" gerçek RPC'lere gidiyor
+- [x] **Bildirim kuyruğu** — sistem hiçbir şey haber vermiyordu. En ağır sonucu:
+      "48 saat içinde onaylamazsanız puan satıcıya geçer" kuralı, kullanıcı
+      teslimattan haberdar olmadığında bir kural değil tuzaktı.
+      `notifications` + trigger'lar: ilan yayına girdi, kare reddedildi, takas
+      açıldı, kargoya verildi, teslim edildi, tamamlandı, iade edildi, itiraz
+      açıldı/karara bağlandı, kampanya puanı verildi.
+      Metinleri **sunucu yazıyor**: uygulama katmanına bırakılsaydı aynı olay
+      iki yerde iki farklı cümleyle anlatılırdı. Ekran canlı, "tümünü okundu"
+      çalışıyor, anasayfadaki rozet artık sabit "3" değil gerçek sayı
 - [x] **Kampanya puanı motoru (Ana Doküman 2.4)** — soğuk başlangıcı kıran
       mekanizma. Hak **ilan yayına girdiğinde** doğuyor (satışta değil):
       `campaign_grants` + trigger'lar. Dört kapı: telefon doğrulanmamışsa hak
@@ -162,7 +171,9 @@ Son güncelleme: 2026-08-08 · Branch: `claude/expo-ilan-ve-satinalma`
 - [ ] Ürün Ekle: dinamik puan önerisi (kareler ve kategoriden değerleme)
 - [ ] Kapakta zorunlu durum rozeti (hasar beyanı ilan kartında görünsün)
 - [ ] Mesajlaşma/sohbet → gerçek zamanlı (Supabase Realtime)
-- [ ] Bildirimler → push (Expo Notifications)
+- [ ] Bildirimler → **push** (Expo Notifications). Kuyruk hazır ve doluyor ama
+      kullanıcı uygulamayı açmadan hiçbirini görmüyor; sayaçların işe yaraması
+      için push şart. Cihaz jetonu tablosu + EAS kimlik bilgileri gerekiyor
 - [ ] Favori/Sepet → oturum açıkken Supabase'e senkron (cihaz + bulut)
 - [ ] Güven skoru hesaplama (zamanında kargo, düşük itiraz)
 - [ ] İtiraz/dispute akışı (DISPUTED → hakemlik)

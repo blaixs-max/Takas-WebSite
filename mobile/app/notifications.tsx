@@ -1,29 +1,59 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  NotificationRow,
+  gecenSure,
+  gorunum,
+  hedef,
+  loadNotifications,
+  markAllRead,
+} from '../lib/notifications';
+import { supabaseConfigured } from '../lib/supabase';
 import { colors, shape } from '../theme/tokens';
 
-type Notif = {
-  icon: keyof typeof MaterialIcons.glyphMap;
-  tone: 'primary' | 'tertiary' | 'neutral';
-  title: string;
-  body: string;
-  time: string;
-  unread?: boolean;
-};
-
-const NOTIFS: Notif[] = [
-  { icon: 'swap-horiz', tone: 'primary', title: 'Takas isteği', body: 'Elif T. "Montessori halka kulesi" için takas başlattı.', time: '5 dk', unread: true },
-  { icon: 'local-shipping', tone: 'tertiary', title: 'Kargoda', body: 'Ahşap blok seti yola çıktı — tahmini 2 gün.', time: '2 sa', unread: true },
-  { icon: 'verified', tone: 'primary', title: 'AI onayı', body: 'Renk ayırma oyunu ilanın yayında, +260 puan.', time: '1 gün' },
-  { icon: 'workspace-premium', tone: 'tertiary', title: 'Güven skoru arttı', body: 'Sorunsuz takas — güven skorun 96 oldu.', time: '2 gün' },
-  { icon: 'card-giftcard', tone: 'neutral', title: 'Davet bonusu', body: 'Arkadaşın katıldı, +100 puan kazandın.', time: '5 gün' },
-];
-
+/**
+ * Bildirimler — canlı kuyruktan.
+ *
+ * Metinleri sunucu yazıyor; burada yalnızca gösteriliyor. Kullanıcı bir
+ * bildirime dokununca ilgili ekrana gidiyor, çünkü haber vermenin amacı bir
+ * şey yapılmasıysa o şeyin bir tık uzakta olması gerekir.
+ */
 export default function Notifications() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+
+  const [liste, setListe] = useState<NotificationRow[]>([]);
+  const [yukleniyor, setYukleniyor] = useState(true);
+  const [yenileniyor, setYenileniyor] = useState(false);
+
+  const getir = useCallback(async () => {
+    setListe(await loadNotifications());
+    setYukleniyor(false);
+  }, []);
+
+  useEffect(() => {
+    getir();
+  }, [getir]);
+
+  const okunmamis = liste.filter((n) => !n.okundu).length;
+
+  async function hepsiniOkundu() {
+    if (okunmamis === 0) return;
+    await markAllRead();
+    await getir();
+  }
+
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.appbar}>
@@ -31,49 +61,128 @@ export default function Notifications() {
           <MaterialIcons name="arrow-back" size={24} color={colors.onSurface} />
         </Pressable>
         <Text style={styles.appTitle}>Bildirimler</Text>
-        <Pressable style={styles.iconBtn}>
-          <MaterialIcons name="done-all" size={22} color={colors.primary} />
+        <Pressable style={styles.iconBtn} onPress={hepsiniOkundu} disabled={okunmamis === 0}>
+          <MaterialIcons
+            name="done-all"
+            size={22}
+            color={okunmamis === 0 ? colors.outline : colors.primary}
+          />
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
-        {NOTIFS.map((n, i) => {
-          const bg =
-            n.tone === 'primary' ? colors.primaryContainer : n.tone === 'tertiary' ? colors.tertiaryContainer : colors.surfaceContainerHigh;
-          const fg =
-            n.tone === 'primary' ? colors.onPrimaryContainer : n.tone === 'tertiary' ? colors.onTertiaryContainer : colors.onSurfaceVariant;
-          return (
-            <View key={i} style={[styles.item, n.unread && styles.unread]}>
-              <View style={[styles.ic, { backgroundColor: bg }]}>
-                <MaterialIcons name={n.icon} size={22} color={fg} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <View style={styles.titleRow}>
-                  <Text style={styles.title}>{n.title}</Text>
-                  <Text style={styles.time}>{n.time}</Text>
-                </View>
-                <Text style={styles.body}>{n.body}</Text>
-              </View>
-              {n.unread && <View style={styles.dot} />}
+      {yukleniyor ? (
+        <View style={styles.orta}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={{ padding: 14, paddingBottom: 30 }}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={yenileniyor}
+              onRefresh={async () => {
+                setYenileniyor(true);
+                await getir();
+                setYenileniyor(false);
+              }}
+              tintColor={colors.primary}
+            />
+          }
+        >
+          {liste.length === 0 && (
+            <View style={styles.bos}>
+              <MaterialIcons name="notifications-none" size={44} color={colors.outline} />
+              <Text style={styles.bosBaslik}>Bildiriminiz yok</Text>
+              <Text style={styles.bosMetin}>
+                {supabaseConfigured
+                  ? 'Takaslarınızda bir gelişme olduğunda burada göreceksiniz.'
+                  : 'Sunucu bağlantısı yok.'}
+              </Text>
             </View>
-          );
-        })}
-      </ScrollView>
+          )}
+
+          {liste.map((n) => {
+            const g = gorunum(n.kind);
+            const git = hedef(n);
+            return (
+              <Pressable
+                key={n.id}
+                style={[styles.satir, !n.okundu && styles.satirOkunmamis]}
+                onPress={() => {
+                  if (git) router.push(git as Href);
+                }}
+              >
+                <View style={[styles.ikon, styles[`ton_${g.ton}`]]}>
+                  <MaterialIcons name={g.ikon} size={20} color={colors.onSurface} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.basliksatir}>
+                    <Text style={styles.baslik}>{n.title}</Text>
+                    <Text style={styles.zaman}>{gecenSure(n.createdAt)}</Text>
+                  </View>
+                  <Text style={styles.metin}>{n.body}</Text>
+                </View>
+                {!n.okundu && <View style={styles.nokta} />}
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
+  orta: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   appbar: { flexDirection: 'row', alignItems: 'center', height: 56, paddingHorizontal: 6 },
-  appTitle: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: colors.onSurface },
+  appTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 17,
+    fontWeight: '700',
+    color: colors.onSurface,
+  },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  item: { flexDirection: 'row', gap: 13, padding: 12, borderRadius: shape.md, alignItems: 'flex-start' },
-  unread: { backgroundColor: colors.surfaceContainerLow },
-  ic: { width: 44, height: 44, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center' },
-  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { fontSize: 14, fontWeight: '700', color: colors.onSurface },
-  time: { fontSize: 11, color: colors.onSurfaceVariant, fontWeight: '600' },
-  body: { fontSize: 13, color: colors.onSurfaceVariant, fontWeight: '500', lineHeight: 18, marginTop: 3 },
-  dot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.primary, marginTop: 6 },
+  satir: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 13,
+    borderRadius: shape.md,
+    backgroundColor: colors.surfaceContainerLow,
+    marginBottom: 9,
+    alignItems: 'center',
+  },
+  satirOkunmamis: { backgroundColor: colors.surfaceContainerHigh },
+  ikon: {
+    width: 42,
+    height: 42,
+    borderRadius: shape.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ton_primary: { backgroundColor: colors.primaryContainer },
+  ton_tertiary: { backgroundColor: colors.tertiaryContainer },
+  ton_dikkat: { backgroundColor: colors.errorContainer },
+  basliksatir: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  baslik: { flex: 1, fontSize: 14, fontWeight: '700', color: colors.onSurface },
+  zaman: { fontSize: 11, fontWeight: '600', color: colors.onSurfaceVariant, marginLeft: 8 },
+  metin: {
+    fontSize: 12.5,
+    color: colors.onSurfaceVariant,
+    fontWeight: '500',
+    lineHeight: 18,
+    marginTop: 3,
+  },
+  nokta: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary },
+  bos: { alignItems: 'center', gap: 8, paddingTop: 80, paddingHorizontal: 30 },
+  bosBaslik: { fontSize: 16, fontWeight: '700', color: colors.onSurface },
+  bosMetin: {
+    fontSize: 13,
+    color: colors.onSurfaceVariant,
+    fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: 19,
+  },
 });
