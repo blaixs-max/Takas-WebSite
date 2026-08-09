@@ -271,6 +271,21 @@ alınamayan sahte ilan olurlardı.
 - [ ] **Kayıt akışında ad alanı yok** — `signUp` yalnızca e-posta ve şifre
       alıyor, `raw_user_meta_data` boş kalıyor. Satıcı adı e-postanın `@`
       öncesine düşüyor (`blaixs` gibi). Vitrinde çirkin duruyor
+- [x] **Ürün detayı galerisi gerçekten galeri oldu** — büyük kare tek bir
+      `Image`'dı: parmakla kaydırmak hiçbir şey yapmıyordu, alttaki noktalar
+      düğme gibi duruyor ama basılamıyordu. Artık sayfalı kaydırma, basılabilir
+      noktalar, uçta gizlenen ileri/geri okları ve kareye dokununca tam ekran
+      görüntüleyici var (iOS'ta iki parmakla yakınlaştırma)
+- [x] **Ürün detayındaki uydurma rozetler kaldırıldı** — "AI onaylı fotoğraf"
+      ve "48 parça tam" her ilanda sabit yazıyordu. İkisi de yanlıştı:
+      `AI_VISION_API_KEY` tanımlı değilken kareleri insan onaylıyor, parça
+      sayısı ise hiç ölçülmüyor. Alıcı ikinci el üründe tam da bu iki iddiaya
+      güvenir. Rozet artık "Kareler incelendi"; parça iddiası kaldırıldı,
+      boş "Piyasa karşılığı" ve "0 km" gizleniyor
+- [ ] **Android'de yakınlaştırma** — tam ekran görüntüleyici iOS'ta
+      ScrollView'ün kendi yakınlaştırmasını kullanıyor; Android'de kare tam
+      ekran açılıyor ama yakınlaştırma için `react-native-gesture-handler`
+      gerekiyor
 - [ ] **Kare akışının kalan uçları** — kamera bu ortamda test edilemiyor.
       Expo Go'da yedi karenin çekimi, yeniden çekim ve yayın kapısı elden geçirilmeli
 - [ ] **İnsan moderasyon kuyruğu** — `pending` kalan kareler için yönetim yüzeyi.

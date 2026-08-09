@@ -1,5 +1,19 @@
-import { useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Image,
+  Modal,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Pressable,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +26,12 @@ import { startConversation } from '../../lib/messages';
 import { useAuth } from '../../lib/auth';
 import { colors, elevation, shape } from '../../theme/tokens';
 
+const { width: EKRAN_W, height: EKRAN_H } = Dimensions.get('window');
+/** Büyük karenin ölçüsü: ekran eksi ScrollView'ün 18'lik yan boşlukları, 4:3.
+    Yatay ScrollView içinde yüzde genişlik çözülmez; kesin sayı şart. */
+const HERO_W = EKRAN_W - 36;
+const HERO_H = Math.round((HERO_W * 3) / 4);
+
 export default function ProductDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -21,6 +41,8 @@ export default function ProductDetail() {
   const { inCart, toggle: toggleCart } = useCart();
   const { user } = useAuth();
   const [activeImg, setActiveImg] = useState(0);
+  const [buyutulmus, setBuyutulmus] = useState(false);
+  const heroRef = useRef<ScrollView>(null);
   const [takasEdiliyor, setTakasEdiliyor] = useState(false);
   const fav = product ? isFavorite(product.id) : false;
   const inSepet = product ? inCart(product.id) : false;
@@ -116,6 +138,18 @@ export default function ProductDetail() {
 
   const gallery = product.gallery;
 
+  /** Kaydırma bittiğinde hangi karede olduğumuzu sayfa genişliğinden buluruz. */
+  function kaydirmaBitti(e: NativeSyntheticEvent<NativeScrollEvent>) {
+    const i = Math.round(e.nativeEvent.contentOffset.x / HERO_W);
+    if (i !== activeImg && i >= 0 && i < gallery.length) setActiveImg(i);
+  }
+
+  /** Küçük resim ya da nokta seçildiğinde büyük kareyi oraya taşır. */
+  function kareyeGit(i: number) {
+    setActiveImg(i);
+    heroRef.current?.scrollTo({ x: i * HERO_W, animated: true });
+  }
+
   return (
     <View style={styles.root}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -136,20 +170,53 @@ export default function ProductDetail() {
       <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: 110 }} showsVerticalScrollIndicator={false}>
         {/* Galeri */}
         <View style={styles.hero}>
-          <Image source={gallery[activeImg]} style={styles.heroImg} resizeMode="cover" />
-          <View style={styles.cond}>
+          {/* Kaydırılabilir şerit. Önceden tek bir Image vardı: kare yalnızca
+              küçük resimden değişiyordu, parmakla kaydırmak hiçbir şey
+              yapmıyordu. */}
+          <ScrollView
+            ref={heroRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={kaydirmaBitti}
+          >
+            {gallery.map((g, i) => (
+              <Pressable key={i} onPress={() => setBuyutulmus(true)} style={styles.heroSayfa}>
+                <Image source={g} style={styles.heroImg} resizeMode="cover" />
+              </Pressable>
+            ))}
+          </ScrollView>
+
+
+          <View style={styles.cond} pointerEvents="none">
             <MaterialIcons name="verified" size={16} color={colors.primary} />
             <Text style={styles.condText}>{product.condition}</Text>
           </View>
-          <View style={styles.count}>
+          <View style={styles.count} pointerEvents="none">
             <MaterialIcons name="photo-library" size={15} color="#fff" />
             <Text style={styles.countText}>
               {activeImg + 1}/{gallery.length}
             </Text>
           </View>
+
+          {/* Oklar: kaydırmayı bilmeyene de yol gösterir. Uçtaysa gizlenir —
+              basınca hiçbir şey yapmayan düğme, olmayan düğmeden kötüdür. */}
+          {gallery.length > 1 && activeImg > 0 && (
+            <Pressable style={[styles.ok, styles.okSol]} onPress={() => kareyeGit(activeImg - 1)} hitSlop={8}>
+              <MaterialIcons name="chevron-left" size={26} color="#fff" />
+            </Pressable>
+          )}
+          {gallery.length > 1 && activeImg < gallery.length - 1 && (
+            <Pressable style={[styles.ok, styles.okSag]} onPress={() => kareyeGit(activeImg + 1)} hitSlop={8}>
+              <MaterialIcons name="chevron-right" size={26} color="#fff" />
+            </Pressable>
+          )}
+
           <View style={styles.dots}>
             {gallery.map((_, i) => (
-              <View key={i} style={[styles.dot, i === activeImg && styles.dotOn]} />
+              <Pressable key={i} onPress={() => kareyeGit(i)} hitSlop={10}>
+                <View style={[styles.dot, i === activeImg && styles.dotOn]} />
+              </Pressable>
             ))}
           </View>
         </View>
@@ -157,7 +224,7 @@ export default function ProductDetail() {
         {/* Thumbnail şeridi */}
         <View style={styles.thumbs}>
           {gallery.map((g, i) => (
-            <Pressable key={i} onPress={() => setActiveImg(i)} style={[styles.thumb, i === activeImg && styles.thumbOn]}>
+            <Pressable key={i} onPress={() => kareyeGit(i)} style={[styles.thumb, i === activeImg && styles.thumbOn]}>
               <Image source={g} style={styles.thumbImg} resizeMode="cover" />
             </Pressable>
           ))}
@@ -167,16 +234,32 @@ export default function ProductDetail() {
         <View style={styles.ptsLine}>
           <Text style={styles.pts}>{product.points}</Text>
           <Text style={styles.ptsLabel}>Takas Puanı</Text>
-          <View style={styles.market}>
-            <Text style={styles.marketLabel}>Piyasa karşılığı</Text>
-            <Text style={styles.marketVal}>{product.marketValue}</Text>
-          </View>
+          {/* Değeri yoksa etiket de görünmez; boş bir "Piyasa karşılığı"
+              satırı kullanıcıya eksik bir şey olduğunu düşündürüyordu. */}
+          {product.marketValue ? (
+            <View style={styles.market}>
+              <Text style={styles.marketLabel}>Piyasa karşılığı</Text>
+              <Text style={styles.marketVal}>{product.marketValue}</Text>
+            </View>
+          ) : null}
         </View>
 
+        {/* Buradaki rozetler bir zamanlar sabitti ve ikisi de yalandı:
+            "AI onaylı fotoğraf" — anahtar tanımlı değilken kareleri insan
+            onaylıyor, dolayısıyla bu iddia doğru değil; "48 parça tam" ise
+            hangi ürün olursa olsun yazıyordu. Alıcı ikinci el bir ürüne
+            bakarken doğrulama ve bütünlük iddiasına güvenir. Kalanlar da
+            değeri yoksa hiç görünmüyor: "0 km" bilgi değil, gürültü. */}
         <View style={styles.mchips}>
-          <Chip icon="verified" label="AI onaylı fotoğraf" />
-          <Chip icon="location-on" label={`${product.location} · ${product.distanceKm} km`} />
-          <Chip icon="inventory-2" label="48 parça tam" />
+          <Chip icon="verified" label="Kareler incelendi" />
+          <Chip
+            icon="location-on"
+            label={
+              product.distanceKm > 0
+                ? `${product.location} · ${product.distanceKm} km`
+                : product.location
+            }
+          />
         </View>
 
         <Text style={styles.desc}>{product.description}</Text>
@@ -253,6 +336,62 @@ export default function ProductDetail() {
           )}
         </Pressable>
       </View>
+
+      {/* Tam ekran görüntüleyici.
+          İkinci el bir üründe alıcının tek dayanağı fotoğraf; 60 piksellik
+          küçük resimde çizik de görünmez, eksik parça da. iOS'ta çift dokunma
+          ve iki parmakla yakınlaştırma ScrollView'ün kendi yakınlaştırmasıyla
+          çalışır; Android'de kare tam ekran açılır ama yakınlaştırma için ek
+          bir kütüphane gerekiyor (TODO). */}
+      <Modal
+        visible={buyutulmus}
+        transparent={false}
+        animationType="fade"
+        onRequestClose={() => setBuyutulmus(false)}
+        statusBarTranslucent
+      >
+        <View style={styles.tamEkran}>
+          <StatusBar barStyle="light-content" />
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            contentOffset={{ x: activeImg * EKRAN_W, y: 0 }}
+            onMomentumScrollEnd={(e) => {
+              const i = Math.round(e.nativeEvent.contentOffset.x / EKRAN_W);
+              if (i >= 0 && i < gallery.length) setActiveImg(i);
+            }}
+          >
+            {gallery.map((g, i) => (
+              <ScrollView
+                key={i}
+                style={{ width: EKRAN_W }}
+                contentContainerStyle={styles.tamEkranSayfa}
+                maximumZoomScale={4}
+                minimumZoomScale={1}
+                centerContent
+                showsVerticalScrollIndicator={false}
+              >
+                <Image source={g} style={styles.tamEkranImg} resizeMode="contain" />
+              </ScrollView>
+            ))}
+          </ScrollView>
+
+          <Pressable
+            style={[styles.kapat, { top: insets.top + 8 }]}
+            onPress={() => setBuyutulmus(false)}
+            hitSlop={12}
+          >
+            <MaterialIcons name="close" size={26} color="#fff" />
+          </Pressable>
+
+          <View style={[styles.tamEkranSayac, { bottom: insets.bottom + 24 }]}>
+            <Text style={styles.countText}>
+              {activeImg + 1}/{gallery.length}
+            </Text>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -282,7 +421,8 @@ const styles = StyleSheet.create({
   appTitle: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: colors.onSurface },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   hero: { borderRadius: shape.xl, overflow: 'hidden', aspectRatio: 4 / 3, marginBottom: 14, ...elevation.level2 },
-  heroImg: { width: '100%', height: '100%' },
+  heroSayfa: { width: HERO_W, height: HERO_H },
+  heroImg: { width: HERO_W, height: HERO_H },
   cond: {
     position: 'absolute',
     left: 14,
@@ -313,6 +453,42 @@ const styles = StyleSheet.create({
   dots: { position: 'absolute', left: 0, right: 0, bottom: 12, flexDirection: 'row', gap: 6, justifyContent: 'center' },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.55)' },
   dotOn: { width: 18, borderRadius: shape.full, backgroundColor: '#fff' },
+  ok: {
+    position: 'absolute',
+    top: '50%',
+    marginTop: -18,
+    width: 36,
+    height: 36,
+    borderRadius: shape.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.42)',
+  },
+  okSol: { left: 8 },
+  okSag: { right: 8 },
+  tamEkran: { flex: 1, backgroundColor: '#000' },
+  tamEkranSayfa: { alignItems: 'center', justifyContent: 'center' },
+  tamEkranImg: { width: EKRAN_W, height: EKRAN_H },
+  kapat: {
+    position: 'absolute',
+    right: 16,
+    width: 40,
+    height: 40,
+    borderRadius: shape.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+  tamEkranSayac: {
+    position: 'absolute',
+    alignSelf: 'center',
+    height: 28,
+    paddingHorizontal: 12,
+    borderRadius: shape.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.55)',
+  },
   thumbs: { flexDirection: 'row', gap: 8, marginBottom: 18 },
   thumb: { width: 60, height: 60, borderRadius: shape.sm, overflow: 'hidden', borderWidth: 2, borderColor: 'transparent' },
   thumbOn: { borderColor: colors.primary },
