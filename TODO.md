@@ -76,6 +76,18 @@ Son güncelleme: 2026-08-08 · Branch: `claude/expo-ilan-ve-satinalma`
       satıcıya geçiyor (`expire_stale_trades`)
 - [x] **Takaslar ekranı → canlı `trades`** — mock zaman çizelgesi kaldırıldı;
       durum, kalan süre, "Teslim aldım" ve "Sorun var" gerçek RPC'lere gidiyor
+- [x] **Mesajlaşma** — sohbet ekranları sabit metinlerle doluydu, iki kullanıcı
+      birbirine tek kelime yazamıyordu. Bedeli yalnızca eksik özellik değildi:
+      itiraza giden soruların çoğu ("kutusu var mı", "şu çizik ne kadar derin")
+      konuşularak çözülür.
+      Sohbet **ürüne** bağlı, takasa değil — alıcının satın almadan önce soru
+      sorabilmesi gerekiyor; takas açılınca aynı sohbet devam ediyor.
+      Gönderilmiş mesaj değiştirilemiyor ve silinemiyor: uyuşmazlıkta konuşma
+      kaydı kanıttır, sonradan düzenlenebilen kanıt kanıt değildir.
+      **Her mesaja bildirim gitmiyor** — karşı tarafın okunmamış mesajı varsa
+      ikincisi gönderilmiyor; aksi hâlde bildirimler kapatılırdı.
+      Realtime aboneliği var ama zorunlu değil: yayın kapalıysa ekran yine
+      çalışıyor, kullanıcı tazeliyor
 - [x] **Güven skoru ve profil istatistikleri** — profil dört sabit sayı
       gösteriyordu: skor 96, 38 takas, 1.260 puan, 4,9 değerlendirme. Dördü de
       uydurmaydı ve biri karşılığı hiç olmayan bir sistemi ima ediyordu.
@@ -182,7 +194,10 @@ Son güncelleme: 2026-08-08 · Branch: `claude/expo-ilan-ve-satinalma`
 ## 🔜 Sonra
 - [ ] Ürün Ekle: dinamik puan önerisi (kareler ve kategoriden değerleme)
 - [ ] Kapakta zorunlu durum rozeti (hasar beyanı ilan kartında görünsün)
-- [ ] Mesajlaşma/sohbet → gerçek zamanlı (Supabase Realtime)
+- [ ] **Mesaj moderasyonu ve şikâyet** — sohbet açıldı ama içeriğine bakan
+      kimse yok. İki risk: taciz/uygunsuz içerik ve platform dışına çıkarma
+      girişimi (telefon/IBAN paylaşımı) — ikincisi emaneti de devre dışı bırakır.
+      En azından "şikâyet et" düğmesi ve yönetim kuyruğunda bir görünüm gerekiyor
 - [ ] Bildirimler → **push** (Expo Notifications). Kuyruk hazır ve doluyor ama
       kullanıcı uygulamayı açmadan hiçbirini görmüyor; sayaçların işe yaraması
       için push şart. Cihaz jetonu tablosu + EAS kimlik bilgileri gerekiyor

@@ -8,6 +8,7 @@ import { useFavorites } from '../../lib/favorites';
 import { useCart } from '../../lib/cart';
 import { shareProduct } from '../../lib/share';
 import { startTrade, quotePrice } from '../../lib/trades';
+import { startConversation } from '../../lib/messages';
 import { useAuth } from '../../lib/auth';
 import { colors, elevation, shape } from '../../theme/tokens';
 
@@ -28,6 +29,23 @@ export default function ProductDetail() {
    * Takası gerçekten açar. Puan bu çağrıda güvenli havuza girer ve ilan
    * rezerve edilir, o yüzden önce ne olacağı açıkça soruluyor.
    */
+  async function sohbetAc() {
+    if (!product) return;
+    if (!user) {
+      Alert.alert('Giriş gerekli', 'Satıcıya yazmak için önce giriş yapın.', [
+        { text: 'Vazgeç', style: 'cancel' },
+        { text: 'Giriş yap', onPress: () => router.push('/sign-in') },
+      ]);
+      return;
+    }
+    const s = await startConversation(product.id);
+    if (!s.ok) {
+      Alert.alert('Sohbet açılamadı', s.message);
+      return;
+    }
+    router.push(`/chat/${s.id}`);
+  }
+
   async function takasEt() {
     if (!product) return;
     if (!user) {
@@ -206,6 +224,10 @@ export default function ProductDetail() {
       </ScrollView>
 
       <View style={[styles.actionbar, { paddingBottom: insets.bottom + 14 }]}>
+        {/* Satıcıya sormak, itiraza giden soruların çoğunu baştan çözer. */}
+        <Pressable style={styles.iconSquare} onPress={sohbetAc}>
+          <MaterialIcons name="chat-bubble-outline" size={22} color={colors.onSurface} />
+        </Pressable>
         <Pressable
           style={[styles.iconSquare, inSepet && { backgroundColor: colors.primaryContainer }]}
           onPress={() => toggleCart(product.id)}

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,107 +13,199 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  MessageRow,
+  loadMessages,
+  markConversationRead,
+  saat,
+  sendMessage,
+  subscribeMessages,
+} from '../../lib/messages';
 import { colors, shape } from '../../theme/tokens';
 
-interface Msg {
-  id: number;
-  text: string;
-  mine: boolean;
-  time: string;
-}
-
-const SEED: Msg[] = [
-  { id: 1, text: 'Merhaba! Halka kulesi hâlâ takasta mı?', mine: true, time: '14:02' },
-  { id: 2, text: 'Merhaba, evet 🙂 İlgilendiğiniz için teşekkürler.', mine: false, time: '14:03' },
-  { id: 3, text: 'Tüm parçalar tam mı? Kutusu var mı?', mine: true, time: '14:03' },
-  { id: 4, text: 'Tüm parçalar tam, orijinal kutusuyla gönderiyorum.', mine: false, time: '14:05' },
-  { id: 5, text: 'Harika, takas başlatıyorum. Güvenli havuz puanı tutacak.', mine: true, time: '14:06' },
-];
-
+/**
+ * Sohbet — canlı.
+ *
+ * Realtime aboneliği varsa yeni mesaj kendiliğinden düşer; yayın kapalıysa
+ * ekran yine çalışır, kullanıcı yukarı çekerek tazeler. Abonelik bir
+ * gereklilik değil, varsa kullanılan bir kolaylık.
+ */
 export default function Chat() {
-  const insets = useSafeAreaInsets();
-  const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [msgs, setMsgs] = useState<Msg[]>(SEED);
-  const [text, setText] = useState('');
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
 
-  function send() {
-    if (!text.trim()) return;
-    setMsgs((m) => [...m, { id: m.length + 1, text: text.trim(), mine: true, time: 'şimdi' }]);
-    setText('');
+  const [mesajlar, setMesajlar] = useState<MessageRow[]>([]);
+  const [yukleniyor, setYukleniyor] = useState(true);
+  const [metin, setMetin] = useState('');
+  const [gonderiliyor, setGonderiliyor] = useState(false);
+  const listeRef = useRef<ScrollView>(null);
+
+  const getir = useCallback(async () => {
+    if (!id) return;
+    setMesajlar(await loadMessages(id));
+    setYukleniyor(false);
+    // Ekran açıkken gelen mesaj okunmuş sayılır.
+    await markConversationRead(id);
+  }, [id]);
+
+  useEffect(() => {
+    getir();
+  }, [getir]);
+
+  useEffect(() => {
+    if (!id) return;
+    return subscribeMessages(id, () => {
+      getir();
+    });
+  }, [id, getir]);
+
+  async function gonder() {
+    const govde = metin.trim();
+    if (!govde || !id) return;
+
+    setGonderiliyor(true);
+    const s = await sendMessage(id, govde);
+    setGonderiliyor(false);
+
+    if (!s.ok) {
+      // Metni silmiyoruz: gönderilemeyen mesajı kaybettirmek en can sıkıcı
+      // hatalardan biri.
+      return;
+    }
+    setMetin('');
+    await getir();
   }
 
   return (
-    <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={[styles.appbar, { paddingTop: insets.top }]}>
+    <View style={[styles.root, { paddingTop: insets.top }]}>
+      <View style={styles.appbar}>
         <Pressable style={styles.iconBtn} onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={24} color={colors.onSurface} />
         </Pressable>
-        <View style={styles.av}>
-          <Text style={styles.avText}>{(id ?? 'S').slice(0, 2).toUpperCase()}</Text>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.name}>Satıcı</Text>
-          <Text style={styles.status}>● çevrimiçi</Text>
-        </View>
-        <Pressable style={styles.iconBtn}>
-          <MaterialIcons name="more-vert" size={24} color={colors.onSurface} />
-        </Pressable>
+        <Text style={styles.appTitle}>Sohbet</Text>
+        <View style={styles.iconBtn} />
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 10 }} showsVerticalScrollIndicator={false}>
-        <View style={styles.dayChip}>
-          <Text style={styles.dayText}>Bugün</Text>
-        </View>
-        {msgs.map((m) => (
-          <View key={m.id} style={[styles.bubbleRow, m.mine ? styles.rowMine : styles.rowTheirs]}>
-            <View style={[styles.bubble, m.mine ? styles.mine : styles.theirs]}>
-              <Text style={[styles.msgText, m.mine && { color: '#fff' }]}>{m.text}</Text>
-              <Text style={[styles.msgTime, m.mine && { color: 'rgba(255,255,255,0.7)' }]}>{m.time}</Text>
-            </View>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={insets.top + 56}
+      >
+        {yukleniyor ? (
+          <View style={styles.orta}>
+            <ActivityIndicator color={colors.primary} />
           </View>
-        ))}
-      </ScrollView>
+        ) : (
+          <ScrollView
+            ref={listeRef}
+            contentContainerStyle={{ padding: 14, paddingBottom: 20 }}
+            onContentSizeChange={() => listeRef.current?.scrollToEnd({ animated: false })}
+          >
+            {mesajlar.length === 0 && (
+              <Text style={styles.bosMetin}>
+                Henüz mesaj yok. Ürünle ilgili sorunuzu yazabilirsiniz.
+              </Text>
+            )}
+            {mesajlar.map((m) => (
+              <View key={m.id} style={[styles.balon, m.benim ? styles.benim : styles.karsi]}>
+                <Text style={[styles.metin, m.benim && styles.metinBenim]}>{m.body}</Text>
+                <Text style={[styles.saat, m.benim && styles.saatBenim]}>
+                  {saat(m.createdAt)}
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
+        )}
 
-      <View style={[styles.inputBar, { paddingBottom: insets.bottom + 10 }]}>
-        <View style={styles.inputWrap}>
+        <View style={[styles.girisAlani, { paddingBottom: insets.bottom + 10 }]}>
           <TextInput
-            style={styles.input}
-            placeholder="Mesaj yaz…"
+            style={styles.giris}
+            placeholder="Mesaj yazın"
             placeholderTextColor={colors.onSurfaceVariant}
-            value={text}
-            onChangeText={setText}
-            onSubmitEditing={send}
+            value={metin}
+            onChangeText={setMetin}
+            multiline
+            maxLength={2000}
           />
+          <Pressable
+            style={[styles.gonder, (!metin.trim() || gonderiliyor) && styles.kapali]}
+            disabled={!metin.trim() || gonderiliyor}
+            onPress={gonder}
+          >
+            {gonderiliyor ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <MaterialIcons name="send" size={20} color="#fff" />
+            )}
+          </Pressable>
         </View>
-        <Pressable style={styles.sendBtn} onPress={send}>
-          <MaterialIcons name="send" size={22} color="#fff" />
-        </Pressable>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
-  appbar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 6, paddingBottom: 8, backgroundColor: colors.surfaceContainerLow },
-  iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  av: { width: 38, height: 38, borderRadius: shape.full, backgroundColor: colors.secondaryContainer, alignItems: 'center', justifyContent: 'center' },
-  avText: { fontWeight: '800', fontSize: 13, color: colors.onSecondaryContainer },
-  name: { fontSize: 15, fontWeight: '700', color: colors.onSurface },
-  status: { fontSize: 11, fontWeight: '600', color: colors.primary, marginTop: 1 },
-  dayChip: { alignSelf: 'center', backgroundColor: colors.surfaceContainerHigh, borderRadius: shape.full, paddingHorizontal: 12, paddingVertical: 4 },
-  dayText: { fontSize: 11, fontWeight: '600', color: colors.onSurfaceVariant },
-  bubbleRow: { flexDirection: 'row' },
-  rowMine: { justifyContent: 'flex-end' },
-  rowTheirs: { justifyContent: 'flex-start' },
-  bubble: { maxWidth: '78%', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 9 },
-  mine: { backgroundColor: colors.primary, borderBottomRightRadius: 4 },
-  theirs: { backgroundColor: colors.surfaceContainerHigh, borderBottomLeftRadius: 4 },
-  msgText: { fontSize: 14, color: colors.onSurface, lineHeight: 19 },
-  msgTime: { fontSize: 10, color: colors.onSurfaceVariant, fontWeight: '500', marginTop: 3, alignSelf: 'flex-end' },
-  inputBar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingTop: 10, backgroundColor: colors.surfaceContainer },
-  inputWrap: { flex: 1, minHeight: 48, justifyContent: 'center', paddingHorizontal: 18, borderRadius: shape.full, backgroundColor: colors.surfaceContainerHigh },
-  input: { fontSize: 15, color: colors.onSurface },
-  sendBtn: { width: 48, height: 48, borderRadius: shape.full, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  orta: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  appbar: { flexDirection: 'row', alignItems: 'center', height: 56, paddingHorizontal: 6 },
+  appTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 17,
+    fontWeight: '700',
+    color: colors.onSurface,
+  },
+  iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  bosMetin: {
+    textAlign: 'center',
+    color: colors.onSurfaceVariant,
+    fontSize: 13,
+    fontWeight: '500',
+    marginTop: 40,
+    paddingHorizontal: 30,
+    lineHeight: 19,
+  },
+  balon: {
+    maxWidth: '78%',
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+    borderRadius: shape.md,
+    marginBottom: 8,
+  },
+  benim: { alignSelf: 'flex-end', backgroundColor: colors.primary },
+  karsi: { alignSelf: 'flex-start', backgroundColor: colors.surfaceContainerHigh },
+  metin: { fontSize: 14, lineHeight: 19, color: colors.onSurface, fontWeight: '500' },
+  metinBenim: { color: '#fff' },
+  saat: { fontSize: 10, color: colors.onSurfaceVariant, marginTop: 4, alignSelf: 'flex-end' },
+  saatBenim: { color: 'rgba(255,255,255,0.75)' },
+  girisAlani: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 9,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    backgroundColor: colors.surfaceContainer,
+  },
+  giris: {
+    flex: 1,
+    maxHeight: 110,
+    minHeight: 46,
+    borderRadius: shape.lg,
+    backgroundColor: colors.surfaceContainerHigh,
+    paddingHorizontal: 14,
+    paddingTop: 13,
+    paddingBottom: 13,
+    fontSize: 14.5,
+    color: colors.onSurface,
+  },
+  gonder: {
+    width: 46,
+    height: 46,
+    borderRadius: shape.full,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  kapali: { opacity: 0.45 },
 });
