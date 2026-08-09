@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -5,6 +6,7 @@ import Svg, { Circle } from 'react-native-svg';
 import { useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../lib/auth';
+import { amIAdmin } from '../../lib/admin';
 import { colors, elevation, shape } from '../../theme/tokens';
 
 const LISTINGS = [
@@ -51,6 +53,18 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, signOut } = useAuth();
+  const [yonetici, setYonetici] = useState(false);
+
+  useEffect(() => {
+    let iptal = false;
+    amIAdmin().then((ok) => {
+      if (!iptal) setYonetici(ok);
+    });
+    return () => {
+      iptal = true;
+    };
+  }, [user]);
+
   // Oturum varsa e-postadan ad türet; yoksa demo isim
   const email = user?.email ?? null;
   const displayName = email ? email.split('@')[0] : 'Emrah Atabek';
@@ -120,6 +134,24 @@ export default function ProfileScreen() {
           {/* Hesabım — Takaslar & Cüzdan buraya taşındı */}
           <Text style={styles.secTitle}>Hesabım</Text>
           <View style={styles.account}>
+            {/* Yalnızca yetkiliye görünür. Gizlemek bir güvenlik önlemi değil:
+                yetkiyi sunucudaki is_admin() belirliyor, burası yalnızca
+                gereksiz bir satırı herkese göstermemek için. */}
+            {yonetici && (
+              <>
+                <Pressable style={styles.accRow} onPress={() => router.push('/admin')}>
+                  <View style={[styles.accIc, { backgroundColor: colors.tertiaryContainer }]}>
+                    <MaterialIcons name="shield" size={22} color={colors.onTertiaryContainer} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.accTitle}>Yönetim</Text>
+                    <Text style={styles.accSub}>Moderasyon kuyruğu · itirazlar</Text>
+                  </View>
+                  <MaterialIcons name="chevron-right" size={22} color={colors.outline} />
+                </Pressable>
+                <View style={styles.divider} />
+              </>
+            )}
             <Pressable style={styles.accRow} onPress={() => router.push('/wallet')}>
               <View style={[styles.accIc, { backgroundColor: colors.primaryContainer }]}>
                 <MaterialIcons name="account-balance-wallet" size={22} color={colors.onPrimaryContainer} />

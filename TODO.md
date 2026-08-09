@@ -76,6 +76,20 @@ Son güncelleme: 2026-08-08 · Branch: `claude/expo-ilan-ve-satinalma`
       satıcıya geçiyor (`expire_stale_trades`)
 - [x] **Takaslar ekranı → canlı `trades`** — mock zaman çizelgesi kaldırıldı;
       durum, kalan süre, "Teslim aldım" ve "Sorun var" gerçek RPC'lere gidiyor
+- [x] **Yönetim paneli — iki kuyruk, tek ekran** (`app/admin.tsx`)
+      Yetki `admins` tablosunda, JWT'de değil: rol iddiası oturum yenilenene
+      kadar geçerli olmaz ve yetkisi alınmış bir yönetici elindeki token'la
+      karar vermeye devam ederdi. Tablo anında etki eder, testi de bunu sınıyor.
+      `admin_photo_queue()` bekleyen kareleri, `admin_dispute_queue()` karar
+      bekleyen itirazları eşik ve kanıt sayısıyla getiriyor.
+      `admin_moderate_photo()` ve `admin_resolve_dispute()` **gerekçesiz karar
+      kabul etmiyor**; iade mantığı tek yerde (`resolve_dispute`) kalıyor,
+      yönetici katmanı yalnızca yetkiyi doğrulayıp kararı verenin kimliğini
+      geçiriyor. Panel ekranı gizli ama gizlilik bir önlem değil — kuyruklar
+      sunucuda `is_admin()` süzgecinden geçiyor
+- [x] **`audit_logs`** — her insan kararı kaydediliyor: kim, ne, hangi kayıt,
+      hangi gerekçe. Defterle aynı mantıkla değiştirilemez ve silinemez
+      (trigger). 5.5 gerekçenin denetim kaydına yazılmasını istiyordu
 - [x] **İade ve uyuşmazlık (Ana Doküman Bölüm 5)** — itiraz kapısı açıktı ama
       arkası boştu: kanıt yüklenemiyor, karar verilemiyordu.
       `disputes` + `dispute_evidence` (özel kova, klasör sahipliği) +
@@ -112,10 +126,9 @@ Son güncelleme: 2026-08-08 · Branch: `claude/expo-ilan-ve-satinalma`
 - [x] SMS/OTP backend — Supabase Send SMS Hook → NetGSM OTP (imza doğrulamalı, skeleton)
 
 ## ⏳ Sıradaki (öncelik sırası)
-- [ ] **Yönetim paneli** — `resolve_dispute()` yazıldı ve doğrulandı ama yalnızca
-      `service_role`'a açık; kararı verecek bir yüzey yok. Şu an itiraz kuyruğunu
-      görmenin tek yolu SQL. Aynı panel `pending` kalan ilan karelerini de
-      görmeli — iki kuyruk, tek yüzey
+- [ ] **İlk yöneticiyi ekle** — `admins` tablosu boş. Panel çalışıyor ama
+      kimsenin yetkisi yok; ilk satır Supabase panelinden elle girilmeli:
+      `insert into admins (user_id, note) values ('<uuid>', 'kurucu');`
 - [ ] **Kare akışının cihazda denenmesi** — kamera bu ortamda test edilemiyor.
       Expo Go'da yedi karenin çekimi, yeniden çekim ve yayın kapısı elden geçirilmeli
 - [ ] **İnsan moderasyon kuyruğu** — `pending` kalan kareler için yönetim yüzeyi.

@@ -79,6 +79,12 @@ Bu ayrım her zaman geçerlidir.
 - **İtiraz sayacı durdurur, SIFIRLAMAZ.** Kalan süre `deadline_remaining`'e
   yazılır ve talep reddedilirse aynen sürer. Sıfırlansaydı arka arkaya açılan
   asılsız talepler satıcının puanını süresiz rehin alırdı (Ana Doküman 5.4).
+- **Yönetici yetkisi `admins` tablosundadır, JWT'de değil.** Rol iddiası oturum
+  yenilenene kadar geçerli olmaz; yetkisi alınan biri elindeki token'la karar
+  vermeye devam edemez. Kontrol her zaman sunucudaki `is_admin()` ile yapılır —
+  ekranı gizlemek önlem değildir.
+- **Gerekçesiz karar yoktur.** Kare reddi ve itiraz kararı gerekçe ister;
+  gerekçe `audit_logs`'a yazılır ve o kayıt değiştirilemez, silinemez.
 - **İtiraza makine karar vermez.** `resolve_dispute` yalnızca `service_role`'da.
   Otomatik olan tek şey kanıtsız talebin reddi — değerlendirilecek bir şey
   olmadığı için. Ürünün ayıplı olup olmadığına her zaman insan karar verir.
