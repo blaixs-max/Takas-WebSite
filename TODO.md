@@ -256,9 +256,18 @@ alınamayan sahte ilan olurlardı.
       değil, YANLIŞ görsel. Artık kapağın depolama yolu yazılıyor ve uygulama
       onu imzalı bağlantıya çeviriyor. Bağlantı üretilemezse görsel boş
       kalıyor; demo görsele düşmek yok
-- [ ] **Galeri kareleri** — ürün detayındaki galeri hâlâ `gallery_keys`
-      üzerinden paketli görsellere bakıyor; gerçek ilanların diğer dört karesi
-      hiçbir yerde görünmüyor. Kapakla aynı yoldan çözülecek
+- [x] **Galeri kareleri bağlandı** — detay ekranı `gallery_keys` üzerinden
+      paketli görsellere bakıyordu; gerçek ilanda o kolon boş olduğu için tek
+      bir demo fotoğraf çıkıyordu. Artık kareler `product_photos`'tan
+      okunuyor (kapak başta), imzalı bağlantıya çevriliyor
+- [x] **Depo okuma politikası** — asıl kusur buydu. Tabloda "yayındaki ilanın
+      kareleri açık" politikası vardı ama görsellerin durduğu kovada okuma
+      yalnızca klasör sahibine ve yöneticiye açıktı. Alıcı satırı görüyor,
+      görseli göremiyordu: vitrin satıcıda dolu, alıcıda boş görünüyordu —
+      satıcı kendi ilanına baktığı için fark edilmesi zor bir kusur.
+      Yeni politika tablo kuralını yansıtıyor, bir sıkı şartla: yalnızca
+      ONAYLANMIŞ kare açılır. Canlıda iki yönden doğrulandı — alıcı yayındaki
+      ilanın 5 karesini görüyor, ilan taslağa çekilince 0
 - [ ] **Kayıt akışında ad alanı yok** — `signUp` yalnızca e-posta ve şifre
       alıyor, `raw_user_meta_data` boş kalıyor. Satıcı adı e-postanın `@`
       öncesine düşüyor (`blaixs` gibi). Vitrinde çirkin duruyor

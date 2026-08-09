@@ -61,7 +61,11 @@ export function depolamaYoluMu(key?: string | null): boolean {
  *   kullanıcıya başka bir ürünün fotoğrafını satıcının çektiği kare diye
  *   göstermek olurdu.
  */
-export function rowToProduct(r: ProductRow, kapakUrl?: string): Product {
+export function rowToProduct(
+  r: ProductRow,
+  kapakUrl?: string,
+  galeriUrller?: string[],
+): Product {
   return {
     id: r.id,
     title: r.title,
@@ -79,7 +83,15 @@ export function rowToProduct(r: ProductRow, kapakUrl?: string): Product {
       : depolamaYoluMu(r.image_key)
         ? EMPTY_IMAGE
         : resolveImage(r.image_key),
-    gallery: resolveGallery(r.gallery_keys),
+    gallery: galeriUrller?.length
+      ? galeriUrller.map((u) => ({ uri: u }))
+      : kapakUrl
+        ? // Galeri üretilemediyse en azından kapak gösterilir; boş dizi
+          // detay ekranındaki galeriyi tamamen kırardı.
+          [{ uri: kapakUrl }]
+        : depolamaYoluMu(r.image_key)
+          ? [EMPTY_IMAGE]
+          : resolveGallery(r.gallery_keys),
     seller: { name: r.seller_name, initials: r.seller_initials, trust: r.seller_trust, trades: r.seller_trades },
   };
 }
