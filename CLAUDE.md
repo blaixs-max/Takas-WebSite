@@ -83,6 +83,9 @@ Bu ayrım her zaman geçerlidir.
   yenilenene kadar geçerli olmaz; yetkisi alınan biri elindeki token'la karar
   vermeye devam edemez. Kontrol her zaman sunucudaki `is_admin()` ile yapılır —
   ekranı gizlemek önlem değildir.
+- **Ekranda uydurma sayı olmaz.** Bir değeri gerçekten hesaplayamıyorsak
+  göstermeyiz: güven skoru yoksa "—", bildirim yoksa rozet yok. Yer tutucu bir
+  sayı, kullanıcının o ekrandaki her sayıya olan güvenini götürür.
 - **Bildirim metnini sunucu yazar.** Kayıtları trigger üretir; uygulama yalnızca
   okur ve okundu işaretler. Metin uygulamada kurulsaydı aynı olay iki yerde iki
   farklı cümleyle anlatılırdı. Yeni bir durum eklerken bildirimi de aynı

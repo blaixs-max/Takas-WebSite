@@ -7,6 +7,7 @@ import { useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../lib/auth';
 import { amIAdmin } from '../../lib/admin';
+import { ProfileStats, binlik, loadProfileStats, trustGerekceleri } from '../../lib/profile';
 import { colors, elevation, shape } from '../../theme/tokens';
 
 const LISTINGS = [
@@ -23,12 +24,12 @@ const SETTINGS: { icon: keyof typeof MaterialIcons.glyphMap; label: string; href
 ];
 
 /** Güven skoru halkası — SVG ile dairesel ilerleme (96%). */
-function TrustRing({ score }: { score: number }) {
+function TrustRing({ score }: { score: number | null }) {
   const size = 74;
   const stroke = 7;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
-  const pct = score / 100;
+  const pct = (score ?? 0) / 100;
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
       <Svg width={size} height={size} style={{ position: 'absolute', transform: [{ rotate: '-90deg' }] }}>
@@ -44,7 +45,7 @@ function TrustRing({ score }: { score: number }) {
           strokeDasharray={`${c * pct} ${c}`}
         />
       </Svg>
-      <Text style={styles.ringNum}>{score}</Text>
+      <Text style={styles.ringNum}>{score === null ? '—' : score}</Text>
     </View>
   );
 }
@@ -54,11 +55,15 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { user, signOut } = useAuth();
   const [yonetici, setYonetici] = useState(false);
+  const [istatistik, setIstatistik] = useState<ProfileStats | null>(null);
 
   useEffect(() => {
     let iptal = false;
     amIAdmin().then((ok) => {
       if (!iptal) setYonetici(ok);
+    });
+    loadProfileStats().then((st) => {
+      if (!iptal) setIstatistik(st);
     });
     return () => {
       iptal = true;
@@ -112,23 +117,35 @@ export default function ProfileScreen() {
         <View style={{ paddingHorizontal: 18 }}>
           {/* Güven kartı */}
           <View style={styles.trust}>
-            <TrustRing score={96} />
+            <TrustRing score={istatistik?.trustSkor ?? null} />
             <View style={{ flex: 1 }}>
               <View style={styles.trustHead}>
                 <MaterialIcons name="workspace-premium" size={17} color={colors.gold} />
-                <Text style={styles.trustTitle}>Yüksek güven skoru</Text>
+                <Text style={styles.trustTitle}>
+                  {istatistik?.trustSkor == null
+                    ? 'Güven skoru henüz oluşmadı'
+                    : istatistik.trustSkor >= 85
+                      ? 'Yüksek güven skoru'
+                      : 'Güven skorunuz düştü'}
+                </Text>
               </View>
+              {/* Skoru gerekçesiz göstermek, düzeltme imkânı vermemek demek. */}
               <Text style={styles.trustText}>
-                Zamanında kargo, düşük itiraz ve paketleme kanıtı skorunu yükseltir. Üst %8'desin.
+                {istatistik?.trustSkor == null
+                  ? 'İlk takasınız tamamlandığında skorunuz hesaplanmaya başlar.'
+                  : trustGerekceleri(istatistik).length > 0
+                    ? trustGerekceleri(istatistik).join(' · ')
+                    : 'Zamanında kargo ve düşük itiraz skorunuzu bu seviyede tutar.'}
               </Text>
             </View>
           </View>
 
           {/* İstatistikler */}
           <View style={styles.stats3}>
-            <Stat value="38" label="Başarılı takas" />
-            <Stat value="1.260" label="Takas Puanı" />
-            <Stat value="4.9" label="★ Değerlendirme" />
+            <Stat value={String(istatistik?.basariliTakas ?? 0)} label="Başarılı takas" />
+            <Stat value={binlik(istatistik?.availablePoints ?? 0)} label="Takas Puanı" />
+            {/* Yıldız değerlendirmesi diye bir sistem yok; 4,9 yazmak uydurmaydı. */}
+            <Stat value={String(istatistik?.yayindakiIlan ?? 0)} label="Yayındaki ilan" />
           </View>
 
           {/* Hesabım — Takaslar & Cüzdan buraya taşındı */}
@@ -158,7 +175,12 @@ export default function ProfileScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.accTitle}>Cüzdanım</Text>
-                <Text style={styles.accSub}>1.260 puan · 360 havuzda</Text>
+                <Text style={styles.accSub}>
+                  {binlik(istatistik?.availablePoints ?? 0)} puan
+                  {istatistik && istatistik.heldPoints > 0
+                    ? ` · ${binlik(istatistik.heldPoints)} havuzda`
+                    : ''}
+                </Text>
               </View>
               <MaterialIcons name="chevron-right" size={22} color={colors.outline} />
             </Pressable>
@@ -169,11 +191,17 @@ export default function ProfileScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.accTitle}>Takaslarım</Text>
-                <Text style={styles.accSub}>1 aktif takas · güvenli havuz</Text>
+                <Text style={styles.accSub}>
+                  {istatistik && istatistik.aktifTakas > 0
+                    ? `${istatistik.aktifTakas} aktif takas · güvenli havuz`
+                    : 'Aktif takasınız yok'}
+                </Text>
               </View>
-              <View style={styles.accBadge}>
-                <Text style={styles.accBadgeText}>1</Text>
-              </View>
+              {istatistik && istatistik.aktifTakas > 0 && (
+                <View style={styles.accBadge}>
+                  <Text style={styles.accBadgeText}>{istatistik.aktifTakas}</Text>
+                </View>
+              )}
               <MaterialIcons name="chevron-right" size={22} color={colors.outline} />
             </Pressable>
             <View style={styles.divider} />

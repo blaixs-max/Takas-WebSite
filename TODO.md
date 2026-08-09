@@ -76,6 +76,18 @@ Son güncelleme: 2026-08-08 · Branch: `claude/expo-ilan-ve-satinalma`
       satıcıya geçiyor (`expire_stale_trades`)
 - [x] **Takaslar ekranı → canlı `trades`** — mock zaman çizelgesi kaldırıldı;
       durum, kalan süre, "Teslim aldım" ve "Sorun var" gerçek RPC'lere gidiyor
+- [x] **Güven skoru ve profil istatistikleri** — profil dört sabit sayı
+      gösteriyordu: skor 96, 38 takas, 1.260 puan, 4,9 değerlendirme. Dördü de
+      uydurmaydı ve biri karşılığı hiç olmayan bir sistemi ima ediyordu.
+      **Değerlendirme kaldırıldı** (yıldız puanı diye bir şey yok), yerine
+      yayındaki ilan sayısı kondu. `user_trust()` skoru gerçekleşmiş olaylardan
+      hesaplıyor: kabul edilen iade −15, reddedilen asılsız talep −10,
+      ödenmemiş borç −10, geç kargo −15; taban 0.
+      **Yeterli işlemi olmayanın skoru YOKTUR** — null döner ve ekran "—" der;
+      uydurulmuş bir 100, uydurulmuş bir 96 kadar yanlıştır.
+      Skor gerekçesiyle gösteriliyor: nedenini söylemeden skor vermek,
+      kullanıcıya düzeltme imkânı vermemek demek. `seller_trust_score()`
+      vitrine yalnızca özet skoru veriyor, ceza kırılımını değil
 - [x] **Bildirim kuyruğu** — sistem hiçbir şey haber vermiyordu. En ağır sonucu:
       "48 saat içinde onaylamazsanız puan satıcıya geçer" kuralı, kullanıcı
       teslimattan haberdar olmadığında bir kural değil tuzaktı.
@@ -175,7 +187,10 @@ Son güncelleme: 2026-08-08 · Branch: `claude/expo-ilan-ve-satinalma`
       kullanıcı uygulamayı açmadan hiçbirini görmüyor; sayaçların işe yaraması
       için push şart. Cihaz jetonu tablosu + EAS kimlik bilgileri gerekiyor
 - [ ] Favori/Sepet → oturum açıkken Supabase'e senkron (cihaz + bulut)
-- [ ] Güven skoru hesaplama (zamanında kargo, düşük itiraz)
+- [ ] **Yaptırım merdiveni** — skor hesaplanıyor ama hiçbir sonucu yok.
+      5.5 uyarı → kısıt → kalıcı kapatma diyor; şu an düşük skor yalnızca
+      bir sayı. Eşik ve otomatik kısıt kararı verilmeli
+- [ ] Satıcının güven skorunu ilan kartında göster (`seller_trust_score` hazır)
 - [ ] İtiraz/dispute akışı (DISPUTED → hakemlik)
 - [ ] Dekoratif linkler (Anasayfa "Tümü/Harita") → gerçek hedef
 
