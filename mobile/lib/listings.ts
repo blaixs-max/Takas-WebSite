@@ -63,3 +63,60 @@ function cevir(mesaj: string): string {
   if (mesaj.includes('puan sıfırdan büyük')) return 'Puan sıfırdan büyük olmalı.';
   return 'İlan kaydedilemedi. Bağlantınızı kontrol edip tekrar deneyin.';
 }
+
+export interface DraftListing {
+  id: string;
+  title: string;
+  points: number;
+  hasDamage: boolean;
+  isSet: boolean;
+  cekilenKare: number;
+  gerekenKare: number;
+  bekleyenKare: number;
+  reddedilenKare: number;
+}
+
+/**
+ * Yarım kalmış taslak ilanlar.
+ *
+ * Bunlar olmadan taslak bir ilana bir daha ulaşılamıyordu: çekim akışına
+ * yalnızca ilan oluşturulduktan hemen sonra giriliyordu ve o ekrandan çıkan
+ * kullanıcı ilanı yayına alacak düğmeyi bir daha hiçbir yerde bulamıyordu.
+ * İlan veri tabanında DRAFT olarak sonsuza kadar duruyordu.
+ */
+export async function loadDrafts(): Promise<DraftListing[]> {
+  if (!supabaseConfigured || !supabase) return [];
+
+  const { data, error } = await supabase
+    .from('products')
+    .select('id, title, points, has_damage, is_set, product_photos(slot, moderation_status)')
+    .eq('status', 'DRAFT')
+    .order('created_at', { ascending: false });
+
+  if (error || !data) return [];
+
+  return (data as unknown as DraftRow[]).map((r) => {
+    const kareler = r.product_photos ?? [];
+    return {
+      id: r.id,
+      title: r.title,
+      points: Number(r.points),
+      hasDamage: Boolean(r.has_damage),
+      isSet: Boolean(r.is_set),
+      // Reddedilen kare çekilmiş sayılmaz; yeniden çekilmesi gerekiyor.
+      cekilenKare: kareler.filter((k) => k.moderation_status !== 'rejected').length,
+      gerekenKare: 5 + (r.has_damage ? 1 : 0) + (r.is_set ? 1 : 0),
+      bekleyenKare: kareler.filter((k) => k.moderation_status === 'pending').length,
+      reddedilenKare: kareler.filter((k) => k.moderation_status === 'rejected').length,
+    };
+  });
+}
+
+interface DraftRow {
+  id: string;
+  title: string;
+  points: number;
+  has_damage: boolean;
+  is_set: boolean;
+  product_photos: { slot: string; moderation_status: string }[] | null;
+}

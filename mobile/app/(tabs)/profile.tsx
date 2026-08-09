@@ -7,6 +7,7 @@ import { useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../lib/auth';
 import { amIAdmin } from '../../lib/admin';
+import { loadDrafts } from '../../lib/listings';
 import {
   ProfileStats,
   Sanction,
@@ -65,6 +66,7 @@ export default function ProfileScreen() {
   const [yonetici, setYonetici] = useState(false);
   const [istatistik, setIstatistik] = useState<ProfileStats | null>(null);
   const [yaptirim, setYaptirim] = useState<Sanction | null>(null);
+  const [taslak, setTaslak] = useState(0);
 
   useEffect(() => {
     let iptal = false;
@@ -76,6 +78,9 @@ export default function ProfileScreen() {
     });
     loadSanction().then((y) => {
       if (!iptal) setYaptirim(y);
+    });
+    loadDrafts().then((d) => {
+      if (!iptal) setTaslak(d.length);
     });
     return () => {
       iptal = true;
@@ -196,6 +201,26 @@ export default function ProfileScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={styles.accTitle}>Yönetim</Text>
                     <Text style={styles.accSub}>Moderasyon kuyruğu · itirazlar</Text>
+                  </View>
+                  <MaterialIcons name="chevron-right" size={22} color={colors.outline} />
+                </Pressable>
+                <View style={styles.divider} />
+              </>
+            )}
+            {/* Yalnızca yarım kalan ilan varsa görünür. Bu satır olmadan taslak
+                bir ilana ulaşmanın hiçbir yolu yoktu: çekim akışına sadece ilan
+                oluşturulduktan hemen sonra giriliyordu. */}
+            {taslak > 0 && (
+              <>
+                <Pressable style={styles.accRow} onPress={() => router.push('/drafts')}>
+                  <View style={[styles.accIc, { backgroundColor: colors.secondaryContainer }]}>
+                    <MaterialIcons name="inventory-2" size={22} color={colors.onSecondaryContainer} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.accTitle}>Yarım kalan ilanlar</Text>
+                    <Text style={styles.accSub}>
+                      {taslak} ilan yayına alınmayı bekliyor
+                    </Text>
                   </View>
                   <MaterialIcons name="chevron-right" size={22} color={colors.outline} />
                 </Pressable>

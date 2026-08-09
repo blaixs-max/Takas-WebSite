@@ -240,7 +240,16 @@ alınamayan sahte ilan olurlardı.
       `IYZICO_CALLBACK_URL`, `APP_RETURN_URL`, `AI_VISION_API_KEY`,
       `NETGSM_USERCODE`, `NETGSM_PASSWORD`, `NETGSM_HEADER`,
       `SEND_SMS_HOOK_SECRET`
-- [ ] **Kare akışının cihazda denenmesi** — kamera bu ortamda test edilemiyor.
+- [x] **Kare akışı cihazda çalıştı** (2026-08-09) — ilk gerçek ilan verildi:
+      beş kare çekildi, depoya yüklendi, `product_photos` satırları düştü.
+      Kamera akışının cihazda ilk koşusu
+- [x] **Taslak ilan çıkmazı** — `listing-photos` ekranına yalnızca ilan
+      oluşturulduktan hemen sonra girilebiliyordu. O ekrandan çıkan kullanıcı
+      taslak ilanına bir daha ulaşamıyor, "yayına al" düğmesini hiçbir yerde
+      bulamıyordu; ilan veri tabanında DRAFT olarak kalıyor, kullanıcı ise
+      ilanını verdiğini sanıyordu. `app/drafts.tsx` + profildeki "Yarım kalan
+      ilanlar" satırı ile kapatıldı
+- [ ] **Kare akışının kalan uçları** — kamera bu ortamda test edilemiyor.
       Expo Go'da yedi karenin çekimi, yeniden çekim ve yayın kapısı elden geçirilmeli
 - [ ] **İnsan moderasyon kuyruğu** — `pending` kalan kareler için yönetim yüzeyi.
       Şu an anahtar yoksa ya da model yanıt vermezse ilan sessizce bekliyor,
