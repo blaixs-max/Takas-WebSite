@@ -83,6 +83,9 @@ Bu ayrım her zaman geçerlidir.
   yenilenene kadar geçerli olmaz; yetkisi alınan biri elindeki token'la karar
   vermeye devam edemez. Kontrol her zaman sunucudaki `is_admin()` ile yapılır —
   ekranı gizlemek önlem değildir.
+- **Yaptırım merdiveni kapalı kuruldu.** `sanction_settings.active = false`.
+  Eşikler ürün kararıdır; kurucu onaylamadan açılmaz. Açıldığında uyarı ve
+  kısıt otomatik işler, kalıcı kapatmayı her zaman insan verir (Ana Doküman 5.5).
 - **Ekranda uydurma sayı olmaz.** Bir değeri gerçekten hesaplayamıyorsak
   göstermeyiz: güven skoru yoksa "—", bildirim yoksa rozet yok. Yer tutucu bir
   sayı, kullanıcının o ekrandaki her sayıya olan güvenini götürür.

@@ -76,6 +76,17 @@ Son güncelleme: 2026-08-08 · Branch: `claude/expo-ilan-ve-satinalma`
       satıcıya geçiyor (`expire_stale_trades`)
 - [x] **Takaslar ekranı → canlı `trades`** — mock zaman çizelgesi kaldırıldı;
       durum, kalan süre, "Teslim aldım" ve "Sorun var" gerçek RPC'lere gidiyor
+- [x] **Yaptırım merdiveni (Ana Doküman 5.5)** — beş olay skoru düşürüyordu ama
+      düşük skorun hiçbir sonucu yoktu: ceza sayılıyor, uygulanmıyordu.
+      `sanction_settings` + `user_sanctions`; uyarı ve kısıt otomatik, **kalıcı
+      kapatma her zaman insan kararı** (5.5). Kısıtın dişi var: trigger yeni
+      ilanı ve yeni takası durduruyor — kayıt tutmak yaptırım değildir.
+      Süren takaslar tamamlanabiliyor, testi bunu ayrıca sınıyor.
+      Yanlış uygulanan kısıt `admin_lift_sanction()` ile kaldırılabiliyor:
+      otomatik bir karar, itiraz edilemez bir karar olmamalı.
+      **Merdiven KAPALI kuruluyor** — eşikler kurucu kararı (yukarıdaki maddeye
+      bakın). Profilde yaptırım en üstte yazılı: kullanıcı kısıtlı olduğunu bir
+      işlem denerken hata mesajından öğrenmemeli
 - [x] **Mesaj şikâyeti ve moderasyonu** — sohbeti açtık ve içeriğine bakan kimse
       yoktu. `message_reports` + sohbette basılı tutarak şikâyet + panelde
       üçüncü kuyruk. **Platform dışına çıkarma girişimi** (telefon/IBAN) sistem
@@ -208,10 +219,12 @@ Son güncelleme: 2026-08-08 · Branch: `claude/expo-ilan-ve-satinalma`
       kullanıcı uygulamayı açmadan hiçbirini görmüyor; sayaçların işe yaraması
       için push şart. Cihaz jetonu tablosu + EAS kimlik bilgileri gerekiyor
 - [ ] Favori/Sepet → oturum açıkken Supabase'e senkron (cihaz + bulut)
-- [ ] **Yaptırım merdiveni** — skor hesaplanıyor (ayıplı satış, asılsız talep,
-      ödenmemiş borç, geç kargo, onaylanmış mesaj ihlali) ama düşük skorun
-      hiçbir sonucu yok. 5.5 uyarı → kısıt → kalıcı kapatma diyor; şu an düşük
-      skor yalnızca bir sayı. Eşik ve otomatik kısıt kararı verilmeli
+- [ ] **MERDİVENİ AÇ (kurucu kararı)** — mekanizma kurulu ama **kapalı**:
+      `update sanction_settings set active = true;`
+      Kapalı bırakmam bilinçli: eşikler (uyarı 70, kısıt 40) birer başlangıç
+      önerisi, karar değil. Çok sert bir eşik dürüst satıcıyı da vurur ve o kişi
+      bir daha dönmez; çok gevşek olanı merdiveni anlamsız kılar. Sayıları
+      onaylayın, sonra açalım
 - [ ] Satıcının güven skorunu ilan kartında göster (`seller_trust_score` hazır)
 - [ ] Dekoratif linkler (Anasayfa "Tümü/Harita") → gerçek hedef
 

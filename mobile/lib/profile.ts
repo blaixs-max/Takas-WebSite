@@ -71,3 +71,40 @@ export function trustGerekceleri(s: ProfileStats): string[] {
 export function binlik(n: number): string {
   return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
+
+export interface Sanction {
+  level: 'WARNED' | 'RESTRICTED' | 'CLOSED';
+  reason: string;
+}
+
+/**
+ * Açık yaptırım.
+ *
+ * Kısıtlı bir kullanıcının bunu ancak bir işlem denerken hata mesajından
+ * öğrenmesi kabul edilemez; profilinde yazılı durmalı.
+ */
+export async function loadSanction(): Promise<Sanction | null> {
+  const { supabase, supabaseConfigured } = await import('./supabase');
+  if (!supabaseConfigured || !supabase) return null;
+  const { data, error } = await supabase.rpc('my_sanction');
+  if (error || !data) return null;
+  const r = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | undefined;
+  if (!r?.level) return null;
+  return { level: r.level as Sanction['level'], reason: (r.reason as string) ?? '' };
+}
+
+export function yaptirimMetni(s: Sanction): { baslik: string; metin: string } {
+  if (s.level === 'CLOSED') {
+    return { baslik: 'Hesabınız kapatıldı', metin: s.reason };
+  }
+  if (s.level === 'RESTRICTED') {
+    return {
+      baslik: 'Hesabınız geçici olarak kısıtlı',
+      metin: 'Yeni ilan veremez ve yeni alım yapamazsınız. Süren takaslarınız normal şekilde tamamlanır.',
+    };
+  }
+  return {
+    baslik: 'Güven skorunuz uyarı seviyesinde',
+    metin: 'Skorunuz düşmeye devam ederse yeni ilan verme ve alım yapma yetkiniz geçici olarak durur.',
+  };
+}

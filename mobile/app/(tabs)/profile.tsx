@@ -7,7 +7,15 @@ import { useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../lib/auth';
 import { amIAdmin } from '../../lib/admin';
-import { ProfileStats, binlik, loadProfileStats, trustGerekceleri } from '../../lib/profile';
+import {
+  ProfileStats,
+  Sanction,
+  binlik,
+  loadProfileStats,
+  loadSanction,
+  trustGerekceleri,
+  yaptirimMetni,
+} from '../../lib/profile';
 import { colors, elevation, shape } from '../../theme/tokens';
 
 const LISTINGS = [
@@ -56,6 +64,7 @@ export default function ProfileScreen() {
   const { user, signOut } = useAuth();
   const [yonetici, setYonetici] = useState(false);
   const [istatistik, setIstatistik] = useState<ProfileStats | null>(null);
+  const [yaptirim, setYaptirim] = useState<Sanction | null>(null);
 
   useEffect(() => {
     let iptal = false;
@@ -64,6 +73,9 @@ export default function ProfileScreen() {
     });
     loadProfileStats().then((st) => {
       if (!iptal) setIstatistik(st);
+    });
+    loadSanction().then((y) => {
+      if (!iptal) setYaptirim(y);
     });
     return () => {
       iptal = true;
@@ -115,6 +127,27 @@ export default function ProfileScreen() {
         </View>
 
         <View style={{ paddingHorizontal: 18 }}>
+          {/* Yaptırım varsa en üstte: kullanıcı bunu bir işlem denerken hata
+              mesajından değil, burada öğrenmeli. */}
+          {yaptirim && (
+            <View
+              style={[
+                styles.yaptirim,
+                yaptirim.level === 'WARNED' && { backgroundColor: colors.tertiaryContainer },
+              ]}
+            >
+              <MaterialIcons
+                name={yaptirim.level === 'WARNED' ? 'warning-amber' : 'block'}
+                size={20}
+                color={colors.onSurface}
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.yaptirimBaslik}>{yaptirimMetni(yaptirim).baslik}</Text>
+                <Text style={styles.yaptirimMetin}>{yaptirimMetni(yaptirim).metin}</Text>
+              </View>
+            </View>
+          )}
+
           {/* Güven kartı */}
           <View style={styles.trust}>
             <TrustRing score={istatistik?.trustSkor ?? null} />
@@ -311,6 +344,23 @@ const styles = StyleSheet.create({
   name: { fontSize: 20, fontWeight: '800', letterSpacing: -0.3, color: '#fff' },
   locRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
   loc: { color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: '500' },
+  yaptirim: {
+    flexDirection: 'row',
+    gap: 11,
+    padding: 13,
+    borderRadius: shape.md,
+    backgroundColor: colors.errorContainer,
+    marginBottom: 14,
+    alignItems: 'flex-start',
+  },
+  yaptirimBaslik: { fontSize: 14, fontWeight: '800', color: colors.onSurface },
+  yaptirimMetin: {
+    fontSize: 12.5,
+    color: colors.onSurface,
+    fontWeight: '500',
+    lineHeight: 18,
+    marginTop: 3,
+  },
   trust: {
     flexDirection: 'row',
     alignItems: 'center',
