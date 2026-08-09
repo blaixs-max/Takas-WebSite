@@ -223,6 +223,13 @@ alınamayan sahte ilan olurlardı.
       marjımızı (kargo maliyeti + komisyon) döndürüyordu. Takasın tarafı
       olduğunu doğrulayan, marjı döndürmeyen sarmalayıcı yazıldı
 - [x] **Sabit `search_path`** — dört tetikleyici fonksiyonunda eksikti
+- [x] **PKCE gerçekten çalışıyor** — Hermes'te WebCrypto olmadığı için
+      supabase-js sessizce `plain` yöntemine düşüyordu; `code_verifier` ile
+      `code_challenge` aynı değer oluyordu, yani PKCE hiçbir şey korumuyordu.
+      `kidstrade://` şemasını kaydeden başka bir uygulama yetkilendirme kodunu
+      yakalarsa oturumu devralabilirdi. `lib/webcrypto.ts` expo-crypto'nun
+      yerel SHA-256'sını WebCrypto arayüzü olarak kuruyor. Cihazda doğrulama:
+      konsoldaki "WebCrypto API is not supported" uyarısı kaybolmalı
 
 ## ⏳ Sıradaki (öncelik sırası)
 - [ ] **İlk yöneticiyi ekle** — `auth.users` henüz **boş**; bu yüzden yönetici

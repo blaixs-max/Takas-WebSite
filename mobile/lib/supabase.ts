@@ -1,4 +1,7 @@
 import 'react-native-url-polyfill/auto';
+// Sıra önemli: WebCrypto yaması istemci oluşturulmadan önce kurulmalı,
+// yoksa supabase-js PKCE'yi zayıf `plain` yöntemiyle kurar.
+import './webcrypto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
