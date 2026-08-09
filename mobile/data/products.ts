@@ -1,5 +1,5 @@
 import { ImageSourcePropType } from 'react-native';
-import { resolveImage, resolveGallery } from './productImages';
+import { EMPTY_IMAGE, resolveImage, resolveGallery } from './productImages';
 import { Category } from './categories';
 
 export type Condition = 'İyi durumda' | 'Az kullanılmış' | 'Yeni gibi';
@@ -44,7 +44,24 @@ export interface ProductRow {
   seller_trades: number;
 }
 
-export function rowToProduct(r: ProductRow): Product {
+/**
+ * Depolama yolu mu, paketli görsel anahtarı mı?
+ *
+ * Gerçek ilanların kapağı `{satici}/{ilan}/{slot}.jpg` biçiminde bir depolama
+ * yoludur; demo ilanlarınki `wooden-blocks` gibi bir anahtardır. İkisi eğik
+ * çizgiyle ayrılıyor.
+ */
+export function depolamaYoluMu(key?: string | null): boolean {
+  return Boolean(key && key.includes('/'));
+}
+
+/**
+ * @param kapakUrl Kapak karesinin imzalı bağlantısı. Verilmezse ve anahtar bir
+ *   depolama yoluysa görsel BOŞ bırakılır — paketli demo görsele düşmek,
+ *   kullanıcıya başka bir ürünün fotoğrafını satıcının çektiği kare diye
+ *   göstermek olurdu.
+ */
+export function rowToProduct(r: ProductRow, kapakUrl?: string): Product {
   return {
     id: r.id,
     title: r.title,
@@ -57,7 +74,11 @@ export function rowToProduct(r: ProductRow): Product {
     marketValue: r.market_value ?? '',
     badge: r.badge ?? undefined,
     description: r.description ?? '',
-    image: resolveImage(r.image_key),
+    image: kapakUrl
+      ? { uri: kapakUrl }
+      : depolamaYoluMu(r.image_key)
+        ? EMPTY_IMAGE
+        : resolveImage(r.image_key),
     gallery: resolveGallery(r.gallery_keys),
     seller: { name: r.seller_name, initials: r.seller_initials, trust: r.seller_trust, trades: r.seller_trades },
   };

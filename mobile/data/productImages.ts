@@ -24,3 +24,12 @@ export function resolveGallery(keys?: string[] | null): ImageSourcePropType[] {
   if (!keys || keys.length === 0) return [FALLBACK];
   return keys.map(resolveImage);
 }
+
+/**
+ * Görseli olmayan (ya da imzalı bağlantısı üretilemeyen) ilan için boş kaynak.
+ *
+ * Bilerek paketli bir demo görsele düşmüyoruz: gerçek bir ilanın kapağına
+ * başka bir ürünün stok fotoğrafını koymak, eksik görselden daha kötüdür —
+ * kullanıcı satıcının çektiği kareyi gördüğünü sanır.
+ */
+export const EMPTY_IMAGE: ImageSourcePropType = { uri: '' };

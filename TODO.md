@@ -249,6 +249,19 @@ alınamayan sahte ilan olurlardı.
       bulamıyordu; ilan veri tabanında DRAFT olarak kalıyor, kullanıcı ise
       ilanını verdiğini sanıyordu. `app/drafts.tsx` + profildeki "Yarım kalan
       ilanlar" satırı ile kapatıldı
+- [x] **Kapak karesi vitrine bağlandı** — `publish_listing()` kapağı
+      `is_cover` ile işaretliyor ama `products.image_key`'e yazmıyordu; alan
+      null kalınca uygulama paketli demo görsele düşüyordu. Gerçek bir ilan
+      vitrinde başka bir ürünün stok fotoğrafıyla görünüyordu — eksik görsel
+      değil, YANLIŞ görsel. Artık kapağın depolama yolu yazılıyor ve uygulama
+      onu imzalı bağlantıya çeviriyor. Bağlantı üretilemezse görsel boş
+      kalıyor; demo görsele düşmek yok
+- [ ] **Galeri kareleri** — ürün detayındaki galeri hâlâ `gallery_keys`
+      üzerinden paketli görsellere bakıyor; gerçek ilanların diğer dört karesi
+      hiçbir yerde görünmüyor. Kapakla aynı yoldan çözülecek
+- [ ] **Kayıt akışında ad alanı yok** — `signUp` yalnızca e-posta ve şifre
+      alıyor, `raw_user_meta_data` boş kalıyor. Satıcı adı e-postanın `@`
+      öncesine düşüyor (`blaixs` gibi). Vitrinde çirkin duruyor
 - [ ] **Kare akışının kalan uçları** — kamera bu ortamda test edilemiyor.
       Expo Go'da yedi karenin çekimi, yeniden çekim ve yayın kapısı elden geçirilmeli
 - [ ] **İnsan moderasyon kuyruğu** — `pending` kalan kareler için yönetim yüzeyi.
