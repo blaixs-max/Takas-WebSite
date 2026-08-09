@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -15,9 +17,12 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   MessageRow,
+  ReportReason,
+  SIKAYET_NEDENLERI,
   loadMessages,
   markConversationRead,
   saat,
+  reportMessage,
   sendMessage,
   subscribeMessages,
 } from '../../lib/messages';
@@ -40,6 +45,7 @@ export default function Chat() {
   const [metin, setMetin] = useState('');
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const listeRef = useRef<ScrollView>(null);
+  const [sikayetEdilen, setSikayetEdilen] = useState<MessageRow | null>(null);
 
   const getir = useCallback(async () => {
     if (!id) return;
@@ -77,6 +83,21 @@ export default function Chat() {
     await getir();
   }
 
+  async function sikayetEt(neden: ReportReason) {
+    if (!sikayetEdilen) return;
+    const hedef = sikayetEdilen;
+    setSikayetEdilen(null);
+    const s = await reportMessage(hedef.id, neden);
+    if (!s.ok) {
+      Alert.alert('Şikâyet gönderilemedi', s.message);
+      return;
+    }
+    Alert.alert(
+      'Şikâyetiniz alındı',
+      'Ekibimiz inceleyip size sonucu bildirecek. Mesaj kayıtta kalır — inceleme buna dayanır.',
+    );
+  }
+
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.appbar}>
@@ -102,18 +123,31 @@ export default function Chat() {
             contentContainerStyle={{ padding: 14, paddingBottom: 20 }}
             onContentSizeChange={() => listeRef.current?.scrollToEnd({ animated: false })}
           >
+            {mesajlar.length > 0 && (
+              <Text style={styles.ipucu}>
+                Uygunsuz bir mesajı bildirmek için üzerine basılı tutun.
+              </Text>
+            )}
             {mesajlar.length === 0 && (
               <Text style={styles.bosMetin}>
                 Henüz mesaj yok. Ürünle ilgili sorunuzu yazabilirsiniz.
               </Text>
             )}
             {mesajlar.map((m) => (
-              <View key={m.id} style={[styles.balon, m.benim ? styles.benim : styles.karsi]}>
+              <Pressable
+                key={m.id}
+                style={[styles.balon, m.benim ? styles.benim : styles.karsi]}
+                // Kendi mesajını şikâyet edemezsin; sunucu da reddediyor.
+                onLongPress={() => {
+                  if (!m.benim) setSikayetEdilen(m);
+                }}
+                delayLongPress={400}
+              >
                 <Text style={[styles.metin, m.benim && styles.metinBenim]}>{m.body}</Text>
                 <Text style={[styles.saat, m.benim && styles.saatBenim]}>
                   {saat(m.createdAt)}
                 </Text>
-              </View>
+              </Pressable>
             ))}
           </ScrollView>
         )}
@@ -141,6 +175,35 @@ export default function Chat() {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
+
+      <Modal
+        visible={sikayetEdilen !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSikayetEdilen(null)}
+      >
+        <Pressable style={styles.perde} onPress={() => setSikayetEdilen(null)}>
+          <Pressable
+            style={styles.sheet}
+            onPress={(e) => e.stopPropagation()}
+            accessibilityViewIsModal
+          >
+            <Text style={styles.sheetBaslik}>Bu mesajı neden bildiriyorsunuz?</Text>
+            <Text style={styles.sheetMetin} numberOfLines={3}>
+              “{sikayetEdilen?.body}”
+            </Text>
+            {SIKAYET_NEDENLERI.map((n) => (
+              <Pressable key={n.kod} style={styles.nedenSatir} onPress={() => sikayetEt(n.kod)}>
+                <Text style={styles.nedenText}>{n.etiket}</Text>
+                <MaterialIcons name="chevron-right" size={20} color={colors.outline} />
+              </Pressable>
+            ))}
+            <Pressable style={styles.vazgec} onPress={() => setSikayetEdilen(null)}>
+              <Text style={styles.vazgecText}>Vazgeç</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -208,4 +271,40 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   kapali: { opacity: 0.45 },
+  ipucu: {
+    textAlign: 'center',
+    fontSize: 11.5,
+    color: colors.onSurfaceVariant,
+    fontWeight: '500',
+    marginBottom: 12,
+  },
+  perde: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  sheet: {
+    backgroundColor: colors.surfaceContainer,
+    borderTopLeftRadius: shape.lg,
+    borderTopRightRadius: shape.lg,
+    padding: 20,
+    paddingBottom: 30,
+  },
+  sheetBaslik: { fontSize: 17, fontWeight: '800', color: colors.onSurface },
+  sheetMetin: {
+    fontSize: 12.5,
+    color: colors.onSurfaceVariant,
+    fontWeight: '500',
+    fontStyle: 'italic',
+    marginTop: 6,
+    marginBottom: 10,
+    lineHeight: 18,
+  },
+  nedenSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderTopColor: colors.outlineVariant,
+  },
+  nedenText: { fontSize: 14, fontWeight: '600', color: colors.onSurface },
+  vazgec: { alignItems: 'center', paddingTop: 16 },
+  vazgecText: { fontSize: 14, fontWeight: '700', color: colors.onSurfaceVariant },
 });

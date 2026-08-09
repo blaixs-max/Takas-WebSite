@@ -175,3 +175,63 @@ function cevir(mesaj: string): string {
   if (mesaj.includes('bulunamadı')) return 'Kayıt bulunamadı, kuyruk tazelenecek.';
   return 'İşlem tamamlanamadı. Tekrar deneyin.';
 }
+
+export interface ReportQueueRow {
+  reportId: string;
+  messageId: string;
+  reason: string;
+  note: string | null;
+  sistemIsareti: boolean;
+  mesaj: string;
+  urun: string;
+  beklemeSaati: number;
+}
+
+const NEDEN_ETIKET: Record<string, string> = {
+  HARASSMENT: 'Taciz / hakaret',
+  OFF_PLATFORM: 'Platform dışına yönlendirme',
+  SCAM: 'Dolandırıcılık şüphesi',
+  INAPPROPRIATE: 'Uygunsuz içerik',
+  OTHER: 'Diğer',
+};
+
+export function nedenEtiketi(kod: string): string {
+  return NEDEN_ETIKET[kod] ?? kod;
+}
+
+export async function loadReportQueue(): Promise<ReportQueueRow[]> {
+  if (!supabaseConfigured || !supabase) return [];
+  const { data, error } = await supabase.rpc('admin_report_queue', { p_limit: 50 });
+  if (error || !data) return [];
+  return (data as Record<string, unknown>[]).map((r) => ({
+    reportId: r.report_id as string,
+    messageId: r.message_id as string,
+    reason: r.reason as string,
+    note: (r.note as string) ?? null,
+    sistemIsareti: r.sistem_isareti === true,
+    mesaj: (r.mesaj as string) ?? '',
+    urun: (r.urun as string) ?? 'İlan kaldırılmış',
+    beklemeSaati: Number(r.bekleme_saati ?? 0),
+  }));
+}
+
+/**
+ * Şikâyeti karara bağlar.
+ *
+ * İhlal onaylandığında mesaj SİLİNMEZ: uyuşmazlıkta kayıt kanıttır. Sonuç,
+ * gönderenin güven skoruna yazılır.
+ */
+export async function resolveReport(
+  reportId: string,
+  ihlal: boolean,
+  not: string,
+): Promise<AdminResult> {
+  if (!supabaseConfigured || !supabase) return { ok: false, message: 'Sunucu bağlantısı yok.' };
+  const { error } = await supabase.rpc('admin_resolve_report', {
+    p_report_id: reportId,
+    p_ihlal: ihlal,
+    p_not: not,
+  });
+  if (error) return { ok: false, message: cevir(error.message) };
+  return { ok: true };
+}

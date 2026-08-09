@@ -76,6 +76,16 @@ Son güncelleme: 2026-08-08 · Branch: `claude/expo-ilan-ve-satinalma`
       satıcıya geçiyor (`expire_stale_trades`)
 - [x] **Takaslar ekranı → canlı `trades`** — mock zaman çizelgesi kaldırıldı;
       durum, kalan süre, "Teslim aldım" ve "Sorun var" gerçek RPC'lere gidiyor
+- [x] **Mesaj şikâyeti ve moderasyonu** — sohbeti açtık ve içeriğine bakan kimse
+      yoktu. `message_reports` + sohbette basılı tutarak şikâyet + panelde
+      üçüncü kuyruk. **Platform dışına çıkarma girişimi** (telefon/IBAN) sistem
+      tarafından otomatik işaretleniyor ama **mesaj engellenmiyor**: "0-3 yaş"
+      da rakam dizisidir ve masum bir cümleyi durdurmak kullanıcıyı gerçekten
+      başka kanala iter. İşaret yalnızca insana bakılacak kuyruk üretiyor.
+      **Açık şikâyet skoru düşürmez** — yalnızca onaylanmış ihlal düşürür;
+      aksi hâlde şikâyet bir silaha dönüşürdü. İhlalde mesaj silinmiyor
+      (uyuşmazlıkta kanıt), sonuç güven skoruna yazılıyor ve iki tarafa da
+      bildiriliyor
 - [x] **Mesajlaşma** — sohbet ekranları sabit metinlerle doluydu, iki kullanıcı
       birbirine tek kelime yazamıyordu. Bedeli yalnızca eksik özellik değildi:
       itiraza giden soruların çoğu ("kutusu var mı", "şu çizik ne kadar derin")
@@ -194,19 +204,15 @@ Son güncelleme: 2026-08-08 · Branch: `claude/expo-ilan-ve-satinalma`
 ## 🔜 Sonra
 - [ ] Ürün Ekle: dinamik puan önerisi (kareler ve kategoriden değerleme)
 - [ ] Kapakta zorunlu durum rozeti (hasar beyanı ilan kartında görünsün)
-- [ ] **Mesaj moderasyonu ve şikâyet** — sohbet açıldı ama içeriğine bakan
-      kimse yok. İki risk: taciz/uygunsuz içerik ve platform dışına çıkarma
-      girişimi (telefon/IBAN paylaşımı) — ikincisi emaneti de devre dışı bırakır.
-      En azından "şikâyet et" düğmesi ve yönetim kuyruğunda bir görünüm gerekiyor
 - [ ] Bildirimler → **push** (Expo Notifications). Kuyruk hazır ve doluyor ama
       kullanıcı uygulamayı açmadan hiçbirini görmüyor; sayaçların işe yaraması
       için push şart. Cihaz jetonu tablosu + EAS kimlik bilgileri gerekiyor
 - [ ] Favori/Sepet → oturum açıkken Supabase'e senkron (cihaz + bulut)
-- [ ] **Yaptırım merdiveni** — skor hesaplanıyor ama hiçbir sonucu yok.
-      5.5 uyarı → kısıt → kalıcı kapatma diyor; şu an düşük skor yalnızca
-      bir sayı. Eşik ve otomatik kısıt kararı verilmeli
+- [ ] **Yaptırım merdiveni** — skor hesaplanıyor (ayıplı satış, asılsız talep,
+      ödenmemiş borç, geç kargo, onaylanmış mesaj ihlali) ama düşük skorun
+      hiçbir sonucu yok. 5.5 uyarı → kısıt → kalıcı kapatma diyor; şu an düşük
+      skor yalnızca bir sayı. Eşik ve otomatik kısıt kararı verilmeli
 - [ ] Satıcının güven skorunu ilan kartında göster (`seller_trust_score` hazır)
-- [ ] İtiraz/dispute akışı (DISPUTED → hakemlik)
 - [ ] Dekoratif linkler (Anasayfa "Tümü/Harita") → gerçek hedef
 
 ## 🚀 Yayın (config gerektirir)

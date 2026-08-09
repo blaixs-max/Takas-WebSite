@@ -138,3 +138,40 @@ function cevir(mesaj: string): string {
   if (mesaj.includes('ilan bulunamadı')) return 'İlan bulunamadı.';
   return 'Mesaj gönderilemedi. Bağlantınızı kontrol edin.';
 }
+
+export type ReportReason = 'HARASSMENT' | 'OFF_PLATFORM' | 'SCAM' | 'INAPPROPRIATE' | 'OTHER';
+
+export const SIKAYET_NEDENLERI: { kod: ReportReason; etiket: string }[] = [
+  { kod: 'HARASSMENT', etiket: 'Taciz veya hakaret' },
+  { kod: 'OFF_PLATFORM', etiket: 'Platform dışına yönlendiriyor' },
+  { kod: 'SCAM', etiket: 'Dolandırıcılık şüphesi' },
+  { kod: 'INAPPROPRIATE', etiket: 'Uygunsuz içerik' },
+  { kod: 'OTHER', etiket: 'Diğer' },
+];
+
+/**
+ * Mesajı şikâyet eder.
+ *
+ * Şikâyet etmek suçlama değildir ve karşı tarafın skorunu kendiliğinden
+ * düşürmez — yalnızca onaylanmış ihlal düşürür. Aksi hâlde şikâyet bir silaha
+ * dönüşürdü.
+ */
+export async function reportMessage(
+  messageId: string,
+  reason: ReportReason,
+  note?: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (!supabaseConfigured || !supabase) return { ok: false, message: 'Sunucu bağlantısı yok.' };
+  const { error } = await supabase.rpc('report_message', {
+    p_message_id: messageId,
+    p_reason: reason,
+    p_note: note ?? null,
+  });
+  if (error) {
+    if (error.message.includes('kendi mesajınızı')) {
+      return { ok: false, message: 'Kendi mesajınızı şikâyet edemezsiniz.' };
+    }
+    return { ok: false, message: 'Şikâyet gönderilemedi. Tekrar deneyin.' };
+  }
+  return { ok: true };
+}

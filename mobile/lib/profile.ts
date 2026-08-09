@@ -25,6 +25,7 @@ export interface ProfileStats {
   asilsizTalep: number;
   odenmemisBorc: number;
   gecKargo: number;
+  mesajIhlali: number;
 }
 
 export async function loadProfileStats(): Promise<ProfileStats | null> {
@@ -46,6 +47,7 @@ export async function loadProfileStats(): Promise<ProfileStats | null> {
     asilsizTalep: Number(r.asilsiz_talep ?? 0),
     odenmemisBorc: Number(r.odenmemis_borc ?? 0),
     gecKargo: Number(r.gec_kargo ?? 0),
+    mesajIhlali: Number(r.mesaj_ihlali ?? 0),
   };
 }
 
@@ -61,6 +63,7 @@ export function trustGerekceleri(s: ProfileStats): string[] {
   if (s.asilsizTalep > 0) liste.push(`${s.asilsizTalep} talebiniz reddedildi`);
   if (s.odenmemisBorc > 0) liste.push(`${s.odenmemisBorc} ödenmemiş borç kaydı`);
   if (s.gecKargo > 0) liste.push(`${s.gecKargo} gönderi süresinde kargoya verilmedi`);
+  if (s.mesajIhlali > 0) liste.push(`${s.mesajIhlali} mesajınız kurallara aykırı bulundu`);
   return liste;
 }
 

@@ -19,19 +19,23 @@ import {
   CampaignStatus,
   DisputeQueueRow,
   PhotoQueueRow,
+  ReportQueueRow,
   amIAdmin,
   campaignStatus,
   disputeEvidenceUrls,
   imzaliBaglantilar,
   loadDisputeQueue,
   loadPhotoQueue,
+  loadReportQueue,
   moderatePhoto,
+  nedenEtiketi,
   resolveDispute,
+  resolveReport,
 } from '../lib/admin';
 import { colors, elevation, shape } from '../theme/tokens';
 
 /**
- * Yönetim — iki kuyruk, tek ekran.
+ * Yönetim — üç kuyruk, tek ekran.
  *
  * Kuyruklar sunucuda `is_admin()` süzgecinden geçer; yetkisiz bir oturum bu
  * ekranı açsa bile boş liste görür. Ekranın gizlenmesi kolaylık, yetkinin
@@ -60,11 +64,12 @@ export default function AdminScreen() {
   const router = useRouter();
 
   const [yetkili, setYetkili] = useState<boolean | null>(null);
-  const [sekme, setSekme] = useState<'kare' | 'itiraz'>('kare');
+  const [sekme, setSekme] = useState<'kare' | 'itiraz' | 'sikayet'>('kare');
   const [kareler, setKareler] = useState<PhotoQueueRow[]>([]);
   const [kareUrl, setKareUrl] = useState<Record<string, string>>({});
   const [itirazlar, setItirazlar] = useState<DisputeQueueRow[]>([]);
   const [kampanya, setKampanya] = useState<CampaignStatus | null>(null);
+  const [sikayetler, setSikayetler] = useState<ReportQueueRow[]>([]);
   const [yenileniyor, setYenileniyor] = useState(false);
   const [islemde, setIslemde] = useState<string | null>(null);
 
@@ -72,16 +77,23 @@ export default function AdminScreen() {
   const [gerekceIcin, setGerekceIcin] = useState<
     | { tip: 'kareRet'; id: string }
     | { tip: 'itiraz'; id: string; kabul: boolean; esiginUstunde: boolean }
+    | { tip: 'sikayet'; id: string; ihlal: boolean }
     | null
   >(null);
   const [gerekce, setGerekce] = useState('');
   const [iadeKargo, setIadeKargo] = useState('');
 
   const getir = useCallback(async () => {
-    const [k, i, c] = await Promise.all([loadPhotoQueue(), loadDisputeQueue(), campaignStatus()]);
+    const [k, i, c, r] = await Promise.all([
+      loadPhotoQueue(),
+      loadDisputeQueue(),
+      campaignStatus(),
+      loadReportQueue(),
+    ]);
     setKareler(k);
     setItirazlar(i);
     setKampanya(c);
+    setSikayetler(r);
 
     // Özel kova: görselleri göstermek için kısa ömürlü bağlantı gerekiyor.
     // Eşlemeyi yol üzerinden kuruyoruz; sıraya güvenmek, bir bağlantı
@@ -130,6 +142,20 @@ export default function AdminScreen() {
       false,
       Number.isFinite(tutar) ? tutar : undefined,
     );
+    setIslemde(null);
+    if (!s.ok) {
+      Alert.alert('Karar kaydedilemedi', s.message);
+      return;
+    }
+    kapat();
+    await getir();
+  }
+
+  async function sikayetKarari() {
+    if (!gerekceIcin || gerekceIcin.tip !== 'sikayet') return;
+    const hedef = gerekceIcin;
+    setIslemde(hedef.id);
+    const s = await resolveReport(hedef.id, hedef.ihlal, gerekce);
     setIslemde(null);
     if (!s.ok) {
       Alert.alert('Karar kaydedilemedi', s.message);
@@ -199,6 +225,12 @@ export default function AdminScreen() {
           sayi={itirazlar.length}
           aktif={sekme === 'itiraz'}
           onPress={() => setSekme('itiraz')}
+        />
+        <Sekme
+          etiket="Şikâyetler"
+          sayi={sikayetler.length}
+          aktif={sekme === 'sikayet'}
+          onPress={() => setSekme('sikayet')}
         />
       </View>
 
@@ -351,6 +383,48 @@ export default function AdminScreen() {
               </View>
             </View>
           ))}
+        {sekme === 'sikayet' && sikayetler.length === 0 && (
+          <Bos ikon="flag" metin="Bekleyen şikâyet yok." />
+        )}
+
+        {sekme === 'sikayet' &&
+          sikayetler.map((r) => (
+            <View key={r.reportId} style={styles.kart}>
+              <View style={styles.kartUst}>
+                <Text style={styles.kartBaslik}>{nedenEtiketi(r.reason)}</Text>
+                <Text style={styles.kartAlt}>{r.beklemeSaati} saat</Text>
+              </View>
+
+              <View style={styles.etiketler}>
+                <Etiket
+                  metin={r.sistemIsareti ? 'Sistem işareti' : 'Kullanıcı bildirdi'}
+                  vurgu={!r.sistemIsareti}
+                />
+                <Etiket metin={r.urun} />
+              </View>
+
+              {/* Kararın konusu mesajın kendisi; kısaltmadan gösteriyoruz. */}
+              <Text style={styles.mesajKutusu}>“{r.mesaj}”</Text>
+              {r.note && <Text style={styles.kartAlt}>{r.note}</Text>}
+
+              <View style={styles.aksiyonlar}>
+                <Pressable
+                  style={styles.birincil}
+                  disabled={islemde === r.reportId}
+                  onPress={() => setGerekceIcin({ tip: 'sikayet', id: r.reportId, ihlal: true })}
+                >
+                  <Text style={styles.birincilText}>İhlal var</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.ikincil}
+                  disabled={islemde === r.reportId}
+                  onPress={() => setGerekceIcin({ tip: 'sikayet', id: r.reportId, ihlal: false })}
+                >
+                  <Text style={styles.ikincilText}>İhlal yok</Text>
+                </Pressable>
+              </View>
+            </View>
+          ))}
       </ScrollView>
 
       {/* Gerekçe — sunucu boş gerekçeyi reddediyor, burada da zorunlu */}
@@ -365,9 +439,13 @@ export default function AdminScreen() {
             <Text style={styles.sheetBaslik}>
               {gerekceIcin?.tip === 'kareRet'
                 ? 'Kare neden reddedildi?'
-                : gerekceIcin?.kabul
-                  ? 'İade neden kabul edildi?'
-                  : 'Talep neden reddedildi?'}
+                : gerekceIcin?.tip === 'sikayet'
+                  ? gerekceIcin.ihlal
+                    ? 'İhlal neden onaylandı?'
+                    : 'Şikâyet neden reddedildi?'
+                  : gerekceIcin?.kabul
+                    ? 'İade neden kabul edildi?'
+                    : 'Talep neden reddedildi?'}
             </Text>
             <Text style={styles.sheetMetin}>
               {gerekceIcin?.tip === 'kareRet'
@@ -412,6 +490,8 @@ export default function AdminScreen() {
                     const id = gerekceIcin.id;
                     kapat();
                     kareKarari(id, false, gerekce);
+                  } else if (gerekceIcin?.tip === 'sikayet') {
+                    sikayetKarari();
                   } else {
                     itirazKarari();
                   }
@@ -514,6 +594,17 @@ const styles = StyleSheet.create({
   kartBaslik: { fontSize: 14.5, fontWeight: '700', color: colors.onSurface },
   kartAlt: { fontSize: 12, fontWeight: '600', color: colors.onSurfaceVariant, marginTop: 3 },
   puan: { fontSize: 14, fontWeight: '800', color: colors.primary },
+  mesajKutusu: {
+    fontSize: 13.5,
+    color: colors.onSurface,
+    fontWeight: '500',
+    fontStyle: 'italic',
+    lineHeight: 19,
+    marginTop: 10,
+    padding: 11,
+    borderRadius: shape.sm,
+    backgroundColor: colors.surfaceContainerHigh,
+  },
   gerekceMetin: {
     fontSize: 13.5,
     color: colors.onSurface,
