@@ -234,11 +234,21 @@ alınamayan sahte ilan olurlardı.
       konsoldaki "WebCrypto API is not supported" uyarısı kaybolmalı
 
 ## ⏳ Sıradaki (öncelik sırası)
-- [ ] **Kategori göçü canlıya uygulanmalı** — `20260813100000_kategori_matrisi.sql`
-      yerel kümede geçti (24 göç sırayla, 13 test paketi), canlı projeye
-      **uygulanmadı**. Uygulanana kadar cihazdaki uygulama ilan açamaz: eski
-      CHECK yeni kategori adlarını reddeder. Uygulandıktan sonra yetki denetimi
-      koşulmalı (`anon`'un çağırabildiği fonksiyon sayısı 0).
+- [x] **Kategori göçü canlıya uygulandı** (2026-08-13) —
+      `20260813100000_kategori_matrisi.sql` canlı projede (`kategori_matrisi`).
+      Uygulama öncesi durum: 1 ilan (`Beslenme`, SOLD), ağaç tabloları yok,
+      eski CHECK yerinde. Sonrası: 9 ana + 62 alt satır, tek ilan
+      `Beslenme / Sofra ürünleri`'ne taşındı, eski CHECK kalktı, iki dış
+      anahtar kuruldu, `anon`'un çağırabildiği fonksiyon sayısı **0**.
+      Canlıda üç ret yolu denendi ve üçü de doğru reddetti: ağaçta olmayan
+      kategori, yanlış ana/alt çifti, doğrudan kategori UPDATE'i. Deneme hiç
+      satır yazmadı.
+
+      > **Şema kayması:** canlıda repoda bulunmayan üç göç var —
+      > `rpc_grants_public_default`, `acl_probe`, `rpc_grants_final`
+      > (hepsi 2026-08-09). Panelden uygulanıp commit edilmemişler. Repodan
+      > sıfır kurulan bir veri tabanı canlıyla birebir aynı olmaz; bu üçü
+      > dosyaya dökülmeli.
 - [ ] **Dört test paketi yetkiye takılıyor** (mevcut kusur, 2026-08-13'te
       ölçüldü) — `listing_insert`, `points_ledger`, `product_photos`, `trust`
       paketleri `authenticated` rolüyle `quote_trade_price`, `earn_points`,
