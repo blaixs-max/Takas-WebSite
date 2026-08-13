@@ -26,7 +26,7 @@ returns text language plpgsql as $$
 declare pid text; sid text := '88bb88bb-88bb-88bb-88bb-88bb88bb88bb';
 begin
   perform set_config('test.uid', sid, false);
-  select id into pid from create_listing(p_baslik, 'Oyuncak', 'Az kullanılmış', 'M', 300);
+  select id into pid from create_listing(p_baslik, 'Oyun & Oyuncak', 'Az kullanılmış', 'M', 300, p_sub_category => 'Yapı & inşa');
   insert into product_photos (product_id, slot, storage_path, moderation_status)
   select pid, s, sid || '/' || pid || '/' || s || '.jpg', 'approved'
     from unnest(array['front','back','left','right','label']::photo_slot[]) s;

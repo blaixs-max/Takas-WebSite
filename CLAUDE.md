@@ -79,9 +79,14 @@ değildir, uygulama paketine zaten gömülür. `service_role` anahtarı repoda
 ## Karşı repo
 
 `blaixs-max/Takas-site` — ELDENELE pazarlama sitesi (Vite + React, Vercel).
-Veri tabanına bağlanmaz. Kategori listesi buradaki `mobile/data/categories.ts`
-dosyasının aynasını taşır (`src/data/categories.ts`); burada bir kategori
-eklenir ya da adı değişirse orası da aynı turda güncellenir.
+Veri tabanına bağlanmaz.
+
+**Kategori paritesi.** Kaynak artık bu repo değil, **"ELDENELE · Ürün Mimarisi
+— Kategori ve Filtreleme Matrisi"** dokümanıdır (Nihai, 12 Ağustos 2026).
+Doküman hem mobil hem web için geçerli; `mobile/data/categories.ts` ve
+`src/data/categories.ts` onu aynalar, birbirini değil. Ağaç değişirse önce
+doküman, sonra iki dosya birlikte güncellenir — ve arka uçtaki
+`product_categories` / `product_sub_categories` tabloları da bir göçle.
 
 ## Terimler
 **"Mobil"** dendiğinde kastedilen `mobile/` klasöründeki **Expo uygulamasıdır** —
@@ -104,7 +109,9 @@ Bu ayrım her zaman geçerlidir.
 - Diğer rotalar `app/`: product/[id], add-listing, notifications, messages, chat/[id],
   addresses, security, help, invite, edit-profile, onboarding, sign-in.
 - İstemci durumları: `lib/favorites.tsx` (kalp), `lib/cart.tsx` (sepet) — AsyncStorage'da kalıcı.
-- Kategoriler tek kaynak: `data/categories.ts` (14 kategori + ikon). Ürün görselleri `data/productImages.ts`.
+- Kategoriler tek kaynak: `data/categories.ts` — **9 ana + 62 alt kategori**, ikon
+  eşlemeli. Her ürün tam olarak bir ana ve bir alt kategoriye aittir; "Tümü"
+  kategori değil, süzgecin kapalı hâlidir. Ürün görselleri `data/productImages.ts`.
 - İlan açma iki adımdır: `add-listing` (beyanlar + desi) → `listing-photos` (yedi kare + yayın).
 
 ## Kritik iş kuralları (mimariyi belirler)
@@ -146,6 +153,16 @@ Bu ayrım her zaman geçerlidir.
   okur ve okundu işaretler. Metin uygulamada kurulsaydı aynı olay iki yerde iki
   farklı cümleyle anlatılırdı. Yeni bir durum eklerken bildirimi de aynı
   migration'da ekleyin.
+- **Alt kategorisiz ilan yayına giremez.** `publish_listing()` alt kategoriyi
+  karelerden önce denetler. Yalnızca ana kategorisi olan bir ilan vitrine
+  çıksaydı ana kategori süzgecinde görünür, her alt kategori süzgecinde
+  kaybolurdu: satıcı ilanını yayında sanar, alıcı hiçbir zaman bulamazdı.
+  Taslak alt kategorisiz açılabilir — form akışının ortasında zorlamak için
+  değil, akışı bölmemek için.
+- **Kategori istemciden doğrudan değişmez.** `products_guard_client_update`
+  puan/durum/sahip gibi kategoriyi de kilitler; taslakta değişim
+  `set_listing_category()` üzerinden, yayındaki ilanda hiç olmaz. Aksi hâlde
+  alıcının süzgeçte gördüğü yer ile ürünün yeri ayrışırdı.
 - **Kampanya puanı ilan yayına girince doğar, satışta değil.** Soğuk başlangıcı
   kıran şey bu sıra; tersine çevrilirse kilit geri gelir (Ana Doküman 2.4).
   Hak verme sessizdir: koşul sağlanmazsa hata vermez, yalnızca hak vermez —
@@ -187,7 +204,7 @@ psql "$DB" -v ON_ERROR_STOP=1 -f supabase/tests/<takım>_test.sql
 
 ## Git akışı
 - Geliştirme branch'i her turda kullanıcının verdiği daldır (şu an
-  `claude/expo-ilan-ve-satinalma`). Burada geliştir, commit, push.
+  `claude/kategori-paritesi`). Burada geliştir, commit, push.
 - `main`'e merge yalnızca kullanıcı isteyince (fast-forward tercih).
 - Commit mesajları Türkçe + açıklayıcı.
 

@@ -15,7 +15,7 @@ select size_class, desi_min, desi_max, carrier_cost_tl, buyer_price_tl,
 \echo '=== Ana Doküman örneği: 250 puanlık, S desi ürün ==='
 insert into products (id, title, points, ai_suggested_points, condition, category,
                       location, image_key, seller_id, seller_name, seller_initials, size_class)
-values ('fiyat-testi', 'S desi test ürünü', 250, 250, 'İyi durumda', 'Oyuncak',
+values ('fiyat-testi', 'S desi test ürünü', 250, 250, 'İyi durumda', 'Oyun & Oyuncak',
         'Kadıköy', 'wooden-blocks', :'s', 'Test', 'TT', 'S')
 on conflict (id) do update set points = 250, size_class = 'S';
 
@@ -30,7 +30,7 @@ select * from quote_trade_price('bbbbbbbb-0000-0000-0000-000000000001');
 \echo '=== Asgari işlem payı: 50 puanlık ucuz ürün ==='
 insert into products (id, title, points, ai_suggested_points, condition, category,
                       location, image_key, seller_id, seller_name, seller_initials, size_class)
-values ('ucuz-urun', 'Ucuz ürün', 50, 50, 'İyi durumda', 'Oyuncak',
+values ('ucuz-urun', 'Ucuz ürün', 50, 50, 'İyi durumda', 'Oyun & Oyuncak',
         'Kadıköy', 'wooden-blocks', :'s', 'Test', 'TT', 'XS')
 on conflict (id) do update set points = 50, size_class = 'XS';
 insert into trades (id, buyer_id, seller_id, product_id, points)
@@ -43,7 +43,7 @@ select transaction_fee_tl, total_tl from quote_trade_price('bbbbbbbb-0000-0000-0
 \echo '=== XXL kademe ==='
 insert into products (id, title, points, ai_suggested_points, condition, category,
                       location, image_key, seller_id, seller_name, seller_initials, size_class)
-values ('buyuk-urun', 'Büyük ürün', 600, 600, 'İyi durumda', 'Bebek & Çocuk Araç Gereç',
+values ('buyuk-urun', 'Büyük ürün', 600, 600, 'İyi durumda', 'Bebek Arabası & Puset',
         'Kadıköy', 'wooden-blocks', :'s', 'Test', 'TT', 'XXL')
 on conflict (id) do update set points = 600, size_class = 'XXL';
 insert into trades (id, buyer_id, seller_id, product_id, points)

@@ -5,20 +5,29 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ProductCard } from '../../components/ProductCard';
 import { FeaturedCard } from '../../components/FeaturedCard';
-import { CATEGORIES, CATEGORY_ICONS } from '../../data/categories';
+import { ALL_CATEGORIES, CATEGORY_TREE, subsOf } from '../../data/categories';
 import { useProducts } from '../../hooks/useProducts';
 import { unreadCount } from '../../lib/notifications';
 import { colors, elevation, shape } from '../../theme/tokens';
 
-const FILTERS: { label: string; icon?: keyof typeof MaterialIcons.glyphMap }[] = [
-  { label: 'Tümü', icon: 'apps' },
-  ...CATEGORIES.map((c) => ({ label: c, icon: CATEGORY_ICONS[c] })),
+/** 'Tümü' bir kategori değil, süzgecin kapalı hâli — listeye burada ekleniyor. */
+const FILTERS: { label: string; icon: keyof typeof MaterialIcons.glyphMap }[] = [
+  { label: ALL_CATEGORIES, icon: 'apps' },
+  ...CATEGORY_TREE.map((c) => ({ label: c.name, icon: c.icon })),
 ];
 
 export default function ShelfScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [active, setActive] = useState('Tümü');
+  const [active, setActive] = useState<string>(ALL_CATEGORIES);
+  const [activeSub, setActiveSub] = useState<string>(ALL_CATEGORIES);
+
+  /* Ana kategori değişince alt seçim düşer: önceki alt kategori yeni ana
+     kategoride yok, kalsaydı raf sessizce boş dönerdi. */
+  const anaSec = (ad: string) => {
+    setActive(ad);
+    setActiveSub(ALL_CATEGORIES);
+  };
   // Rozet sabit '3' yazıyordu; gerçek sayı olmadan bir bildirim rozeti
   // kullanıcıya yalan söyler ve tıklanmayı bırakır.
   const [okunmamis, setOkunmamis] = useState(0);
@@ -36,11 +45,18 @@ export default function ShelfScreen() {
   const { products, featured, loading, refreshing, refresh } = useProducts();
 
   const query = q.toLowerCase().trim();
-  const visible = products.filter(
-    (p) =>
-      (active === 'Tümü' || p.category === active) &&
-      (!query || p.title.toLowerCase().includes(query) || p.category.toLowerCase().includes(query)),
-  );
+  /* Alt kategoriler yalnızca bir ana kategori seçiliyken açılır — mimarinin
+     kuralı bu. Hepsini birden göstermek altmış iki çip demekti. */
+  const altlar = subsOf(active);
+
+  const visible = products.filter((p) => {
+    if (active !== ALL_CATEGORIES && p.category !== active) return false;
+    if (activeSub !== ALL_CATEGORIES && p.subCategory !== activeSub) return false;
+    if (!query) return true;
+    return [p.title, p.category, p.subCategory ?? ''].some((a) =>
+      a.toLowerCase().includes(query),
+    );
+  });
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -102,21 +118,44 @@ export default function ShelfScreen() {
             return (
               <Pressable
                 key={f.label}
-                onPress={() => setActive(f.label)}
+                onPress={() => anaSec(f.label)}
                 style={[styles.chip, sel && styles.chipSel]}
               >
-                {f.icon && (
-                  <MaterialIcons
-                    name={f.icon}
-                    size={18}
-                    color={sel ? colors.onSecondaryContainer : colors.onSurfaceVariant}
-                  />
-                )}
+                <MaterialIcons
+                  name={f.icon}
+                  size={18}
+                  color={sel ? colors.onSecondaryContainer : colors.onSurfaceVariant}
+                />
                 <Text style={[styles.chipText, sel && styles.chipTextSel]}>{f.label}</Text>
               </Pressable>
             );
           })}
         </ScrollView>
+
+        {/* Alt kategori satırı — ana satırla yarışmasın diye daha küçük ve
+            ikonsuz; ikon burada dokuz kez tekrar eden aynı simge olurdu. */}
+        {altlar.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.subChips}
+          >
+            {[ALL_CATEGORIES, ...altlar].map((ad) => {
+              const sel = ad === activeSub || (ad === ALL_CATEGORIES && activeSub === ALL_CATEGORIES);
+              return (
+                <Pressable
+                  key={ad}
+                  onPress={() => setActiveSub(ad)}
+                  style={[styles.subChip, sel && styles.subChipSel]}
+                >
+                  <Text style={[styles.subChipText, sel && styles.subChipTextSel]}>
+                    {ad === ALL_CATEGORIES ? 'Tüm alt kategoriler' : ad}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        )}
 
         {/* Öne çıkanlar */}
         <View style={styles.sec}>
@@ -213,6 +252,17 @@ const styles = StyleSheet.create({
   chipSel: { backgroundColor: colors.secondaryContainer, borderColor: 'transparent' },
   chipText: { fontSize: 13, fontWeight: '600', color: colors.onSurfaceVariant },
   chipTextSel: { color: colors.onSecondaryContainer, fontWeight: '700' },
+  subChips: { gap: 8, paddingHorizontal: 18, paddingTop: 8, paddingBottom: 2 },
+  subChip: {
+    height: 30,
+    paddingHorizontal: 12,
+    borderRadius: shape.full,
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceContainerHigh,
+  },
+  subChipSel: { backgroundColor: colors.onSurface },
+  subChipText: { fontSize: 12.5, fontWeight: '600', color: colors.onSurfaceVariant },
+  subChipTextSel: { color: colors.surface, fontWeight: '700' },
   sec: {
     flexDirection: 'row',
     alignItems: 'baseline',

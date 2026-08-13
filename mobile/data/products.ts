@@ -1,9 +1,9 @@
 import { ImageSourcePropType } from 'react-native';
 import { EMPTY_IMAGE, resolveImage, resolveGallery } from './productImages';
-import { Category } from './categories';
+import { Category, SubCategory } from './categories';
 
 export type Condition = 'İyi durumda' | 'Az kullanılmış' | 'Yeni gibi';
-export type { Category };
+export type { Category, SubCategory };
 
 export interface Product {
   id: string;
@@ -11,6 +11,11 @@ export interface Product {
   points: number;
   condition: Condition;
   category: Category;
+  /**
+   * Alt kategori taslak ilanda henüz boş olabilir; `publish_listing` onsuz
+   * yayına almaz, yani vitrindeki her üründe doludur.
+   */
+  subCategory?: SubCategory;
   location: string;
   distanceKm: number;
   rating: number;
@@ -30,6 +35,7 @@ export interface ProductRow {
   points: number;
   condition: Condition;
   category: Category;
+  sub_category: SubCategory | null;
   location: string;
   distance_km: number;
   rating: number;
@@ -72,6 +78,7 @@ export function rowToProduct(
     points: r.points,
     condition: r.condition,
     category: r.category,
+    subCategory: r.sub_category ?? undefined,
     location: r.location,
     distanceKm: Number(r.distance_km),
     rating: Number(r.rating),
@@ -103,7 +110,8 @@ export const DEMO_PRODUCTS: Product[] = [
     title: 'Montessori ahşap blok seti',
     points: 420,
     condition: 'Az kullanılmış',
-    category: 'Oyuncak',
+    category: 'Oyun & Oyuncak',
+    subCategory: 'Yapı & inşa',
     location: 'Kadıköy',
     distanceKm: 2.4,
     rating: 4.9,
@@ -120,7 +128,8 @@ export const DEMO_PRODUCTS: Product[] = [
     title: 'Ahşap renk ayırma oyunu',
     points: 260,
     condition: 'İyi durumda',
-    category: 'Oyuncak',
+    category: 'Oyun & Oyuncak',
+    subCategory: 'Gelişim & duyu',
     location: 'Beşiktaş',
     distanceKm: 5.1,
     rating: 4.7,
@@ -136,7 +145,8 @@ export const DEMO_PRODUCTS: Product[] = [
     title: 'Montessori halka kulesi',
     points: 340,
     condition: 'Yeni gibi',
-    category: 'Oyuncak',
+    category: 'Oyun & Oyuncak',
+    subCategory: 'Gelişim & duyu',
     location: 'Üsküdar',
     distanceKm: 3.8,
     rating: 5.0,
@@ -154,7 +164,8 @@ export const DEMO_PRODUCTS: Product[] = [
     title: 'Doğal ahşap denge halkaları',
     points: 300,
     condition: 'Az kullanılmış',
-    category: 'Oyuncak',
+    category: 'Oyun & Oyuncak',
+    subCategory: 'Gelişim & duyu',
     location: 'Şişli',
     distanceKm: 6.7,
     rating: 4.8,

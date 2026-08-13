@@ -27,7 +27,7 @@ returns text language plpgsql as $$
 declare pid text; sid text := 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 begin
   perform set_config('test.uid', sid, false);
-  select id into pid from create_listing(p_baslik, 'Oyuncak', 'Az kullanılmış', 'M', 300);
+  select id into pid from create_listing(p_baslik, 'Oyun & Oyuncak', 'Az kullanılmış', 'M', 300, p_sub_category => 'Yapı & inşa');
   insert into product_photos (product_id, slot, storage_path)
   select pid, s, sid || '/' || pid || '/' || s || '.jpg'
     from unnest(array['front','back','left','right','label']::photo_slot[]) s;
@@ -101,7 +101,7 @@ select status from publish_listing(:'p1_pid', 'front');
 reset role;
 -- 800 puanlık bir takas: eşiğin üstünde olmalı.
 select set_config('test.uid', :'s', false);
-select id as pid from create_listing('Pahalı ürün', 'Oyuncak', 'İyi durumda', 'M', 800) \gset p2_
+select id as pid from create_listing('Pahalı ürün', 'Oyun & Oyuncak', 'İyi durumda', 'M', 800, p_sub_category => 'Yapı & inşa') \gset p2_
 insert into product_photos (product_id, slot, storage_path, moderation_status)
 select :'p2_pid', s, :'s' || '/' || :'p2_pid' || '/' || s || '.jpg', 'approved'
   from unnest(array['front','back','left','right','label']::photo_slot[]) s;

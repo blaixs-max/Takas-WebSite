@@ -1,6 +1,6 @@
 # KIDS TRADE — Yol Haritası / TODO
 
-Son güncelleme: 2026-08-09 · Branch: `claude/expo-ilan-ve-satinalma`
+Son güncelleme: 2026-08-13 · Branch: `claude/kategori-paritesi`
 
 ## 🟢 Supabase artık gerçek
 
@@ -28,7 +28,7 @@ alınamayan sahte ilan olurlardı.
 
 ### Gezinme (özel alt menü)
 - [x] `Anasayfa · Sepetim · Ürün Ekle (ortada yükseltilmiş) · Favoriler · Hesabım`
-- [x] Keşfet → Anasayfa'ya katıldı (arama + 14 kategori filtresi)
+- [x] Keşfet → Anasayfa'ya katıldı (arama + kategori filtresi)
 - [x] Takaslar & Cüzdan → Hesabım (Profil) altına taşındı
 
 ### Ekranlar (mock veri + tema uyumlu)
@@ -38,7 +38,9 @@ alınamayan sahte ilan olurlardı.
 - [x] Onboarding + e-posta giriş/kayıt ekranı
 
 ### İşlevler
-- [x] **Kategoriler** — 14 kategori (tek kaynak `data/categories.ts`, ikon eşlemeli)
+- [x] **Kategoriler** — matris dokümanının 9 ana + 62 alt kategorisi (tek kaynak
+      `data/categories.ts`, ikon eşlemeli); rafta iki kademeli süzgeç, ilan
+      formunda alt kategori zorunlu (2026-08-13)
 - [x] **Favori** — kalp toggle, AsyncStorage'da kalıcı (`lib/favorites.tsx`)
 - [x] **Sepet** — alma sepeti, toplam puan + bakiye kontrolü (`lib/cart.tsx`)
 - [x] **Paylaş** — native Share (WhatsApp/mesaj/e-posta)
@@ -232,6 +234,18 @@ alınamayan sahte ilan olurlardı.
       konsoldaki "WebCrypto API is not supported" uyarısı kaybolmalı
 
 ## ⏳ Sıradaki (öncelik sırası)
+- [ ] **Kategori göçü canlıya uygulanmalı** — `20260813100000_kategori_matrisi.sql`
+      yerel kümede geçti (24 göç sırayla, 13 test paketi), canlı projeye
+      **uygulanmadı**. Uygulanana kadar cihazdaki uygulama ilan açamaz: eski
+      CHECK yeni kategori adlarını reddeder. Uygulandıktan sonra yetki denetimi
+      koşulmalı (`anon`'un çağırabildiği fonksiyon sayısı 0).
+- [ ] **Dört test paketi yetkiye takılıyor** (mevcut kusur, 2026-08-13'te
+      ölçüldü) — `listing_insert`, `points_ledger`, `product_photos`, `trust`
+      paketleri `authenticated` rolüyle `quote_trade_price`, `earn_points`,
+      `required_slots`, `seller_trust_score` çağırıyor; `20260809100000_rpc_grants`
+      bu yetkileri bilerek geri aldı, testler güncellenmedi. `origin/main`'de de
+      aynı dört paket aynı satırlarda düşüyor — bu kategori işiyle ilgili değil.
+      Çözüm: ilgili adımları `service_role` altında koşturmak.
 - [ ] **İlk yöneticiyi ekle** — `auth.users` henüz **boş**; bu yüzden yönetici
       satırı da yok. İlk kayıttan hemen sonra Supabase SQL editöründen:
       `insert into admins (user_id, note) values ('<uuid>', 'kurucu');`

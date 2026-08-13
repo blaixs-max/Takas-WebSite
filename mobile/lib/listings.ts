@@ -1,11 +1,13 @@
 import { Condition } from '../data/products';
-import { Category } from '../data/categories';
+import { Category, SubCategory } from '../data/categories';
 import { SizeClass } from '../data/sizeClasses';
 import { supabase, supabaseConfigured } from './supabase';
 
 export interface NewListing {
   title: string;
   category: Category;
+  /** Alt kategori zorunludur: onsuz ilan taslak kalır, yayına alınamaz. */
+  subCategory: SubCategory;
   condition: Condition;
   sizeClass: SizeClass;
   points: number;
@@ -39,6 +41,7 @@ export async function createListing(l: NewListing): Promise<CreateResult> {
   const { data, error } = await supabase.rpc('create_listing', {
     p_title: l.title,
     p_category: l.category,
+    p_sub_category: l.subCategory,
     p_condition: l.condition,
     p_size_class: l.sizeClass,
     p_points: l.points,
@@ -60,6 +63,11 @@ function cevir(mesaj: string): string {
   if (mesaj.includes('oturum açmalısınız')) return 'İlan vermek için giriş yapmalısınız.';
   if (mesaj.includes('başlık zorunludur')) return 'Başlık boş bırakılamaz.';
   if (mesaj.includes('geçersiz desi')) return 'Geçerli bir boyut seçin.';
+  if (mesaj.includes('geçersiz kategori')) return 'Geçerli bir kategori seçin.';
+  if (mesaj.includes('bu kategoriye ait değil'))
+    return 'Seçtiğiniz alt kategori bu kategoriye ait değil.';
+  if (mesaj.includes('alt kategori seçilmeden'))
+    return 'İlanı yayına almak için bir alt kategori seçin.';
   if (mesaj.includes('puan sıfırdan büyük')) return 'Puan sıfırdan büyük olmalı.';
   return 'İlan kaydedilemedi. Bağlantınızı kontrol edip tekrar deneyin.';
 }

@@ -23,7 +23,7 @@ returns text language plpgsql as $$
 declare pid text; sid text := '11aa11aa-11aa-11aa-11aa-11aa11aa11aa';
 begin
   perform set_config('test.uid', sid, false);
-  select id into pid from create_listing(p_baslik, 'Oyuncak', 'Az kullanılmış', 'M', 300);
+  select id into pid from create_listing(p_baslik, 'Oyun & Oyuncak', 'Az kullanılmış', 'M', 300, p_sub_category => 'Yapı & inşa');
   insert into product_photos (product_id, slot, storage_path, moderation_status)
   select pid, s, sid || '/' || pid || '/' || s || '.jpg', 'approved'
     from unnest(array['front','back','left','right','label']::photo_slot[]) s;
@@ -106,7 +106,7 @@ select unread_notification_count() > 0 as saticinin_okunmamisi_var;
 \echo '=== 10) Reddedilen kare satıcıya bildirilir ==='
 reset role;
 select set_config('test.uid', :'s', false);
-select id as pid from create_listing('Taslak ilan', 'Oyuncak', 'İyi durumda', 'S', 150) \gset p2_
+select id as pid from create_listing('Taslak ilan', 'Oyun & Oyuncak', 'İyi durumda', 'S', 150, p_sub_category => 'Yapı & inşa') \gset p2_
 insert into product_photos (product_id, slot, storage_path)
 values (:'p2_pid', 'front', :'s' || '/' || :'p2_pid' || '/front.jpg');
 update product_photos set moderation_status = 'rejected', moderation_reason = 'Kare bulanık'

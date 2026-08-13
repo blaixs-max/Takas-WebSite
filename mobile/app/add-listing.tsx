@@ -4,7 +4,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Condition } from '../data/products';
-import { CATEGORIES, Category } from '../data/categories';
+import { CATEGORY_TREE, Category, SubCategory, subsOf } from '../data/categories';
 import { SIZE_CLASSES, SIZE_INFO, SizeClass } from '../data/sizeClasses';
 import { createListing } from '../lib/listings';
 import { useAuth } from '../lib/auth';
@@ -19,7 +19,16 @@ export default function AddListing() {
   const router = useRouter();
   const { user } = useAuth();
   const [condition, setCondition] = useState<Condition>('Az kullanılmış');
-  const [category, setCategory] = useState<Category>('Oyuncak');
+  const [category, setCategory] = useState<Category>('Oyun & Oyuncak');
+  /* Alt kategori bilinçli olarak boş başlıyor. Önceden seçili gelseydi
+     kullanıcı hiç bakmadan geçer, ilanların çoğu listenin ilk alt
+     kategorisinde toplanırdı. */
+  const [subCategory, setSubCategory] = useState<SubCategory | null>(null);
+
+  const kategoriSec = (c: Category) => {
+    setCategory(c);
+    setSubCategory(null);
+  };
   const [sizeClass, setSizeClass] = useState<SizeClass>('S');
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
@@ -32,7 +41,8 @@ export default function AddListing() {
   const total = Math.round(BASE * mult) + photoBonus;
 
   const baslikTamam = title.trim().length >= 3;
-  const gonderilebilir = baslikTamam && !saving;
+  const altTamam = subCategory !== null;
+  const gonderilebilir = baslikTamam && altTamam && !saving;
 
   async function rafaEkle() {
     if (!user) {
@@ -42,10 +52,12 @@ export default function AddListing() {
       ]);
       return;
     }
+    if (!subCategory) return;
     setSaving(true);
     const sonuc = await createListing({
       title: title.trim(),
       category,
+      subCategory,
       condition,
       sizeClass,
       points: total,
@@ -116,18 +128,48 @@ export default function AddListing() {
           />
         </View>
 
-        {/* Kategori */}
+        {/* Kategori — dokuz ana, ardından seçilenin alt kategorileri */}
         <Text style={styles.flabel}>KATEGORİ</Text>
         <View style={styles.chips}>
-          {CATEGORIES.map((c) => {
-            const sel = c === category;
+          {CATEGORY_TREE.map((c) => {
+            const sel = c.name === category;
             return (
-              <Pressable key={c} onPress={() => setCategory(c)} style={[styles.chip, sel && styles.chipSel]}>
-                <Text style={[styles.chipText, sel && styles.chipTextSel]}>{c}</Text>
+              <Pressable
+                key={c.name}
+                onPress={() => kategoriSec(c.name)}
+                style={[styles.chip, styles.chipIkonlu, sel && styles.chipSel]}
+              >
+                <MaterialIcons
+                  name={c.icon}
+                  size={16}
+                  color={sel ? colors.onSecondaryContainer : colors.onSurfaceVariant}
+                />
+                <Text style={[styles.chipText, sel && styles.chipTextSel]}>{c.name}</Text>
               </Pressable>
             );
           })}
         </View>
+
+        <Text style={styles.flabel}>ALT KATEGORİ</Text>
+        <View style={styles.chips}>
+          {subsOf(category).map((s) => {
+            const sel = s === subCategory;
+            return (
+              <Pressable
+                key={s}
+                onPress={() => setSubCategory(s as SubCategory)}
+                style={[styles.chip, sel && styles.chipSel]}
+              >
+                <Text style={[styles.chipText, sel && styles.chipTextSel]}>{s}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        {!altTamam && (
+          <Text style={styles.altUyari}>
+            Alıcılar ürünleri alt kategoriden süzüyor; seçilmeden ilan yayına alınamaz.
+          </Text>
+        )}
 
         {/* Kondisyon */}
         <Text style={styles.flabel}>KONDİSYON</Text>
@@ -235,7 +277,11 @@ export default function AddListing() {
             </>
           )}
         </Pressable>
-        {!baslikTamam && <Text style={styles.ctaHint}>Devam etmek için bir başlık yazın</Text>}
+        {!baslikTamam ? (
+          <Text style={styles.ctaHint}>Devam etmek için bir başlık yazın</Text>
+        ) : !altTamam ? (
+          <Text style={styles.ctaHint}>Devam etmek için bir alt kategori seçin</Text>
+        ) : null}
       </View>
     </View>
   );
@@ -264,6 +310,8 @@ const styles = StyleSheet.create({
   input: { fontSize: 15, color: colors.onSurface },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 6 },
   chip: { height: 36, paddingHorizontal: 14, borderRadius: shape.xs, borderWidth: 1, borderColor: colors.outlineVariant, justifyContent: 'center' },
+  chipIkonlu: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  altUyari: { fontSize: 12, color: colors.onSurfaceVariant, fontWeight: '500', marginTop: -2, marginBottom: 4 },
   chipSel: { backgroundColor: colors.secondaryContainer, borderColor: 'transparent' },
   chipText: { fontSize: 13, fontWeight: '600', color: colors.onSurfaceVariant },
   chipTextSel: { color: colors.onSecondaryContainer, fontWeight: '700' },

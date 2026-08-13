@@ -12,7 +12,7 @@ select available_points from earn_points(:'b1', 1000, 'test:b1');
 select available_points from earn_points(:'b2', 1000, 'test:b2');
 insert into products (id, title, points, ai_suggested_points, condition, category,
                       location, image_key, seller_id, seller_name, seller_initials, size_class)
-values ('rez-testi', 'Rezervasyon testi', 300, 300, 'İyi durumda', 'Oyuncak',
+values ('rez-testi', 'Rezervasyon testi', 300, 300, 'İyi durumda', 'Oyun & Oyuncak',
         'Kadıköy', 'wooden-blocks', :'s', 'Satıcı', 'ST', 'S')
 on conflict (id) do update set status = 'ACTIVE', points = 300;
 select id, status from products where id = 'rez-testi';
@@ -39,7 +39,7 @@ end $$;
 \echo '=== 3) Satıcı kendi ilanını alamaz (taze, ACTIVE bir ilanla) ==='
 insert into products (id, title, points, ai_suggested_points, condition, category,
                       location, image_key, seller_id, seller_name, seller_initials, size_class)
-values ('kendi-ilanim', 'Satıcının kendi ilanı', 100, 100, 'İyi durumda', 'Oyuncak',
+values ('kendi-ilanim', 'Satıcının kendi ilanı', 100, 100, 'İyi durumda', 'Oyun & Oyuncak',
         'Kadıköy', 'wooden-blocks', :'s', 'Satıcı', 'ST', 'S')
 on conflict (id) do update set status = 'ACTIVE';
 do $$
@@ -71,7 +71,7 @@ select status as ilan_durumu from products where id = 'rez-testi';
 \echo '=== 6) İade edilen takasın ilanı vitrine döner ==='
 insert into products (id, title, points, ai_suggested_points, condition, category,
                       location, image_key, seller_id, seller_name, seller_initials, size_class)
-values ('iade-testi', 'İade testi', 200, 200, 'İyi durumda', 'Oyuncak',
+values ('iade-testi', 'İade testi', 200, 200, 'İyi durumda', 'Oyun & Oyuncak',
         'Kadıköy', 'wooden-blocks', :'s', 'Satıcı', 'ST', 'S')
 on conflict (id) do update set status = 'ACTIVE', points = 200;
 select id from create_trade('iade-testi', :'b2') \gset r_
@@ -89,7 +89,7 @@ select id, status from create_trade('iade-testi', :'b1') \gset y_
 \echo '=== 8) Yetersiz bakiyede hiçbir şey kalmaz ==='
 insert into products (id, title, points, ai_suggested_points, condition, category,
                       location, image_key, seller_id, seller_name, seller_initials, size_class)
-values ('pahali', 'Çok pahalı ürün', 99999, 99999, 'İyi durumda', 'Oyuncak',
+values ('pahali', 'Çok pahalı ürün', 99999, 99999, 'İyi durumda', 'Oyun & Oyuncak',
         'Kadıköy', 'wooden-blocks', :'s', 'Satıcı', 'ST', 'S')
 on conflict (id) do update set status = 'ACTIVE', points = 99999;
 do $$

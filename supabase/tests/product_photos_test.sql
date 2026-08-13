@@ -19,7 +19,7 @@ select set_config('test.uid', :'s', false);
 
 \echo ''
 \echo '=== 1) Yeni ilan TASLAK açılır, vitrine çıkmaz ==='
-select id, status from create_listing('Ahşap tren', 'Oyuncak', 'Az kullanılmış', 'M', 380) \gset p_
+select id, status from create_listing('Ahşap tren', 'Oyun & Oyuncak', 'Az kullanılmış', 'M', 380, p_sub_category => 'Yapı & inşa') \gset p_
 select status from products where id = :'p_id';
 \echo 'BEKLENEN: DRAFT'
 
@@ -94,8 +94,8 @@ select slot, is_cover from product_photos where product_id = :'p_id' and is_cove
 
 \echo ''
 \echo '=== 8) Hasar beyanı altıncı kareyi zorunlu yapar ==='
-select id from create_listing('Hasarlı ürün', 'Oyuncak', 'İyi durumda', 'S', 150,
-                              'Kadıköy', null, true, false) \gset h_
+select id from create_listing('Hasarlı ürün', 'Oyun & Oyuncak', 'İyi durumda', 'S', 150,
+                              'Kadıköy', null, true, false, p_sub_category => 'Yapı & inşa') \gset h_
 -- psql değişkenleri $$...$$ içinde ikame edilmez; DO bloğunun okuyabilmesi için
 -- kimliği RLS'e tabi olmayan geçici bir tabloya koyuyoruz.
 create temp table if not exists t_ids (ad text primary key, deger text);
@@ -105,8 +105,8 @@ select array_to_string(required_slots(:'h_id'), ', ') as zorunlu;
 
 \echo ''
 \echo '=== 9) Set beyanı yedinci kareyi zorunlu yapar ==='
-select id from create_listing('Set ürün', 'Oyuncak', 'İyi durumda', 'S', 150,
-                              'Kadıköy', null, false, true) \gset k_
+select id from create_listing('Set ürün', 'Oyun & Oyuncak', 'İyi durumda', 'S', 150,
+                              'Kadıköy', null, false, true, p_sub_category => 'Yapı & inşa') \gset k_
 select array_to_string(required_slots(:'k_id'), ', ') as zorunlu;
 \echo 'BEKLENEN: front, back, left, right, label, parts'
 
