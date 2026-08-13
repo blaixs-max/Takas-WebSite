@@ -4,7 +4,7 @@ Bu dosya, Claude Code (ve diğer AI ajanları) için proje bağlamıdır. Yeni b
 oturuma başlarken önce burayı oku.
 
 ## Proje
-**KIDS TRADE** — puanlı çocuk ürünü takas pazaryeri. Kullanılmayan oyuncak/kitap/
+**ELDENELE** — puanlı çocuk ürünü takas pazaryeri. Kullanılmayan oyuncak/kitap/
 montessori ürünleri **Takas Puanı**'na çevrilir; ürün teslim edilene kadar puan
 **güvenli havuzda** (escrow) bekler. Hedef pazar: Türkiye. Arayüz dili: **Türkçe**.
 
@@ -29,7 +29,7 @@ Dördü de doğrulanmadan push yok; push edilmeden merge yok. Bu sıra kısaltı
 
 | | |
 |---|---|
-| Proje | **kids-trade** |
+| Proje | **kids-trade** (Supabase proje adı; marka adı değil) |
 | Ref | `fauhxnbxwcpsdfcvfodz` |
 | URL | `https://fauhxnbxwcpsdfcvfodz.supabase.co` |
 | Bölge | eu-central-1 (Frankfurt) · PostgreSQL 17.6 |
@@ -109,7 +109,7 @@ Bu ayrım her zaman geçerlidir.
 - Diğer rotalar `app/`: product/[id], add-listing, notifications, messages, chat/[id],
   addresses, security, help, invite, edit-profile, onboarding, sign-in.
 - İstemci durumları: `lib/favorites.tsx` (kalp), `lib/cart.tsx` (sepet) — AsyncStorage'da kalıcı.
-- Kategoriler tek kaynak: `data/categories.ts` — **9 ana + 62 alt kategori**, ikon
+- Kategoriler: `data/categories.ts` — **9 ana + 62 alt kategori**, ikon
   eşlemeli. Her ürün tam olarak bir ana ve bir alt kategoriye aittir; "Tümü"
   kategori değil, süzgecin kapalı hâlidir. Ürün görselleri `data/productImages.ts`.
 - İlan açma iki adımdır: `add-listing` (beyanlar + desi) → `listing-photos` (yedi kare + yayın).

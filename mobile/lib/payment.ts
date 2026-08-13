@@ -1,5 +1,6 @@
 import * as WebBrowser from 'expo-web-browser';
 import { supabase, supabaseConfigured } from './supabase';
+import { PAYMENT_RETURN_URL } from './brand';
 
 /**
  * Kargo bedeli ödemesi.
@@ -71,14 +72,14 @@ export type CheckoutOutcome = 'success' | 'failure' | 'cancelled' | 'unknown';
  *
  * Uygulama içi WebView yerine `openAuthSessionAsync`: 3D Secure akışı banka
  * sayfalarına atlıyor ve kart bilgisi uygulamanın kendi WebView'ünden geçmiyor.
- * Dönüş `kidstrade://payment-result` derin bağlantısıyla yakalanıyor.
+ * Dönüş `PAYMENT_RETURN_URL` derin bağlantısıyla yakalanıyor (bkz. lib/brand.ts).
  *
  * DİKKAT: buradan dönen sonuç bilgilendirmedir, kanıt değildir. Ödemenin
  * gerçekten alındığını iyzico'ya RETRIEVE ile doğrulayan `iyzico-callback`
  * belirler. Ekran her durumda sunucudan tazelemelidir.
  */
 export async function openCheckout(paymentPageUrl: string): Promise<CheckoutOutcome> {
-  const sonuc = await WebBrowser.openAuthSessionAsync(paymentPageUrl, 'kidstrade://payment-result');
+  const sonuc = await WebBrowser.openAuthSessionAsync(paymentPageUrl, PAYMENT_RETURN_URL);
 
   if (sonuc.type === 'cancel' || sonuc.type === 'dismiss') return 'cancelled';
   if (sonuc.type !== 'success') return 'unknown';

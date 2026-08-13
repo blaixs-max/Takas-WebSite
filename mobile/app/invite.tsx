@@ -3,8 +3,9 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, elevation, shape } from '../theme/tokens';
+import { inviteShareText } from '../lib/brand';
 
-const CODE = 'KIDS-EMRAH';
+const CODE = 'ELDEN-EMRAH';
 const INVITED = [
   { name: 'Ayşe K.', status: 'Katıldı · +100 puan', done: true },
   { name: 'Mehmet T.', status: 'Davet gönderildi', done: false },
@@ -16,9 +17,7 @@ export default function Invite() {
 
   async function share() {
     try {
-      await Share.share({
-        message: `KIDS TRADE'e katıl, çocuk ürünlerini puanla takas et! Davet kodum: ${CODE}\nhttps://kidstrade.app/davet/${CODE}`,
-      });
+      await Share.share({ message: inviteShareText(CODE) });
     } catch {}
   }
 

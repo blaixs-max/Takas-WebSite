@@ -13,6 +13,8 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useWallet } from '../hooks/useWallet';
 import { WalletTx } from '../lib/wallet';
+import { Mark } from '../components/brand/Mark';
+import { BRAND } from '../lib/brand';
 import { colors, elevation, shape } from '../theme/tokens';
 
 const QUICK = [
@@ -63,9 +65,11 @@ export default function WalletScreen() {
         {/* Bakiye kartı */}
         <LinearGradient colors={colors.balanceGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.balance}>
           <View style={styles.balTop}>
+            {/* Doygun turkuaz gradyanın üstünde çok renkli kelime logosu
+                çakışıyor; kart tek renk beyaz işaret + ad taşıyor. */}
             <View style={styles.brand}>
-              <MaterialIcons name="change-circle" size={18} color="#fff" />
-              <Text style={styles.brandText}>KIDS TRADE</Text>
+              <Mark size={18} color="#fff" />
+              <Text style={styles.brandText}>{BRAND}</Text>
             </View>
             <MaterialIcons name="visibility" size={20} color="rgba(255,255,255,0.7)" />
           </View>

@@ -1,4 +1,4 @@
-# KIDS TRADE
+# ELDENELE
 
 Puanlı çocuk ürünü takas pazaryeri. Kullanılmayan oyuncak, kitap ve montessori
 ürünleri **Takas Puanı**'na çevrilir; ürün teslim edilene kadar puan **güvenli
@@ -37,7 +37,7 @@ Kargo ödemesi ──► Edge Function ─► cargo_payments ──► Checkout 
 | Material Design 3 v2 arayüz (Expo SDK 54, Expo Go'da çalışır) | ✅ |
 | Özel alt menü: Anasayfa · Sepetim · Ürün Ekle · Favoriler · Hesabım | ✅ |
 | Tüm ekranlar (mock veri) + dead-end yok | ✅ |
-| 14 kategori (tek kaynak) | ✅ |
+| 9 ana + 62 alt kategori (matris dokümanı) | ✅ |
 | Favori (kalp) + Sepet + Paylaş (WhatsApp) — kalıcı | ✅ |
 | Puan defteri — atomik HOLD/RELEASE/REFUND (testli) | ✅ |
 | iyzico Checkout Form — kargo tahsilatı + komisyon | ✅ (skeleton, sandbox testine hazır) |

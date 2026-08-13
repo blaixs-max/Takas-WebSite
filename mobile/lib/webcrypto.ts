@@ -6,7 +6,7 @@ import * as ExpoCrypto from 'expo-crypto';
  * supabase-js, PKCE meydan okumasını üretmek için `crypto.subtle.digest`
  * arar. Hermes'te bulamayınca sessizce `plain` yöntemine düşer ve konsola
  * bir uyarı basar. `plain`de code_verifier ile code_challenge AYNI değerdir;
- * yani PKCE'nin koruduğu şey korunmaz. `kidstrade://` şemasını kendi adına
+ * yani PKCE'nin koruduğu şey korunmaz. `eldenele://` şemasını kendi adına
  * kaydeden başka bir uygulama yetkilendirme kodunu yakalarsa, doğrulayıcıyı
  * da elde etmiş olur ve oturumu kendi üzerine alır.
  *

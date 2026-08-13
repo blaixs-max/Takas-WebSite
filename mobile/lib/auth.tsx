@@ -4,6 +4,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri } from 'expo-auth-session';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase, supabaseConfigured } from './supabase';
+import { APP_SCHEME, AUTH_REDIRECT_PATH } from './brand';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -68,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       async signInWithOAuth(provider) {
         if (!supabase) return { error: 'Supabase yapılandırılmadı' };
-        const redirectTo = makeRedirectUri({ scheme: 'kidstrade', path: 'auth-callback' });
+        const redirectTo = makeRedirectUri({ scheme: APP_SCHEME, path: AUTH_REDIRECT_PATH });
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider,
           options: { redirectTo, skipBrowserRedirect: true },

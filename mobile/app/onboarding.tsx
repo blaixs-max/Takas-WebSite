@@ -5,6 +5,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../lib/auth';
+import { Wordmark } from '../components/brand/Wordmark';
+import { BRAND } from '../lib/brand';
 import { colors, elevation, shape } from '../theme/tokens';
 
 export default function Onboarding() {
@@ -35,29 +37,38 @@ export default function Onboarding() {
       {/* Sanat alanı */}
       <View style={styles.art}>
         <Image source={require('../assets/products/hero-main-game.jpg')} style={styles.artImg} resizeMode="cover" />
-        <LinearGradient colors={['rgba(14,40,29,0.12)', 'rgba(14,40,29,0.55)']} style={StyleSheet.absoluteFill} />
+        {/* Perde marka koyusundan (#1F2937). Üst köşe biraz daha kapalı:
+            logo oraya oturuyor ve fotoğrafın açık bir yerine denk gelirse
+            harfler kayboluyordu. */}
+        <LinearGradient
+          colors={['rgba(31,41,55,0.55)', 'rgba(31,41,55,0.20)', 'rgba(31,41,55,0.58)']}
+          locations={[0, 0.42, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+        {/* Kelime logosu tek başına — sitenin başlığında da işaret yok. */}
         <View style={styles.logo}>
-          <View style={styles.logoMark}>
-            <MaterialIcons name="change-circle" size={24} color="#fff" />
-          </View>
-          <Text style={styles.logoText}>KIDS TRADE</Text>
+          <Wordmark height={21} />
         </View>
         <View style={[styles.float, styles.f1]}>
           <MaterialIcons name="verified-user" size={18} color={colors.primary} />
-          <Text style={styles.floatText}>Güvenli havuz</Text>
+          <Text style={styles.floatText}>Güvenli Havuz</Text>
         </View>
         <View style={[styles.float, styles.f2]}>
           <MaterialIcons name="paid" size={18} color={colors.primary} />
-          <Text style={styles.floatText}>Puanla takas</Text>
+          <Text style={styles.floatText}>Takas Puanı</Text>
         </View>
       </View>
 
       {/* İçerik */}
       <View style={[styles.copy, { paddingBottom: insets.bottom + 22 }]}>
-        <Text style={styles.h2}>Çocuk ürünlerinde{'\n'}satış değil, adil takas.</Text>
+        {/* Onaylı ekran metni — sitenin hero karuselindeki birinci slayttan
+            birebir. Eski metin yalnızca "oyuncak, kitap ve montessori" diyordu;
+            kategori mimarisi dokuz ana başlığa çıktığı için ürünü olduğundan
+            dar tanıtıyordu. */}
+        <Text style={styles.h2}>Bebek ve çocuk{'\n'}ürünlerinde akıllı takas.</Text>
         <Text style={styles.p}>
-          Kullanılmayan oyuncak, kitap ve montessori ürünlerini Takas Puanı'na çevir; güvenli havuz hem alıcıyı hem
-          satıcıyı korur.
+          {BRAND}'de bebek ve çocuk ürünleri, Takas Puanı ve Güvenli Havuz sistemiyle değerinde el
+          değiştirir.
         </Text>
         <View style={styles.pg}>
           <View style={[styles.pgDot, styles.pgOn]} />
@@ -109,18 +120,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
   art: { height: 300, borderBottomLeftRadius: 40, borderBottomRightRadius: 40, overflow: 'hidden' },
   artImg: { width: '100%', height: '100%' },
-  logo: { position: 'absolute', top: 26, left: 24, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  logoMark: {
-    width: 40,
-    height: 40,
-    borderRadius: 13,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  logoText: { color: '#fff', fontWeight: '800', fontSize: 18, letterSpacing: -0.3 },
+  logo: { position: 'absolute', top: 26, left: 24 },
   float: {
     position: 'absolute',
     flexDirection: 'row',
@@ -167,6 +167,9 @@ const styles = StyleSheet.create({
     borderColor: colors.outlineVariant,
   },
   socialText: { fontWeight: '700', fontSize: 14, color: colors.onSurface },
+  /* #4285F4 Google'ın kendi marka mavisi. Marka paletine ÇEKİLMEZ — mağaza
+     kuralları rozetin değiştirilmeden kullanılmasını şart koşuyor. Sitede
+     aynı tuzağa iki kez düşüldü (bkz. icons/StoreMarks.tsx). */
   gBadge: {
     width: 19,
     height: 19,

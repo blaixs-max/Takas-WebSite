@@ -1,4 +1,4 @@
-# KIDS TRADE — Yol Haritası / TODO
+# ELDENELE — Yol Haritası / TODO
 
 Son güncelleme: 2026-08-13 · Branch: `claude/kategori-paritesi`
 
@@ -45,6 +45,31 @@ alınamayan sahte ilan olurlardı.
 - [x] **Sepet** — alma sepeti, toplam puan + bakiye kontrolü (`lib/cart.tsx`)
 - [x] **Paylaş** — native Share (WhatsApp/mesaj/e-posta)
 - [x] Tüm buton bağlantıları (dead-end yok)
+
+### Marka revizyonu (2026-08-13)
+- [x] **Uygulama ELDENELE oldu.** Marka revizyonu 12 Ağustos'ta yalnızca siteye
+      uygulanmış, uygulama "KIDS TRADE" adını ve `#1f6b4f` yeşil paletini
+      taşımaya devam etmişti. Reklam filmi için ekran kaydı alınırken çıktı.
+      - Palet: M3 tonları marka turkuazından **hesaplandı** (OKLCH; ton ekseni
+        CIE L*, hue ve kroma sabit, gamut dışı ton kroma düşürülerek geri
+        çekiliyor). Göz kararı seçilmedi — sitede bir kez denendi, yanlış çıktı.
+      - `primary` **`#00718A`**, `#008BAA` değil: beyaz metin `#008BAA` üzerinde
+        3.98 kontrast veriyor (AA eşiği 4.5) ve doldurulmuş düğmelerin çoğu
+        15–16 piksel metin taşıyor. `#00718A` aynı ölçümde 5.63 ve marka
+        dokümanının kendi "koyu turkuaz" türevi. Kimlik yüzeyleri (gradyan,
+        simge, logo zemini) `colors.brand` ile tam `#008BAA` kalıyor.
+      - Logo: `components/brand/Wordmark.tsx` + `Mark.tsx`, konturlar sitenin
+        `eldenele-logo.svg` ve `favicon.svg` dosyalarından birebir; PNG değil
+        vektör, react-native-svg ile.
+      - Simgeler sitenin `apple-touch-icon.png` tarifiyle üretildi: zemin
+        `#008BAA`, harf `#FDF8EF`.
+      - Marka adı, şema ve paylaşım metinleri tek kaynakta: `lib/brand.ts`.
+        Ad cümle içinde **"Eldenele"** (sitenin düz metin yazımı).
+      - Onboarding metni sitenin onaylı birinci hero slaytıyla değişti; eskisi
+        yalnızca "oyuncak, kitap ve montessori" diyerek ürünü dokuz kategoriden
+        çok daha dar tanıtıyordu.
+      - Ölü bağlantı kalktı: paylaşım metinleri `kidstrade.app` adresine
+        gidiyordu, o alan adı bize ait değil.
 
 ### Güvenlik (P0 — 2026-08-07)
 - [x] **Defter değişmezliği** — `wallet_entries` üzerinde UPDATE/DELETE trigger ile
@@ -234,6 +259,25 @@ alınamayan sahte ilan olurlardı.
       konsoldaki "WebCrypto API is not supported" uyarısı kaybolmalı
 
 ## ⏳ Sıradaki (öncelik sırası)
+
+### Marka revizyonunun panelde tamamlanması gereken iki adımı
+
+Şema `kidstrade` → **`eldenele`** oldu. Kodda dört yerdeydi, hepsi
+`lib/brand.ts`e taşındı; ama iki ayar repoda değil, panelde:
+
+- [ ] **Supabase Auth → Redirect URLs.** İzin listesine `eldenele://auth-callback`
+      eklenmeli. Eklenmezse Google/Apple ile giriş tarayıcıdan geri dönemez;
+      kullanıcı açık bir sekmeyle kalır, hata da görmez.
+- [ ] **`iyzico-callback` Edge Function → `APP_RETURN_URL` sırrı.** Fonksiyonun
+      koddaki varsayılanı güncellendi, ama ortamda bir değer **atanmışsa** o
+      kazanır ve hâlâ `kidstrade://payment-result` döndürür. Ödeme sonrası
+      uygulamaya dönüş kırılır. Değeri `eldenele://payment-result` yapın ya da
+      sırrı tamamen silin.
+
+Uygulama mağazalarda olmadığı için paket kimliği (`com.kidstrade.app` →
+`com.eldenele.app`) ve slug bu turda değiştirildi; yayımlandıktan sonra ikisi de
+değiştirilemez.
+
 - [x] **Kategori göçü canlıya uygulandı** (2026-08-13) —
       `20260813100000_kategori_matrisi.sql` canlı projede (`kategori_matrisi`).
       Uygulama öncesi durum: 1 ilan (`Beslenme`, SOLD), ağaç tabloları yok,

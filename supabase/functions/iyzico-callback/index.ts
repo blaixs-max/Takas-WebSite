@@ -25,7 +25,7 @@ import { retrieveCheckoutForm } from '../_shared/iyzico.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const APP_RETURN_URL = Deno.env.get('APP_RETURN_URL') ?? 'kidstrade://payment-result';
+const APP_RETURN_URL = Deno.env.get('APP_RETURN_URL') ?? 'eldenele://payment-result';
 
 /** Kullanıcıyı uygulamaya geri gönderir. */
 function redirect(status: 'success' | 'failure', tradeId: string) {
