@@ -456,3 +456,9 @@ begin
 
   return new;
 end; $$;
+
+-- Trigger fonksiyonu istemciden çağrılmaz. `create or replace` mevcut
+-- yetkileri koruduğu için bu satır bugün bir şeyi değiştirmiyor; kural
+-- "fonksiyona dokunan göç yetkisini de yazar" olduğu için duruyor — fonksiyon
+-- bir gün sıfırdan oluşursa PostgreSQL onu PUBLIC'e açar.
+revoke execute on function public.products_guard_client_update() from public, anon, authenticated;
