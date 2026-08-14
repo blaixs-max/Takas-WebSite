@@ -1,6 +1,6 @@
 # ELDENELE — Yol Haritası / TODO
 
-Son güncelleme: 2026-08-13 · Branch: `claude/kategori-paritesi`
+Son güncelleme: 2026-08-14 · Branch: `main`
 
 ## 🟢 Supabase artık gerçek
 
@@ -62,7 +62,7 @@ alınamayan sahte ilan olurlardı.
         `eldenele-logo.svg` ve `favicon.svg` dosyalarından birebir; PNG değil
         vektör, react-native-svg ile.
       - Simgeler sitenin `apple-touch-icon.png` tarifiyle üretildi: zemin
-        `#008BAA`, harf `#FDF8EF`.
+        `#008BAA`, harf `#FDF8EF`. *(2026-08-14'te amblemle değişti — aşağı bak.)*
       - Marka adı, şema ve paylaşım metinleri tek kaynakta: `lib/brand.ts`.
         Ad cümle içinde **"Eldenele"** (sitenin düz metin yazımı).
       - Onboarding metni sitenin onaylı birinci hero slaytıyla değişti; eskisi
@@ -70,6 +70,33 @@ alınamayan sahte ilan olurlardı.
         çok daha dar tanıtıyordu.
       - Ölü bağlantı kalktı: paylaşım metinleri `kidstrade.app` adresine
         gidiyordu, o alan adı bize ait değil.
+
+### Açılış ekranı ve simgeler (2026-08-14)
+- [x] **Simge ve açılış görselleri marka amblemine geçti.** Öncesinde tek
+      harflik işaretti; marka paketi sayfası elimize geçince ana amblem
+      (eller + çocuk eşyaları) ayıklandı ve dördü birden yenilendi.
+      Ayrıntılar `mobile/assets/README.md` içinde, özeti:
+      - **Açılışta üç ayrı katman var** ve karıştırılması kolay: Expo Go'nun
+        yükleme ekranı (`app.json`'daki `icon` + `name`; `splash.png`'yi *hiç*
+        kullanmaz), yerel açılış ekranı (`splash.png`, yalnızca kendi
+        derlemende) ve JS tarafındaki yeni `AcilisEkrani`. Üçüncüsünde çıplak
+        bir dönen çember vardı — marka açılışın en görünür saniyesinde yoktu.
+      - `AcilisEkrani` kilidi parçalardan kurmuyor, `splash.png`'nin kendisini
+        aynı `contain` kuralıyla çiziyor. Parçalardan kurulduğunda slogan
+        görselde Nunito 800, uygulamada sistem yazı tipiyle çiziliyordu; aynı
+        cümle iki farklı yüzle görünüyordu.
+      - Slogan **"Paylaş, değiştir, mutlu et!"** yalnızca açılış ekranında,
+        kaynağı `lib/brand.ts` içindeki `SLOGAN`.
+      - Uyarlanabilir simgenin zemini `#008BAA` idi; amblemin kendi turkuaz
+        kolu o zeminde kayboluyordu, beyaza alındı.
+      - **Çözünürlük sınırı:** amblemin en büyük kopyası **452 px** (kaynak
+        WhatsApp'tan gelen 1448×1086 tek sayfa). Cihazdaki her boy için
+        yeterli — simge 180'e, açılıştaki amblem 450'ye iniyor. App Store'un
+        1024 px liste simgesi için **yetmiyor**; yayın kontrol listesine madde
+        olarak eklendi.
+      - **Palet farkı karara bağlandı:** marka paketi sayfası ana turkuazı
+        `#00B8AA` yazıyor, biz `#008BAA` kullanıyoruz. Sayfa takip
+        edilmiyor — palet `#008BAA` kalıyor.
 
 ### Canlı vitrin (2026-08-14)
 - [x] **Uygulamadaki vitrin sitede görünüyor.** Site veri tabanına bağlanmıyor;
@@ -389,9 +416,14 @@ değiştirilemez.
       bu yetkileri bilerek geri aldı, testler güncellenmedi. `origin/main`'de de
       aynı dört paket aynı satırlarda düşüyor — bu kategori işiyle ilgili değil.
       Çözüm: ilgili adımları `service_role` altında koşturmak.
-- [ ] **İlk yöneticiyi ekle** — `auth.users` henüz **boş**; bu yüzden yönetici
-      satırı da yok. İlk kayıttan hemen sonra Supabase SQL editöründen:
-      `insert into admins (user_id, note) values ('<uuid>', 'kurucu');`
+- [x] **İlk yönetici eklendi** — bu madde "`auth.users` henüz **boş**" diyordu;
+      2026-08-14 ölçümünde `auth.users` 3, `admins` 1 satır. Artık geçersiz.
+- [ ] **Hiç profil yok** (2026-08-14 ölçümü) — `profiles` **0 satır**.
+      `20260814110000_profiller` göçü canlıda ve `edit-profile` ekranı
+      çalışıyor; henüz kimse kaydetmedi. Sonucu sitede görünüyor: `seller_name`
+      hâlâ e-postadan türüyor ve vitrin bunu **"Üye"** diye yazıyor — doğru
+      davranış, ama gerçek ad değil. Uygulamada Profil → Profili düzenle'den ad
+      kaydedilince tetikleyici vitrini tazeliyor ve kart "Emrah A." çıkıyor.
 - [ ] **Edge Function ortam değişkenleri** — fonksiyonlar yayında ama gizli
       değerleri yok. Panelden girilecek: `IYZICO_API_KEY`, `IYZICO_SECRET_KEY`,
       `IYZICO_CALLBACK_URL`, `APP_RETURN_URL`, `AI_VISION_API_KEY`,
