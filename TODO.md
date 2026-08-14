@@ -637,6 +637,65 @@ değiştirilemez.
       - Profil "İlanlarım → Tümü" — hemen altındaki kutu zaten rafa götüren
         gerçek düğme; ikisinden biri çalışıyordu, diğeri süstü.
 
+## 🔒 Yayın öncesi güvenlik turu (KURAL — atlanamaz)
+
+Launch'tan önce hem site hem uygulama için ayrı ayrı, kapsamlı bir güvenlik
+analizi yapılıp bulunan her açık kapatılacak. Tur, yayın kontrol listesinin
+**önünde** gelir: kapanmamış bulgu varsa mağazaya gönderim yok.
+
+Bugüne kadarki bulgular bu turun neden gerektiğini gösteriyor — üçü de
+yalnızca canlıda ya da gerçek veriyle ortaya çıktı, yerel testlerde
+görünmüyordu:
+
+- Her fonksiyon `anon`a açıktı; elinde uygulama paketindeki anahtar olan
+  herkes `earn_points` çağırıp kendine puan basabilirdi (`rpc_grants`).
+- `alter default privileges` yetmedi, PostgreSQL yeni fonksiyonları yine
+  PUBLIC yetkisiyle doğurdu (`rpc_grants_final`).
+- İlk gerçek ilan vitrine kişinin e-postasının yarısıyla düştü.
+
+### Kapsam — arka uç
+- [ ] **RPC yetki matrisi baştan sona.** Her fonksiyon için: `anon`
+      çağırabiliyor mu, `authenticated` çağırmalı mı, `SECURITY DEFINER` ise
+      `search_path` sabit mi. Bugünkü ölçüm temiz (anon 0, authenticated 31)
+      ama bu bir kez ölçüldü; her yeni göç sonrası tekrar ölçülmeli.
+- [ ] **RLS politikaları tablo tablo.** Yalnızca "RLS açık" yetmiyor:
+      politikanın `using` ve `with check` yanları ayrı ayrı okunmalı. Eksik
+      `with check`, kullanıcının başkasının satırına yazmasına izin verir.
+- [ ] **Depolama politikaları.** `listing-photos` özel; imzalı bağlantı
+      süreleri ve kimin hangi yolu yazabildiği doğrulanmalı. Yol düzeni
+      `{satici_id}/...` — başka birinin klasörüne yazılabiliyor mu?
+- [ ] **Edge Function'lar.** `iyzico-callback` gövdeye güvenmemeli (RETRIEVE
+      ile doğrulama), `send-sms` hook sırrı, JWT muafiyetleri tek tek
+      gerekçelendirilmeli.
+- [ ] **Puan ekonomisi.** Kapalı devrede en ağır risk puan basmak: `earn_points`,
+      `release_points`, `refund_points`, `grant_campaign_points` yalnızca
+      `service_role`da mı, idempotency anahtarı gerçekten tekrarı önlüyor mu.
+
+### Kapsam — uygulama
+- [ ] **Sırlar.** `service_role` ve iyzico secret'ının pakete hiç girmediği
+      doğrulanmalı — derlenmiş paket üzerinde arama yaparak, kaynak koda
+      bakarak değil.
+- [ ] **Derin bağlantılar.** `eldenele://` şemasına gelen veri doğrulanıyor mu;
+      `auth-callback` ve `payment-result` sahte bir çağrıyla kandırılabilir mi.
+- [ ] **Oturum saklama.** Jeton nerede duruyor, cihaz kilidi açıkken başka bir
+      uygulama okuyabilir mi.
+
+### Kapsam — site
+- [ ] **Vitrin anlık görüntüsünde kişisel veri.** Kural yazılı (kısaltılmış ad,
+      ilçe, mesafe yok) ama üretilen JSON her yayında yeniden denetlenmeli —
+      şema değişince yeni bir alan sessizce sızabilir.
+- [ ] **Derleme ortamı sırları.** `SUPABASE_ANON_KEY` yalnızca derleme anında;
+      `dist` çıktısında anahtarın ve deploy hook URL'sinin geçmediği
+      doğrulanmalı.
+- [ ] **Bağımlılık taraması.** `npm audit` bugün 29 uyarı veriyor; hangileri
+      gerçekten yayınlanan pakete iniyor, ayıklanmalı.
+
+### Kapsam — süreç
+- [ ] **Depo görünürlüğü kararı** (yukarıda açık madde) bu turdan önce
+      verilmeli; açık repoda sır tutulamaz.
+- [ ] Bulguların her biri ya kapatılır ya da "kabul edildi, gerekçesi şu"
+      diye yazılır. Sessizce bırakılan bulgu yok.
+
 ## 🚀 Yayın (config gerektirir)
 - [ ] Supabase dashboard: Google/Apple provider + redirect `eldenele://auth-callback`
       (şema değişti; bu satır `kidstrade` yazıyordu — yukarıdaki "panelde
