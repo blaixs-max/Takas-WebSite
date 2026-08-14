@@ -8,7 +8,7 @@ export interface ProductsResult {
 }
 
 const COLS =
-  'id, title, points, condition, category, sub_category, location, distance_km, rating, market_value, badge, description, image_key, gallery_keys, seller_name, seller_initials, seller_trust, seller_trades';
+  'id, title, points, condition, category, sub_category, location, distance_km, rating, market_value, badge, description, image_key, gallery_keys, seller_name, seller_initials, seller_trust, seller_trades, has_damage';
 
 /**
  * Kapak karelerinin imzalı bağlantılarını toplu üretir.

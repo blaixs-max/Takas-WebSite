@@ -59,12 +59,9 @@ export default function WalletScreen() {
             <Text style={styles.demoText}>Demo</Text>
           </View>
         )}
-        <View style={styles.iconBtn}>
-          <MaterialIcons name="history" size={24} color={colors.onSurface} />
-        </View>
-        <View style={styles.iconBtn}>
-          <MaterialIcons name="more-vert" size={24} color={colors.onSurface} />
-        </View>
+        {/* Başlıktaki "geçmiş" ve "daha fazla" simgeleri kalktı. İkisi de
+            `View`di — dokunmaya cevap vermeyen, çizilmiş resimler. Arkalarında
+            ne ayrı bir geçmiş ekranı vardı ne de bir menü. */}
       </View>
 
       <ScrollView
@@ -111,9 +108,12 @@ export default function WalletScreen() {
           ))}
         </View>
 
+        {/* "Tümü" kalktı: liste zaten son 50 hareketin hepsini çiziyor
+            (`lib/wallet.ts`, `.limit(50)`) ve ayrı bir geçmiş ekranı yok.
+            Elli hareketi geçen bir hesap çıkarsa sayfalama gerçek bir iş
+            olarak eklenir. */}
         <View style={styles.sec}>
           <Text style={styles.secTitle}>Son hareketler</Text>
-          <Text style={styles.secLink}>Tümü</Text>
         </View>
 
         {loading ? (

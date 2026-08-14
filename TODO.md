@@ -569,10 +569,18 @@ değiştirilemez.
       sayısı ise hiç ölçülmüyor. Alıcı ikinci el üründe tam da bu iki iddiaya
       güvenir. Rozet artık "Kareler incelendi"; parça iddiası kaldırıldı,
       boş "Piyasa karşılığı" ve "0 km" gizleniyor
-- [ ] **Android'de yakınlaştırma** — tam ekran görüntüleyici iOS'ta
-      ScrollView'ün kendi yakınlaştırmasını kullanıyor; Android'de kare tam
-      ekran açılıyor ama yakınlaştırma için `react-native-gesture-handler`
-      gerekiyor
+- [x] **Android'de yakınlaştırma eklendi** (2026-08-14) —
+      `components/YakinlastirilabilirKare.tsx`. `ScrollView`in
+      `maximumZoomScale`/`minimumZoomScale` özellikleri yalnızca iOS'ta
+      çalışıyor, Android'de sessizce yok sayılıyorlardı. iOS yolu **aynen
+      bırakıldı** (çalışan, platformun kendi davranışı); Android'e
+      `PinchGestureHandler` kondu ve kök düzen `GestureHandlerRootView` ile
+      sarmalandı — o olmadan jest işleyicisi Android'de hiçbir şey yapmıyor.
+
+      > **Cihazda doğrulanmadı.** İki parmak jesti bu ortamda sınanamıyor;
+      > web derlemesi de onu çalıştırmıyor. Tip denetimi ve derleme geçti,
+      > iOS yolu değişmedi. Android'de bir aksaklık olursa en kötü ihtimalle
+      > bugünkü duruma dönülür (orada zaten yakınlaştırma yoktu).
 - [ ] **Kare akışının kalan uçları** — kamera bu ortamda test edilemiyor.
       Expo Go'da yedi karenin çekimi, yeniden çekim ve yayın kapısı elden geçirilmeli
 - [x] **İnsan moderasyon kuyruğu zaten var** (2026-08-14 denetimi) —
@@ -596,7 +604,12 @@ değiştirilemez.
 
 ## 🔜 Sonra
 - [ ] Ürün Ekle: dinamik puan önerisi (kareler ve kategoriden değerleme)
-- [ ] Kapakta zorunlu durum rozeti (hasar beyanı ilan kartında görünsün)
+- [x] **Kapakta hasar beyanı rozeti** (2026-08-14) — `products.has_damage`
+      `product_photos` göçünden beri vardı ve yedinci kareyi zorunlu yapıyordu,
+      ama `COLS`ta hiç seçilmiyordu: arayüz sütunu göremiyordu bile. Alıcı
+      hasarı ancak ilanı açıp yedinci kareye bakınca görüyordu. İkinci el
+      üründe en çok merak edilen şeyin kartta olmaması, kusuru saklamak gibi
+      okunuyor. Rozet uyarı değil bilgi: beyan edilmiş olması iyi bir şey.
 - [ ] Bildirimler → **push** (Expo Notifications). Kuyruk hazır ve doluyor ama
       kullanıcı uygulamayı açmadan hiçbirini görmüyor; sayaçların işe yaraması
       için push şart. Cihaz jetonu tablosu + EAS kimlik bilgileri gerekiyor
@@ -607,8 +620,22 @@ değiştirilemez.
       önerisi, karar değil. Çok sert bir eşik dürüst satıcıyı da vurur ve o kişi
       bir daha dönmez; çok gevşek olanı merdiveni anlamsız kılar. Sayıları
       onaylayın, sonra açalım
-- [ ] Satıcının güven skorunu ilan kartında göster (`seller_trust_score` hazır)
-- [ ] Dekoratif linkler (Anasayfa "Tümü/Harita") → gerçek hedef
+- [x] **Güven skoru ilan kartında** (2026-08-14) — bir şartla: satıcı **en az
+      bir takas tamamladıysa**. `products.seller_trust` varsayılanı 90; hiç
+      takas yapmamış birinde 90 göstermek, profil ekranının "Güven skoru henüz
+      oluşmadı" demesiyle çelişirdi ve kazanılmamış bir sayıyı kazanılmış gibi
+      sunardı — cüzdandaki uydurma 96'nın aynısı.
+- [x] **Dekoratif linkler kaldırıldı** (2026-08-14) — dördü de `Pressable`
+      bile değildi, mikrofonla aynı sınıf kusur. Gerçek hedef verilemedi çünkü
+      hedef yoktu:
+      - Anasayfa "Öne çıkan takaslar → Tümü" — öne çıkanlar hemen altındaki
+        rafın alt kümesi, tam liste zaten aynı ekranda.
+      - Anasayfa "Yakınındaki raflar → Harita" — uygulamada harita ekranı yok.
+      - Cüzdan "Son hareketler → Tümü" — liste zaten son 50 hareketin hepsini
+        çiziyor, ayrı bir geçmiş ekranı yok. Başlıktaki ölü `history` ve
+        `more-vert` simgeleri de kalktı.
+      - Profil "İlanlarım → Tümü" — hemen altındaki kutu zaten rafa götüren
+        gerçek düğme; ikisinden biri çalışıyordu, diğeri süstü.
 
 ## 🚀 Yayın (config gerektirir)
 - [ ] Supabase dashboard: Google/Apple provider + redirect `eldenele://auth-callback`

@@ -18,6 +18,19 @@ export function ProductCard({ product }: { product: Product }) {
           <View style={styles.cond}>
             <Text style={styles.condText}>{product.condition}</Text>
           </View>
+          {/* Hasar beyanı kapakta.
+              `products.has_damage` `product_photos` göçünden beri var ve
+              yedinci kareyi zorunlu yapıyor, ama arayüze hiç çıkmıyordu:
+              alıcı hasarı ancak ilanı açıp yedinci kareye bakınca görüyordu.
+              İkinci el üründe en çok merak edilen şeyin kartta olmaması,
+              kusuru saklamak gibi okunuyor. Rozet uyarı değil bilgi — beyan
+              edilmiş olması iyi bir şey; gizlenmiş olması kötü olurdu. */}
+          {product.hasDamage && (
+            <View style={styles.hasar}>
+              <MaterialIcons name="report-problem" size={12} color={colors.onTertiaryContainer} />
+              <Text style={styles.hasarText}>Hasar beyanlı</Text>
+            </View>
+          )}
           <Pressable style={styles.fav} onPress={() => toggle(product.id)} hitSlop={8}>
             <MaterialIcons
               name={fav ? 'favorite' : 'favorite-border'}
@@ -41,8 +54,21 @@ export function ProductCard({ product }: { product: Product }) {
               <Diamond size={14} color={colors.onPrimaryContainer} />
               <Text style={styles.ptsText}>{product.points}</Text>
             </View>
-            <View style={styles.av}>
-              <Text style={styles.avText}>{product.seller.initials}</Text>
+            <View style={styles.satici}>
+              {/* Skor yalnızca satıcı en az bir takas tamamladıysa görünüyor.
+                  `products.seller_trust` varsayılanı 90; hiç takas yapmamış
+                  birinde 90 göstermek, profil ekranının "Güven skoru henüz
+                  oluşmadı" demesiyle çelişirdi ve kazanılmamış bir sayıyı
+                  kazanılmış gibi sunardı. */}
+              {product.seller.trades > 0 && (
+                <View style={styles.guven}>
+                  <MaterialIcons name="verified-user" size={11} color={colors.primary} />
+                  <Text style={styles.guvenText}>{product.seller.trust}</Text>
+                </View>
+              )}
+              <View style={styles.av}>
+                <Text style={styles.avText}>{product.seller.initials}</Text>
+              </View>
             </View>
           </View>
         </View>
@@ -73,6 +99,23 @@ const styles = StyleSheet.create({
     ...elevation.level1,
   },
   condText: { fontSize: 11, fontWeight: '700', color: colors.onSurface },
+  hasar: {
+    position: 'absolute',
+    left: 8,
+    top: 39,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    height: 23,
+    paddingHorizontal: 8,
+    borderRadius: shape.xs,
+    backgroundColor: colors.tertiaryContainer,
+    ...elevation.level1,
+  },
+  hasarText: { fontSize: 10.5, fontWeight: '800', color: colors.onTertiaryContainer },
+  satici: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  guven: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  guvenText: { fontSize: 11, fontWeight: '800', color: colors.primary },
   fav: {
     position: 'absolute',
     right: 7,

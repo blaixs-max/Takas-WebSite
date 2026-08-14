@@ -203,9 +203,11 @@ export default function ShelfScreen() {
             altı boş. */}
         {featured.length > 0 && (
           <>
+            {/* "Tümü" bağlantısı kalktı. `Pressable` değildi, hiçbir yere
+                gitmiyordu ve gidecek yeri de yoktu: öne çıkanlar hemen
+                altındaki rafın bir alt kümesi, tam liste zaten aynı ekranda. */}
             <View style={styles.sec}>
               <Text style={styles.secTitle}>Öne çıkan takaslar</Text>
-              <Text style={styles.secLink}>Tümü</Text>
             </View>
             <ScrollView
               horizontal
@@ -220,9 +222,12 @@ export default function ShelfScreen() {
         )}
 
         {/* Yakındaki raflar */}
+        {/* "Harita" da kalktı: uygulamada harita ekranı yok. Sitede var ama
+            burada karşılığı hiç yazılmadı — dokunulamayan bir bağlantı,
+            olmayan bir özelliği varmış gibi gösteriyordu. Harita gerçekten
+            yapılırsa bağlantı da onunla birlikte döner. */}
         <View style={styles.sec}>
           <Text style={styles.secTitle}>Yakınındaki raflar</Text>
-          <Text style={styles.secLink}>Harita</Text>
         </View>
         {loading ? (
           <View style={styles.loading}>

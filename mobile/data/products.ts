@@ -21,6 +21,16 @@ export interface Product {
   rating: number;
   marketValue: string;
   badge?: string;
+  /**
+   * Satıcı hasar beyan etti mi.
+   *
+   * Sütun (`products.has_damage`) `product_photos` göçünden beri vardı ve
+   * yedinci kareyi zorunlu yapıyordu, ama arayüze hiç çıkmıyordu: alıcı
+   * hasarı ancak ilanı açıp yedinci kareye bakınca görüyordu. İkinci el
+   * üründe en çok merak edilen şeyin kartta görünmemesi, kusuru saklamak
+   * gibi okunuyor.
+   */
+  hasDamage: boolean;
   seller: { name: string; initials: string; trust: number; trades: number };
   description: string;
   image: ImageSourcePropType;
@@ -48,6 +58,7 @@ export interface ProductRow {
   seller_initials: string;
   seller_trust: number;
   seller_trades: number;
+  has_damage: boolean;
 }
 
 /**
@@ -84,6 +95,7 @@ export function rowToProduct(
     rating: Number(r.rating),
     marketValue: r.market_value ?? '',
     badge: r.badge ?? undefined,
+    hasDamage: r.has_damage === true,
     description: r.description ?? '',
     image: kapakUrl
       ? { uri: kapakUrl }
@@ -117,6 +129,7 @@ export const DEMO_PRODUCTS: Product[] = [
     rating: 4.9,
     marketValue: '~520–610 ₺',
     badge: 'Popüler',
+    hasDamage: false,
     seller: { name: 'Zeynep D.', initials: 'ZD', trust: 96, trades: 38 },
     description:
       'Doğal kayın ağacından, 48 parçalık geometrik blok seti. 2 yıl kullanıldı, boyası dökülmemiş. Orijinal ahşap kutusuyla birlikte gönderilir.',
@@ -134,6 +147,7 @@ export const DEMO_PRODUCTS: Product[] = [
     distanceKm: 5.1,
     rating: 4.7,
     marketValue: '~300–360 ₺',
+    hasDamage: true, // demo: hasar beyanı olan bir ilan da bulunsun
     seller: { name: 'Murat K.', initials: 'MK', trust: 91, trades: 22 },
     description:
       'El becerisi ve renk eşleştirme için ahşap sıralama oyunu. Tüm parçalar tam, küçük kullanım izleri mevcut.',
@@ -152,6 +166,7 @@ export const DEMO_PRODUCTS: Product[] = [
     rating: 5.0,
     marketValue: '~400–470 ₺',
     badge: 'Editör seçimi',
+    hasDamage: false,
     seller: { name: 'Elif T.', initials: 'ET', trust: 98, trades: 51 },
     description:
       'Doğal boyalı ahşap halka kulesi. Neredeyse hiç kullanılmadı, kutusunda. Bebek ve yürüme dönemi için ideal.',
@@ -170,6 +185,7 @@ export const DEMO_PRODUCTS: Product[] = [
     distanceKm: 6.7,
     rating: 4.8,
     marketValue: '~350–410 ₺',
+    hasDamage: false,
     seller: { name: 'Can A.', initials: 'CA', trust: 89, trades: 17 },
     description:
       'Doğal yağ ile cilalanmış denge ve istifleme halkaları. Hafif kullanım izi var, tüm parçalar mevcut.',

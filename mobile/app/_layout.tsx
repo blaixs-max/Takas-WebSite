@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../lib/auth';
 import { FavoritesProvider } from '../lib/favorites';
@@ -102,6 +103,9 @@ function RootNavigator() {
 
 export default function RootLayout() {
   return (
+    /* Android'de jest işleyicileri kökte bu sarmalayıcıyı istiyor; olmadan
+       `PinchGestureHandler` sessizce hiçbir şey yapmıyor. iOS'ta zararsız. */
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <SafeAreaProvider>
       <StatusBar style="dark" />
       <AuthProvider>
@@ -115,5 +119,6 @@ export default function RootLayout() {
         </FavoritesProvider>
       </AuthProvider>
     </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

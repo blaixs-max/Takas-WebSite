@@ -322,9 +322,10 @@ export default function ProfileScreen() {
               Şerit ancak gerçekten yayında ilan varsa açılıyor. */}
           {(istatistik?.yayindakiIlan ?? 0) > 0 && (
             <>
+              {/* "Tümü" kalktı: hemen altındaki kutu zaten rafa götüren
+                  gerçek düğme. İkisinden biri çalışıyordu, diğeri süstü. */}
               <View style={styles.sec}>
                 <Text style={styles.secTitle}>İlanlarım</Text>
-                <Text style={styles.secLink}>Tümü</Text>
               </View>
               <Pressable style={styles.ilanKutu} onPress={() => router.push('/(tabs)')}>
                 <MaterialIcons name="inventory-2" size={20} color={colors.onSurfaceVariant} />

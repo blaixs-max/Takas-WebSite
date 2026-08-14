@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { uyar } from '../../components/Dialog';
+import { YakinlastirilabilirKare } from '../../components/YakinlastirilabilirKare';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -392,17 +393,13 @@ export default function ProductDetail() {
             }}
           >
             {gallery.map((g, i) => (
-              <ScrollView
+              <YakinlastirilabilirKare
                 key={i}
-                style={{ width: EKRAN_W }}
-                contentContainerStyle={styles.tamEkranSayfa}
-                maximumZoomScale={4}
-                minimumZoomScale={1}
-                centerContent
-                showsVerticalScrollIndicator={false}
-              >
-                <Image source={g} style={styles.tamEkranImg} resizeMode="contain" />
-              </ScrollView>
+                kaynak={g}
+                genislik={EKRAN_W}
+                sayfaStili={styles.tamEkranSayfa}
+                resimStili={styles.tamEkranImg}
+              />
             ))}
           </ScrollView>
 
