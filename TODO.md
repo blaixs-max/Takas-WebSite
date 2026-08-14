@@ -732,10 +732,19 @@ hepsi 24 ekranın baskın renkleri sayılarak ölçüldü, göz kararı seçilme
       alan · Kargo ödemesi** — rehberin nihai metinleri.
 - [x] **Marka terimi tek yazımda** — "Güvenli Havuz"un iki kelimesi de büyük
       harfle başlıyor (rehber 01); "puan" geçen yerler "Takas Puanı" oldu.
-- [ ] Sohbet · mesaj listesi satırları (dolu hâl — boş hâl bitti)
-- [ ] Güvenlik · profili düzenle (tasarımda karşılığı yok; mevcut hâl
-      yeni renklerle uyumlu, ölçü turu yapılmadı)
-- [ ] Dört fotoğrafın kırpılıp `mobile/assets/` altına alınması
+- [x] **Sohbet · mesaj listesi** — sohbetin tepesine tasarımdaki ürün şeridi
+      geldi (görsel, başlık, karşı taraf, puan; dokununca ilana gider).
+      Sohbet ürün detayından açıldığında hangi ilandan konuşulduğu başka
+      türlü görünmüyordu. Liste satırları beyaz karta ve yeni ölçüye alındı.
+- [x] **Güvenlik · profili düzenle** — ölçü turu yapıldı; form etiketleri
+      ilan formundaki `flabel` ile aynı (versal, 10/800), kartlar beyaz.
+- [x] **Dört fotoğraf** — `tasarim/photos_4k/` içindeki 3840×2160 kareler
+      kullanıldıkları yerin oranına göre kırpılıp `mobile/assets/products/`
+      altına alındı (karşılama 1.234, ürün kareleri 1.5; uzun kenar 1200/1400,
+      JPEG q82, 129–236 KB). Vitrine iki demo ilan eklendi: **Adaçayı yeşili
+      puset** (Bebek Arabası & Puset) ve **Resimli kitap seti**
+      (Kitap & Eğitim) — dördü de ahşap oyuncaktı ve hepsi tek kategorideydi,
+      yani dokuz kategorili bir ürünü tek kategoriyle tanıtıyordu.
 
 > **Rehberin üç uygulama notu daha uygulandı.** (1) Yardım kartındaki
 > dördüncü adımdan "48 saat" düştü: süre doğru ama not, sabit süre sözünün

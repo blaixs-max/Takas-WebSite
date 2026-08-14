@@ -38,6 +38,19 @@ export async function loadConversations(): Promise<ConversationRow[]> {
 }
 
 /**
+ * Tek bir sohbetin başlık bilgisi.
+ *
+ * Sunucuda sohbeti tek tek döndüren bir uç yok; `my_conversations` zaten
+ * kullanıcının bütün sohbetlerini veriyor ve sayıları küçük (bir kullanıcının
+ * açık sohbeti onlarla ölçülür), o yüzden listeyi süzmek yeni bir RPC
+ * yazmaktan ucuz. Liste büyürse buraya kendi ucu gelir.
+ */
+export async function loadConversation(id: string): Promise<ConversationRow | null> {
+  const hepsi = await loadConversations();
+  return hepsi.find((c) => c.id === id) ?? null;
+}
+
+/**
  * Okunmamış **mesaj** sayısı — sohbetlerin toplamı.
  *
  * Profildeki "Mesajlarım" satırı bu sayıyı değil, bildirim sayacını

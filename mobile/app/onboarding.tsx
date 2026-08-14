@@ -36,13 +36,21 @@ export default function Onboarding() {
     <View style={[styles.root, { paddingTop: insets.top }]}>
       {/* Sanat alanı */}
       <View style={styles.art}>
-        <Image source={require('../assets/products/hero-main-game.jpg')} style={styles.artImg} resizeMode="cover" />
-        {/* Perde marka koyusundan (#1F2937). Üst köşe biraz daha kapalı:
-            logo oraya oturuyor ve fotoğrafın açık bir yerine denk gelirse
-            harfler kayboluyordu. */}
+        <Image source={require('../assets/products/onboarding-aile.jpg')} style={styles.artImg} resizeMode="cover" />
+        {/* Perde marka koyusundan (#1F2937). Üst kenar belirgin daha kapalı:
+            kelime logosu oraya oturuyor ve her harfi kendi renginde — açık bir
+            fotoğrafın üstünde sarı ve yeşil harfler ilk kaybolanlar. Tasarım
+            paketinin aile fotoğrafı tam da üst kenarında parlak, o yüzden ilk
+            durak 0.55'ten 0.72'ye çıktı ve kararma daha dar bir şeride
+            sıkıştı — fotoğrafın ortası açık kalsın diye. */}
         <LinearGradient
-          colors={['rgba(31,41,55,0.55)', 'rgba(31,41,55,0.20)', 'rgba(31,41,55,0.58)']}
-          locations={[0, 0.42, 1]}
+          colors={[
+            'rgba(31,41,55,0.72)',
+            'rgba(31,41,55,0.34)',
+            'rgba(31,41,55,0.16)',
+            'rgba(31,41,55,0.52)',
+          ]}
+          locations={[0, 0.22, 0.5, 1]}
           style={StyleSheet.absoluteFill}
         />
         {/* Kelime logosu tek başına — sitenin başlığında da işaret yok. */}
@@ -120,7 +128,7 @@ export default function Onboarding() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
-  art: { height: 300, borderBottomLeftRadius: 40, borderBottomRightRadius: 40, overflow: 'hidden' },
+  art: { height: 316, borderBottomLeftRadius: 40, borderBottomRightRadius: 40, overflow: 'hidden' },
   artImg: { width: '100%', height: '100%' },
   logo: { position: 'absolute', top: 26, left: 24 },
   float: {

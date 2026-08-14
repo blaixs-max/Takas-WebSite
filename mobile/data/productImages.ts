@@ -12,6 +12,13 @@ export const PRODUCT_IMAGES: Record<string, ImageSourcePropType> = {
   'montessori-rings': require('../assets/products/product-montessori-rings.jpg'),
   'rings-close': require('../assets/products/product-rings-close.jpg'),
   'hero': require('../assets/products/hero-main-game.jpg'),
+
+  /* Tasarım paketinin dört fotoğrafı (`tasarim/photos_4k/`). 3840×2160
+     kaynaklardan kullanıldıkları yerin oranına göre kırpıldı; `cover` zaten
+     kırpardı ama kadrajı gözetmeden, ortadan. */
+  'montessori-set': require('../assets/products/urun-montessori-set.jpg'),
+  'puset': require('../assets/products/urun-puset.jpg'),
+  'kitap-seti': require('../assets/products/urun-kitap-seti.jpg'),
 };
 
 const FALLBACK = PRODUCT_IMAGES['wooden-blocks'];

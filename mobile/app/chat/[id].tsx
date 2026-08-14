@@ -15,10 +15,16 @@ import { uyar } from '../../components/Dialog';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Image } from 'react-native';
+import { BosDurum } from '../../components/BosDurum';
+import { Diamond } from '../../components/brand/Diamond';
+import { useProduct } from '../../hooks/useProducts';
 import {
+  ConversationRow,
   MessageRow,
   ReportReason,
   SIKAYET_NEDENLERI,
+  loadConversation,
   loadMessages,
   markConversationRead,
   saat,
@@ -26,7 +32,7 @@ import {
   sendMessage,
   subscribeMessages,
 } from '../../lib/messages';
-import { colors, shape } from '../../theme/tokens';
+import { colors, elevation, shape } from '../../theme/tokens';
 
 /**
  * Sohbet — canlı.
@@ -46,6 +52,19 @@ export default function Chat() {
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const listeRef = useRef<ScrollView>(null);
   const [sikayetEdilen, setSikayetEdilen] = useState<MessageRow | null>(null);
+
+  /* Sohbetin hangi ürün hakkında olduğu. Tasarımda ekranın tepesinde duran
+     şerit bu — sohbet listeden değil de ürün detayından açıldığında
+     kullanıcı hangi ilandan konuştuğunu başka türlü göremiyordu. */
+  const [sohbet, setSohbet] = useState<ConversationRow | null>(null);
+  useEffect(() => {
+    let iptal = false;
+    if (id) loadConversation(id).then((c) => !iptal && setSohbet(c));
+    return () => {
+      iptal = true;
+    };
+  }, [id]);
+  const { product: urun } = useProduct(sohbet?.productId);
 
   const getir = useCallback(async () => {
     if (!id) return;
@@ -113,6 +132,37 @@ export default function Chat() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={insets.top + 56}
       >
+        {sohbet && (
+          <Pressable
+            style={styles.urunSerit}
+            onPress={() => router.push(`/product/${sohbet.productId}`)}
+            accessibilityRole="button"
+          >
+            {urun ? (
+              <Image source={urun.image} style={styles.urunGorsel} resizeMode="cover" />
+            ) : (
+              <View style={styles.urunGorsel} />
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={styles.urunBaslik} numberOfLines={1}>
+                {sohbet.productTitle}
+              </Text>
+              <View style={styles.urunAlt}>
+                <Text style={styles.urunKisi} numberOfLines={1}>
+                  {sohbet.karsiTaraf}
+                </Text>
+                {urun ? (
+                  <>
+                    <Text style={styles.urunAyrac}>·</Text>
+                    <Diamond size={10} color={colors.primary} />
+                    <Text style={styles.urunPuan}>{urun.points} Takas Puanı</Text>
+                  </>
+                ) : null}
+              </View>
+            </View>
+          </Pressable>
+        )}
+
         {yukleniyor ? (
           <View style={styles.orta}>
             <ActivityIndicator color={colors.primary} />
@@ -125,13 +175,17 @@ export default function Chat() {
           >
             {mesajlar.length > 0 && (
               <Text style={styles.ipucu}>
-                Uygunsuz bir mesajı bildirmek için üzerine basılı tutun.
+                Uygunsuz bir mesajı bildirmek için üzerine basılı tut.
               </Text>
             )}
+            {/* Rehber 18'de boş durum tek cümle; tasarımda başlık ve
+                açıklama iki satır. İkisi aynı cümlenin bölünmüş hâli. */}
             {mesajlar.length === 0 && (
-              <Text style={styles.bosMetin}>
-                Henüz mesaj yok. Ürünle ilgili merak ettiğini sorabilirsin.
-              </Text>
+              <BosDurum
+                ikon="chat-bubble-outline"
+                baslik="Henüz mesaj yok"
+                metin="Ürünle ilgili merak ettiğini sorabilirsin."
+              />
             )}
             {mesajlar.map((m) => (
               <Pressable
@@ -155,7 +209,7 @@ export default function Chat() {
         <View style={[styles.girisAlani, { paddingBottom: insets.bottom + 10 }]}>
           <TextInput
             style={styles.giris}
-            placeholder="Mesaj yazın"
+            placeholder="Mesaj yaz"
             placeholderTextColor={colors.onSurfaceVariant}
             value={metin}
             onChangeText={setMetin}
@@ -166,6 +220,7 @@ export default function Chat() {
             style={[styles.gonder, (!metin.trim() || gonderiliyor) && styles.kapali]}
             disabled={!metin.trim() || gonderiliyor}
             onPress={gonder}
+            accessibilityLabel="Mesajı gönder"
           >
             {gonderiliyor ? (
               <ActivityIndicator size="small" color="#fff" />
@@ -220,15 +275,29 @@ const styles = StyleSheet.create({
     color: colors.onSurface,
   },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  bosMetin: {
-    textAlign: 'center',
-    color: colors.onSurfaceVariant,
-    fontSize: 13,
-    fontWeight: '500',
-    marginTop: 40,
-    paddingHorizontal: 30,
-    lineHeight: 19,
+  /* Ürün şeridi — tasarımda ekranın tepesinde, gövdeden gölgeyle ayrılıyor. */
+  urunSerit: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginHorizontal: 18,
+    marginBottom: 4,
+    padding: 8,
+    borderRadius: shape.md,
+    backgroundColor: colors.surfaceContainerLowest,
+    ...elevation.level1,
   },
+  urunGorsel: {
+    width: 38,
+    height: 38,
+    borderRadius: shape.sm,
+    backgroundColor: colors.surfaceContainerHigh,
+  },
+  urunBaslik: { fontSize: 12.5, fontWeight: '800', color: colors.onSurface },
+  urunAlt: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+  urunKisi: { fontSize: 11, fontWeight: '500', color: colors.onSurfaceVariant, flexShrink: 1 },
+  urunAyrac: { fontSize: 11, color: colors.onSurfaceVariant },
+  urunPuan: { fontSize: 11, fontWeight: '700', color: colors.primary },
   balon: {
     maxWidth: '78%',
     paddingHorizontal: 13,
@@ -238,7 +307,7 @@ const styles = StyleSheet.create({
   },
   benim: { alignSelf: 'flex-end', backgroundColor: colors.primary },
   karsi: { alignSelf: 'flex-start', backgroundColor: colors.surfaceContainerHigh },
-  metin: { fontSize: 14, lineHeight: 19, color: colors.onSurface, fontWeight: '500' },
+  metin: { fontSize: 13.5, lineHeight: 19, color: colors.onSurface, fontWeight: '500' },
   metinBenim: { color: '#fff' },
   saat: { fontSize: 10, color: colors.onSurfaceVariant, marginTop: 4, alignSelf: 'flex-end' },
   saatBenim: { color: 'rgba(255,255,255,0.75)' },
@@ -248,23 +317,23 @@ const styles = StyleSheet.create({
     gap: 9,
     paddingHorizontal: 14,
     paddingTop: 10,
-    backgroundColor: colors.surfaceContainer,
+    backgroundColor: colors.surfaceContainerLow,
   },
   giris: {
     flex: 1,
     maxHeight: 110,
-    minHeight: 46,
-    borderRadius: shape.lg,
+    minHeight: 44,
+    borderRadius: shape.full,
     backgroundColor: colors.surfaceContainerHigh,
-    paddingHorizontal: 14,
-    paddingTop: 13,
-    paddingBottom: 13,
-    fontSize: 14.5,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+    fontSize: 14,
     color: colors.onSurface,
   },
   gonder: {
-    width: 46,
-    height: 46,
+    width: 44,
+    height: 44,
     borderRadius: shape.full,
     backgroundColor: colors.primary,
     alignItems: 'center',

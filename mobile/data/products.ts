@@ -19,7 +19,16 @@ export interface Product {
   location: string;
   distanceKm: number;
   rating: number;
-  marketValue: string;
+  /**
+   * TL karşılığı — **hiçbir ekranda gösterilmiyor**.
+   *
+   * Rehber 05'in uygulama notu: "'Piyasa karşılığı' ve TL değer aralığı
+   * gösterilmez." Alan yine de duruyor çünkü sunucudaki `market_value`
+   * sütunu değerlemede kullanılıyor; arayüze çıkmayan bir veri olması bir
+   * çelişki değil. Zorunlu olmaktan çıktı: yeni ilanlarda boş kalabiliyor ve
+   * boş kalması bir eksiklik değil.
+   */
+  marketValue?: string;
   badge?: string;
   /**
    * Satıcı hasar beyan etti mi.
@@ -115,8 +124,57 @@ export function rowToProduct(
   };
 }
 
-/** Anahtar/oturum yokken kullanılan demo ilanlar (seed ile aynı). */
+/**
+ * Anahtar/oturum yokken kullanılan demo ilanlar.
+ *
+ * Dördü de ahşap oyuncaktı ve hepsi tek kategorideydi ("Oyun & Oyuncak");
+ * dokuz ana kategorili bir ürünü tek kategoriyle tanıtıyordu ve çip satırı
+ * seçilince beş kategori boş dönüyordu. Tasarımın vitrininde bir puset ve bir
+ * kitap seti var — ikisi de eklendi, fotoğrafları da tasarım paketinden.
+ *
+ * `condition` üç değerle sınırlı (`products` CHECK kısıtı): 'İyi durumda',
+ * 'Az kullanılmış', 'Yeni gibi'. Tasarımın "Çok iyi"si bizde yok — kullanıcı
+ * kararıyla durumlar bizim üçlümüz kalıyor.
+ */
 export const DEMO_PRODUCTS: Product[] = [
+  {
+    id: 'puset',
+    title: 'Adaçayı yeşili puset',
+    points: 780,
+    condition: 'Yeni gibi',
+    category: 'Bebek Arabası & Puset',
+    subCategory: 'Puset & portbebe',
+    location: 'Beşiktaş',
+    distanceKm: 3.2,
+    rating: 4.9,
+    /* Blok setinde zaten "Popüler" var; öne çıkanlar şeridinde iki özdeş
+       rozet yan yana geliyordu. Rehber 04 bu etiketin alternatifini
+       "Öne çıkan" olarak veriyor. */
+    badge: 'Öne çıkan',
+    hasDamage: false,
+    seller: { name: 'Ayşe Y.', initials: 'AY', trust: 94, trades: 29 },
+    description:
+      'Adaçayı yeşili, çift yönlü puset. Katlanma mekanizması sorunsuz çalışır; kumaşında belirgin leke veya yırtık yoktur. Yağmurluk ve alt sepetiyle gönderilir.',
+    image: resolveImage('puset'),
+    gallery: resolveGallery(['puset']),
+  },
+  {
+    id: 'kitaplar',
+    title: 'Resimli kitap seti',
+    points: 320,
+    condition: 'İyi durumda',
+    category: 'Kitap & Eğitim',
+    subCategory: 'Kitaplar',
+    location: 'Kadıköy',
+    distanceKm: 2.4,
+    rating: 4.8,
+    hasDamage: false,
+    seller: { name: 'Selin B.', initials: 'SB', trust: 92, trades: 14 },
+    description:
+      'On iki kitaplık resimli hikâye seti. Sayfalarda yırtık yok, kapaklarda hafif okuma izi var. Tamamı Türkçe.',
+    image: resolveImage('kitap-seti'),
+    gallery: resolveGallery(['kitap-seti']),
+  },
   {
     id: 'blocks',
     title: 'Montessori ahşap blok seti',
@@ -133,8 +191,8 @@ export const DEMO_PRODUCTS: Product[] = [
     seller: { name: 'Zeynep D.', initials: 'ZD', trust: 96, trades: 38 },
     description:
       'Doğal kayın ağacından, 48 parçalık geometrik blok seti. 2 yıl kullanıldı, boyası dökülmemiş. Orijinal ahşap kutusuyla birlikte gönderilir.',
-    image: resolveImage('wooden-blocks'),
-    gallery: resolveGallery(['wooden-blocks', 'wooden-close', 'rings-close', 'color-sorter']),
+    image: resolveImage('montessori-set'),
+    gallery: resolveGallery(['montessori-set', 'wooden-blocks', 'wooden-close', 'rings-close']),
   },
   {
     id: 'sorter',
