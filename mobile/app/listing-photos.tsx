@@ -197,7 +197,7 @@ export default function ListingPhotos() {
           ) : (
             <View style={styles.onizlemeBos}>
               <MaterialIcons name="add-a-photo" size={40} color={colors.outline} />
-              <Text style={styles.onizlemeBosText}>Bu kare henüz çekilmedi</Text>
+              <Text style={styles.onizlemeBosText}>Bu fotoğraf henüz eklenmedi</Text>
             </View>
           )}
           {yukleniyor === slot && (
@@ -263,7 +263,7 @@ export default function ListingPhotos() {
               color={slotBitti ? colors.onSurfaceVariant : '#fff'}
             />
             <Text style={[styles.cekBtnText, slotBitti && styles.cekBtnTextSessiz]}>
-              {slotBitti ? 'Yeniden çek' : 'Çek'}
+              {slotBitti ? 'Yeniden çek' : 'Kamerayı aç'}
             </Text>
           </Pressable>
           <Pressable
@@ -307,13 +307,17 @@ export default function ListingPhotos() {
           ) : (
             <>
               <MaterialIcons name="publish" size={20} color="#fff" />
-              <Text style={styles.ctaText}>İlanı yayına al</Text>
+              {/* Rehber 10: tamamlama CTA'sı "Kontrole gönder". Düğme
+                  `publish_listing`'i çağırıyor ama o kapı kareler
+                  moderasyondan geçmeden açılmıyor — yani kullanıcı açısından
+                  buradaki eylem gerçekten kontrole göndermek. */}
+              <Text style={styles.ctaText}>Kontrole gönder</Text>
             </>
           )}
         </Pressable>
         {!hepsiVar && (
           <Text style={styles.ctaHint}>
-            {slotlar.length - cekilen} kare daha çekilmeli
+            {slotlar.length - cekilen} fotoğraf daha ekle
           </Text>
         )}
       </View>

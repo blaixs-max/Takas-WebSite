@@ -117,20 +117,25 @@ export default function AddListing() {
         <View style={styles.fotoNot}>
           <MaterialIcons name="photo-camera" size={22} color={colors.onPrimaryContainer} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.fotoNotBaslik}>Fotoğraflar sırada</Text>
+            <Text style={styles.fotoNotBaslik}>Sırada ürün fotoğrafları var</Text>
+            {/* "Yedi açıdan" yazıyordu ve bir sonraki ekranın sayacı "0/5"
+                diyordu — aynı akış iki farklı sayı söylüyordu. Doğrusu beş:
+                `data/photoSlots.ts` içindeki yedi kareden beşi `always`,
+                kalan ikisi hasar beyan edilmişse ve ürün setse isteniyor.
+                Metin rehber 09'dan birebir. */}
             <Text style={styles.fotoNotAlt}>
-              Bu adımdan sonra ürünü yedi açıdan, adım adım çekeceğiz. İlan ancak
-              kareler tamamlanınca yayına girer.
+              Sonraki adımda ürünü beş açıdan fotoğraflayacaksın. İlanın, gerekli
+              fotoğraflar tamamlandıktan sonra kontrol için gönderilir.
             </Text>
           </View>
         </View>
 
         {/* Başlık */}
-        <Text style={styles.flabel}>BAŞLIK</Text>
+        <Text style={styles.flabel}>Başlık</Text>
         <View style={styles.field}>
           <TextInput
             style={styles.input}
-            placeholder="Örn. Montessori ahşap blok seti"
+            placeholder="Örn. Adaçayı yeşili puset"
             placeholderTextColor={colors.onSurfaceVariant}
             value={title}
             onChangeText={setTitle}
@@ -138,7 +143,7 @@ export default function AddListing() {
         </View>
 
         {/* Kategori — dokuz ana, ardından seçilenin alt kategorileri */}
-        <Text style={styles.flabel}>KATEGORİ</Text>
+        <Text style={styles.flabel}>Ana kategori</Text>
         <View style={styles.chips}>
           {CATEGORY_TREE.map((c) => {
             const sel = c.name === category;
@@ -159,7 +164,7 @@ export default function AddListing() {
           })}
         </View>
 
-        <Text style={styles.flabel}>ALT KATEGORİ</Text>
+        <Text style={styles.flabel}>Alt kategori</Text>
         <View style={styles.chips}>
           {subsOf(category).map((s) => {
             const sel = s === subCategory;
@@ -282,14 +287,19 @@ export default function AddListing() {
           ) : (
             <>
               <MaterialIcons name="photo-camera" size={20} color="#fff" />
-              <Text style={styles.ctaText}>Devam et · fotoğraflar</Text>
+              <Text style={styles.ctaText}>Devam et: Fotoğraflar</Text>
             </>
           )}
         </Pressable>
-        {!baslikTamam ? (
-          <Text style={styles.ctaHint}>Devam etmek için bir başlık yazın</Text>
-        ) : !altTamam ? (
-          <Text style={styles.ctaHint}>Devam etmek için bir alt kategori seçin</Text>
+        {/* Rehber 09'un tek uyarı cümlesi. Önce iki ayrı cümle vardı ve
+            ikisi de yalnızca bir eksiği söylüyordu: başlığı yazan kullanıcı
+            "bir alt kategori seçin" görüp kategoriyi seçince bu kez ürün
+            durumunun da gerektiğini öğreniyordu — eksikler sırayla açığa
+            çıkıyordu. */}
+        {!gonderilebilir ? (
+          <Text style={styles.ctaHint}>
+            Devam etmek için başlık, kategori ve ürün durumunu seç.
+          </Text>
         ) : null}
       </View>
     </View>
@@ -314,9 +324,20 @@ const styles = StyleSheet.create({
   stepbar: { flexDirection: 'row', gap: 6, marginBottom: 16 },
   step: { flex: 1, height: 4, borderRadius: shape.full, backgroundColor: colors.surfaceContainerHighest },
   stepOn: { backgroundColor: colors.primary },
-  flabel: { fontSize: 12, fontWeight: '700', color: colors.onSurfaceVariant, letterSpacing: 0.4, marginBottom: 8, marginTop: 6 },
-  field: { height: 52, paddingHorizontal: 16, borderRadius: shape.sm, backgroundColor: colors.surfaceContainerHigh, justifyContent: 'center', marginBottom: 6 },
-  input: { fontSize: 15, color: colors.onSurface },
+  /* Metin rehberden cümle düzeninde geliyor ("Ana kategori"), büyük harfe
+     çeviren stil — tasarımda etiketler versal. İkisini karıştırmamak lazım:
+     içerik rehberin, biçim tasarımın. */
+  flabel: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: colors.onSurfaceVariant,
+    letterSpacing: 0.7,
+    textTransform: 'uppercase',
+    marginBottom: 7,
+    marginTop: 8,
+  },
+  field: { height: 44, paddingHorizontal: 14, borderRadius: shape.sm, backgroundColor: colors.surfaceContainerHigh, justifyContent: 'center', marginBottom: 4 },
+  input: { fontSize: 13, color: colors.onSurface },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 6 },
   chip: { height: 36, paddingHorizontal: 14, borderRadius: shape.xs, borderWidth: 1, borderColor: colors.outlineVariant, justifyContent: 'center' },
   chipIkonlu: { flexDirection: 'row', alignItems: 'center', gap: 6 },

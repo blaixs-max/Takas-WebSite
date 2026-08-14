@@ -53,6 +53,21 @@ export const colors = {
   tertiaryContainer: '#FFF0DA',
   onTertiaryContainer: '#5A3A00',
 
+  /**
+   * Mor — paletin ikincil vurgusu (marka dokümanı 6. bölüm, `#8B5CF6`).
+   *
+   * Yeni renk değil: sekizlinin içinde zaten var, sitede "Editör seçimi"
+   * rozetini taşıyor. Buradaki `#F1EAFF` onun düşük opaklıkta zemini —
+   * tasarımın adres ekranından ölçüldü.
+   *
+   * Kural aynı: büyük yüzeye sürülmez. Tek kullanımı adres ekranındaki
+   * gizlilik kartı; oradaki işi turkuazdan **ayrışmak** — yan yana duran iki
+   * bilgi kartından biri "ne yapabilirsin", öteki "seninle ilgili ne
+   * yapmıyoruz" diyor ve ikisi aynı renk olsaydı tek kart gibi okunurdu.
+   */
+  accent: '#8B5CF6',
+  accentContainer: '#F1EAFF',
+
   /** Geri bildirim — mercandan türetildi; `#FF6B6B` metin olarak okunmuyor. */
   error: '#b4202e',
   errorContainer: '#ffe0dd',

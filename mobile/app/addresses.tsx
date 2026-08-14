@@ -1,5 +1,6 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { BosDurum } from '../components/BosDurum';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, elevation, shape } from '../theme/tokens';
@@ -52,22 +53,40 @@ export default function Addresses() {
           </View>
         ))}
 
+        {/* Rehber 17'nin uygulama notu: bu akışta adres önceden
+            kaydedilmediği için "Adres ekle" CTA'sı kullanılmaz — o yüzden
+            boş durum düğmesiz. */}
         {ADDRESSES.length === 0 && (
-          <View style={styles.bos}>
-            <MaterialIcons name="local-shipping" size={34} color={colors.onSurfaceVariant} />
-            <Text style={styles.bosBaslik}>Kayıtlı adresin yok</Text>
-            <Text style={styles.bosMetin}>
-              Adres defteri henüz açılmadı. Kargo adresi, takas onaylandıktan sonra ödeme
-              adımında soruluyor ve yalnızca o gönderi için kullanılıyor.
-            </Text>
-          </View>
+          <BosDurum
+            ikon="location-on"
+            baslik="Adres bilgisi henüz alınmadı"
+            metin="Kargo adresin, takas onaylandıktan sonra ödeme adımında alınır ve yalnızca o gönderi için kullanılır."
+          />
         )}
 
         <View style={styles.note}>
-          <MaterialIcons name="local-shipping" size={18} color={colors.primary} />
-          <Text style={styles.noteText}>
-            Kargo, takas onaylanınca varsayılan adresine planlanır. Anlaşmalı kargo ile gönderim tek tıkla yapılır.
-          </Text>
+          <MaterialIcons name="local-shipping" size={17} color={colors.primary} style={styles.noteIc} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.noteBaslik}>Gönderini uygulamadan yönet</Text>
+            <Text style={styles.noteText}>
+              Anlaşmalı kargo kaydını uygulama içinden oluşturabilir, gönderi durumunu
+              buradan takip edebilirsin.
+            </Text>
+          </View>
+        </View>
+
+        {/* İkinci kart mor: tasarımda da öyle ve gerekçesi var — biri
+            "ne yapabilirsin", öteki "seninle ilgili ne yapmıyoruz". Mor,
+            paletin ikincil vurgusu ve büyük yüzeye sürülmüyor. */}
+        <View style={styles.gizlilik}>
+          <MaterialIcons name="lock-outline" size={17} color={colors.accent} style={styles.noteIc} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.gizlilikBaslik}>Adresin profilinde saklanmaz</Text>
+            <Text style={styles.gizlilikText}>
+              Adres bilgisi ilgili gönderi tamamlandıktan sonra uygulama profilinde
+              tutulmaz.
+            </Text>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -75,16 +94,6 @@ export default function Addresses() {
 }
 
 const styles = StyleSheet.create({
-  bos: { alignItems: 'center', gap: 10, paddingVertical: 48, paddingHorizontal: 12 },
-  bosBaslik: { fontSize: 16, fontWeight: '700', color: colors.onSurface },
-  bosMetin: {
-    fontSize: 13,
-    lineHeight: 19,
-    color: colors.onSurfaceVariant,
-    fontWeight: '500',
-    textAlign: 'center',
-    maxWidth: 280,
-  },
   root: { flex: 1, backgroundColor: colors.surface },
   appbar: { flexDirection: 'row', alignItems: 'center', height: 56, paddingHorizontal: 6 },
   title: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: colors.onSurface },
@@ -112,5 +121,10 @@ const styles = StyleSheet.create({
   },
   addText: { color: colors.primary, fontWeight: '700', fontSize: 15 },
   note: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: shape.md, backgroundColor: colors.primaryContainer, marginTop: 18 },
-  noteText: { flex: 1, fontSize: 12.5, color: colors.onPrimaryContainer, fontWeight: '500', lineHeight: 18 },
+  noteIc: { marginTop: 1 },
+  noteBaslik: { fontSize: 13, fontWeight: '800', color: colors.onPrimaryContainer },
+  noteText: { fontSize: 11.5, color: colors.onPrimaryContainer, fontWeight: '500', lineHeight: 17, marginTop: 4 },
+  gizlilik: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: shape.md, backgroundColor: colors.accentContainer, marginTop: 10 },
+  gizlilikBaslik: { fontSize: 13, fontWeight: '800', color: colors.onSurface },
+  gizlilikText: { fontSize: 11.5, color: colors.onSurfaceVariant, fontWeight: '500', lineHeight: 17, marginTop: 4 },
 });
