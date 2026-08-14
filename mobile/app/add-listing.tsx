@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
      çeviren stil — tasarımda etiketler versal. İkisini karıştırmamak lazım:
      içerik rehberin, biçim tasarımın. */
   flabel: {
-    fontSize: 9.5,
+    fontSize: 10,
     fontWeight: '800',
     color: colors.onSurfaceVariant,
     letterSpacing: 0.7,
@@ -336,8 +336,8 @@ const styles = StyleSheet.create({
     marginBottom: 7,
     marginTop: 8,
   },
-  field: { height: 44, paddingHorizontal: 14, borderRadius: shape.sm, backgroundColor: colors.surfaceContainerHigh, justifyContent: 'center', marginBottom: 4 },
-  input: { fontSize: 13, color: colors.onSurface },
+  field: { height: 46, paddingHorizontal: 14, borderRadius: shape.sm, backgroundColor: colors.surfaceContainerHigh, justifyContent: 'center', marginBottom: 4 },
+  input: { fontSize: 14, color: colors.onSurface },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 6 },
   chip: { height: 36, paddingHorizontal: 14, borderRadius: shape.xs, borderWidth: 1, borderColor: colors.outlineVariant, justifyContent: 'center' },
   chipIkonlu: { flexDirection: 'row', alignItems: 'center', gap: 6 },

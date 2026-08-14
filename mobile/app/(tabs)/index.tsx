@@ -294,8 +294,8 @@ export default function ShelfScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
   appbar: { flexDirection: 'row', alignItems: 'center', paddingTop: 8, paddingBottom: 12, paddingHorizontal: 6 },
-  greeting: { fontSize: 22, fontWeight: '800', letterSpacing: -0.6, color: colors.onSurface },
-  sub: { fontSize: 11, fontWeight: '500', color: colors.onSurfaceVariant, marginTop: 2 },
+  greeting: { fontSize: 24, fontWeight: '800', letterSpacing: -0.6, color: colors.onSurface },
+  sub: { fontSize: 12, fontWeight: '500', color: colors.onSurfaceVariant, marginTop: 2 },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   badge: {
     position: 'absolute',
@@ -322,13 +322,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 9,
-    height: 40,
+    height: 42,
     paddingLeft: 14,
     paddingRight: 6,
     borderRadius: shape.full,
     backgroundColor: colors.surfaceContainerHigh,
   },
-  searchInput: { flex: 1, fontSize: 13, color: colors.onSurface },
+  searchInput: { flex: 1, fontSize: 14, color: colors.onSurface },
   /* Turuncu daire 28 pt (ölçüldü). Metin koyu — beyaz `#FFA726` üzerinde
      okunmuyor. */
   avatar: {
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: { color: colors.onTertiaryContainer, fontWeight: '800', fontSize: 11 },
+  avatarText: { color: colors.onTertiaryContainer, fontWeight: '800', fontSize: 11.5 },
   chips: { gap: 8, paddingHorizontal: 18, paddingBottom: 4 },
   /* Tasarım: beyaz hap + ince kenarlık, yüksekliği 25 pt; seçili olan açık
      turkuaz zemin ve koyu turkuaz metin. Burada 30: 25 pt dokunma için fazla
@@ -348,15 +348,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    height: 30,
-    paddingHorizontal: 11,
+    height: 32,
+    paddingHorizontal: 12,
     borderRadius: shape.full,
     borderWidth: 1,
     borderColor: colors.outlineVariant,
     backgroundColor: colors.surfaceContainerLowest,
   },
   chipSel: { backgroundColor: colors.primaryContainer, borderColor: 'transparent' },
-  chipText: { fontSize: 11, fontWeight: '700', color: colors.onSurfaceVariant },
+  chipText: { fontSize: 11.5, fontWeight: '700', color: colors.onSurfaceVariant },
   chipTextSel: { color: colors.primary },
   subChips: { gap: 8, paddingHorizontal: 18, paddingTop: 8, paddingBottom: 2 },
   subChip: {
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceContainerHigh,
   },
   subChipSel: { backgroundColor: colors.primary },
-  subChipText: { fontSize: 11, fontWeight: '600', color: colors.onSurfaceVariant },
+  subChipText: { fontSize: 11.5, fontWeight: '600', color: colors.onSurfaceVariant },
   subChipTextSel: { color: colors.onPrimary, fontWeight: '700' },
   sec: {
     flexDirection: 'row',
@@ -377,8 +377,8 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 10,
   },
-  secTitle: { fontSize: 17, fontWeight: '800', letterSpacing: -0.4, color: colors.onSurface },
-  secLink: { fontSize: 11.5, fontWeight: '800', color: colors.primary },
+  secTitle: { fontSize: 18, fontWeight: '800', letterSpacing: -0.4, color: colors.onSurface },
+  secLink: { fontSize: 12.5, fontWeight: '800', color: colors.primary },
   carousel: { gap: 10, paddingHorizontal: 18 },
   loading: { paddingVertical: 40, alignItems: 'center' },
   /* Kenar 18, kartlar arası 10 (ölçüldü) → 13 + 5 + 5 + 13. */

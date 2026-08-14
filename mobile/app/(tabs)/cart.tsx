@@ -99,7 +99,7 @@ export default function CartScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
   appbar: { flexDirection: 'row', alignItems: 'center', height: 56, paddingHorizontal: 18 },
-  appTitle: { flex: 1, fontSize: 15, fontWeight: '800', color: colors.onSurface },
+  appTitle: { flex: 1, fontSize: 16, fontWeight: '800', color: colors.onSurface },
   clearBtn: { paddingHorizontal: 8, paddingVertical: 6 },
   clearText: { color: colors.error, fontWeight: '700', fontSize: 13 },
   hint: { fontSize: 12, color: colors.onSurfaceVariant, fontWeight: '500', lineHeight: 18, marginBottom: 14 },

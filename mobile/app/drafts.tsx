@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     backgroundColor: colors.surface,
   },
-  headerTitle: { fontSize: 15, fontWeight: '800', color: colors.onSurface },
+  headerTitle: { fontSize: 16, fontWeight: '800', color: colors.onSurface },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   body: { padding: 18, gap: 10 },
   card: {
@@ -144,6 +144,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceContainerLowest,
     ...elevation.level1,
   },
-  title: { fontSize: 13, fontWeight: '800', color: colors.onSurface },
-  sub: { fontSize: 11, fontWeight: '500', color: colors.onSurfaceVariant, marginTop: 3 },
+  title: { fontSize: 14, fontWeight: '800', color: colors.onSurface },
+  sub: { fontSize: 11.5, fontWeight: '500', color: colors.onSurfaceVariant, marginTop: 3 },
 });

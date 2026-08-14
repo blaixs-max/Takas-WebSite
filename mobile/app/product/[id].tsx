@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
   center: { alignItems: 'center', justifyContent: 'center' },
   appbar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, backgroundColor: colors.surface },
-  appTitle: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '800', color: colors.onSurface },
+  appTitle: { flex: 1, textAlign: 'center', fontSize: 16, fontWeight: '800', color: colors.onSurface },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   /* Ölçüldü (`09_05_Urun_Detayi.png`): hero 354×230 pt → oran 1.54.
      Önceki 4/3 kareyi belirgin uzun gösteriyordu. */
@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.94)',
     ...elevation.level1,
   },
-  condText: { fontSize: 11, fontWeight: '700', color: colors.onSurface },
+  condText: { fontSize: 11.5, fontWeight: '700', color: colors.onSurface },
   count: {
     position: 'absolute',
     right: 14,
@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
     borderRadius: shape.sm,
     backgroundColor: 'rgba(31,41,55,0.78)',
   },
-  countText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  countText: { color: '#fff', fontSize: 11.5, fontWeight: '700' },
   dots: { position: 'absolute', left: 0, right: 0, bottom: 12, flexDirection: 'row', gap: 6, justifyContent: 'center' },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.55)' },
   dotOn: { width: 18, borderRadius: shape.full, backgroundColor: '#fff' },
@@ -520,9 +520,9 @@ const styles = StyleSheet.create({
   thumb: { width: 52, height: 52, borderRadius: shape.sm, overflow: 'hidden', borderWidth: 2, borderColor: 'transparent' },
   thumbOn: { borderColor: colors.primary },
   thumbImg: { width: '100%', height: '100%' },
-  title: { fontSize: 18, fontWeight: '800', lineHeight: 23, letterSpacing: -0.3, color: colors.onSurface },
-  ptsLabel: { color: colors.onSurfaceVariant, fontWeight: '800', fontSize: 10.5, marginTop: 12 },
-  pts: { fontSize: 21, fontWeight: '800', letterSpacing: -0.4, color: colors.primary, marginTop: 3 },
+  title: { fontSize: 19.5, fontWeight: '800', lineHeight: 25, letterSpacing: -0.3, color: colors.onSurface },
+  ptsLabel: { color: colors.onSurfaceVariant, fontWeight: '800', fontSize: 11, marginTop: 12 },
+  pts: { fontSize: 22.5, fontWeight: '800', letterSpacing: -0.4, color: colors.primary, marginTop: 3 },
   mchips: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 14, marginBottom: 14 },
   mc: {
     flexDirection: 'row',
@@ -534,9 +534,9 @@ const styles = StyleSheet.create({
   },
   mcVurgu: { backgroundColor: colors.primaryContainer },
   mcSade: { backgroundColor: colors.surfaceContainerLowest, borderWidth: 1, borderColor: colors.outlineVariant },
-  mcText: { fontSize: 10.5, fontWeight: '700', color: colors.onSurfaceVariant },
+  mcText: { fontSize: 11, fontWeight: '700', color: colors.onSurfaceVariant },
   mcTextVurgu: { color: colors.primary },
-  desc: { color: colors.onSurfaceVariant, lineHeight: 19, fontSize: 12.5, fontWeight: '500', marginBottom: 16 },
+  desc: { color: colors.onSurfaceVariant, lineHeight: 20, fontSize: 13, fontWeight: '500', marginBottom: 16 },
   seller: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -569,8 +569,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.surfaceContainerLowest,
   },
-  sellerName: { fontWeight: '800', fontSize: 13, color: colors.onSurface },
-  sellerSubText: { color: colors.onSurfaceVariant, fontSize: 11, fontWeight: '500', marginTop: 3 },
+  sellerName: { fontWeight: '800', fontSize: 14, color: colors.onSurface },
+  sellerSubText: { color: colors.onSurfaceVariant, fontSize: 11.5, fontWeight: '500', marginTop: 3 },
   pool: {
     flexDirection: 'row',
     gap: 11,
@@ -579,8 +579,8 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   poolIcon: { marginTop: 1 },
-  poolHeadText: { fontWeight: '800', fontSize: 13, color: colors.onPrimaryContainer },
-  poolText: { fontSize: 11.5, lineHeight: 17, fontWeight: '500', color: colors.onPrimaryContainer, marginTop: 4 },
+  poolHeadText: { fontWeight: '800', fontSize: 14, color: colors.onPrimaryContainer },
+  poolText: { fontSize: 12, lineHeight: 18, fontWeight: '500', color: colors.onPrimaryContainer, marginTop: 4 },
   /* Ölçüldü: kenar 18, iki daire 44, aralar 7, CTA kalanı doldurur, y 46.
      Şeridin zemini `#FFF9EF` — sayfa zemininin bir ton açığı; önceki
      `surfaceContainer` sayfadan koyuydu ve şerit alta yapışmış gri bir bant
@@ -614,5 +614,5 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     ...elevation.level1,
   },
-  ctaText: { color: '#fff', fontWeight: '800', fontSize: 14 },
+  ctaText: { color: '#fff', fontWeight: '800', fontSize: 14.5 },
 });

@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  rehberBaslik: { fontSize: 15, fontWeight: '800', color: colors.onSurface },
+  rehberBaslik: { fontSize: 16, fontWeight: '800', color: colors.onSurface },
   rehberYonerge: { fontSize: 13.5, color: colors.onSurface, fontWeight: '500', marginTop: 3 },
   rehberNeden: { fontSize: 12, color: colors.onSurfaceVariant, fontWeight: '500', marginTop: 4 },
   onizleme: {

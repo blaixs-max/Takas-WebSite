@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   appTitle: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '800',
     color: colors.onSurface,
   },

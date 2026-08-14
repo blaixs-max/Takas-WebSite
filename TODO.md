@@ -691,9 +691,14 @@ hepsi 24 ekranın baskın renkleri sayılarak ölçüldü, göz kararı seçilme
       tek farkı rozet. Stiller `ProductCard`'tan geliyor.
 - [x] **Anasayfa** — selamlama, dolu krem arama alanı, beyaz/turkuaz
       çipler, bölüm başlıkları, "Tümünü gör" ve "Haritada gör" çalışıyor.
-- [x] **Punto ölçeği** — bütün yazılar tasarımın ölçüsüne çekildi
-      (selamlama 27→22, bölüm başlığı 19.5→17, kart başlığı 14.5→12.5,
-      hap 10.5→9.5). Ölçüm aynı yazı tipiyle yapıldı, göz kararı değil.
+- [x] **Punto ölçeği — tasarımla eski hâlin ortası** (kullanıcı kararı).
+      Önce tasarımın ölçüsüne çekilmişti (selamlama 22, bölüm başlığı 17,
+      kart başlığı 12.5); kullanıcı iri hâli daha okunaklı bulunca ikisinin
+      ortasında durduk: **selamlama 24, bölüm başlığı 18, kart başlığı 13.5,
+      hap 10.5**. Tasarımın oranları korunuyor, hepsi birlikte ~%8 büyüdü.
+      Ölçüm aynı yazı tipiyle yapıldı, göz kararı değil.
+
+      Alt şerit tasarımdaki gibi kaldı: zemin `#FFF9EF`, etiket "Ürün ekle".
 - [x] **Alt sekme şeridi** — zemin `#F6F3ED` idi, yani sayfa zemininden
       **koyu**; tasarımda `#FFF9EF`, yani bir ton açık. Etiket "Ürün Ekle"
       değil "Ürün ekle" (rehber 09).

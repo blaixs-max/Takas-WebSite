@@ -122,9 +122,9 @@ const styles = StyleSheet.create({
   addText: { color: colors.primary, fontWeight: '700', fontSize: 15 },
   note: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: shape.md, backgroundColor: colors.primaryContainer, marginTop: 18 },
   noteIc: { marginTop: 1 },
-  noteBaslik: { fontSize: 13, fontWeight: '800', color: colors.onPrimaryContainer },
-  noteText: { fontSize: 11.5, color: colors.onPrimaryContainer, fontWeight: '500', lineHeight: 17, marginTop: 4 },
+  noteBaslik: { fontSize: 13.5, fontWeight: '800', color: colors.onPrimaryContainer },
+  noteText: { fontSize: 12, color: colors.onPrimaryContainer, fontWeight: '500', lineHeight: 17, marginTop: 4 },
   gizlilik: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: shape.md, backgroundColor: colors.accentContainer, marginTop: 10 },
-  gizlilikBaslik: { fontSize: 13, fontWeight: '800', color: colors.onSurface },
-  gizlilikText: { fontSize: 11.5, color: colors.onSurfaceVariant, fontWeight: '500', lineHeight: 17, marginTop: 4 },
+  gizlilikBaslik: { fontSize: 13.5, fontWeight: '800', color: colors.onSurface },
+  gizlilikText: { fontSize: 12, color: colors.onSurfaceVariant, fontWeight: '500', lineHeight: 17, marginTop: 4 },
 });

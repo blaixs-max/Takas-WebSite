@@ -551,7 +551,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
   orta: { alignItems: 'center', justifyContent: 'center', gap: 10 },
   appbar: { flexDirection: 'row', alignItems: 'center', height: 56, paddingHorizontal: 6 },
-  appTitle: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '800', color: colors.onSurface },
+  appTitle: { flex: 1, textAlign: 'center', fontSize: 16, fontWeight: '800', color: colors.onSurface },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   sekmeler: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingBottom: 10 },
   sekme: {

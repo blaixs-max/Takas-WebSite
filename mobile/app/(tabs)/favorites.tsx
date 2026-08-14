@@ -48,7 +48,7 @@ export default function Favorites() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
   appbar: { flexDirection: 'row', alignItems: 'center', height: 56, paddingHorizontal: 6 },
-  appTitle: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '800', color: colors.onSurface },
+  appTitle: { flex: 1, textAlign: 'center', fontSize: 16, fontWeight: '800', color: colors.onSurface },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   count: { fontSize: 13, fontWeight: '600', color: colors.onSurfaceVariant, marginBottom: 14 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -7 },

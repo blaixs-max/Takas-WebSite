@@ -66,11 +66,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  baslik: { fontSize: 17, fontWeight: '800', color: colors.onSurface, marginTop: 18 },
+  baslik: { fontSize: 18, fontWeight: '800', color: colors.onSurface, marginTop: 18 },
   metin: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontWeight: '500',
-    lineHeight: 18,
+    lineHeight: 19,
     color: colors.onSurfaceVariant,
     textAlign: 'center',
     marginTop: 8,
@@ -84,5 +84,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 22,
   },
-  ctaText: { color: '#fff', fontSize: 13.5, fontWeight: '800' },
+  ctaText: { color: '#fff', fontSize: 14, fontWeight: '800' },
 });

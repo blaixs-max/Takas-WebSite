@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     ...elevation.level2,
   },
   slot: { flex: 1, alignItems: 'center', justifyContent: 'flex-start', gap: 4, paddingTop: 4 },
-  label: { fontSize: 10.5, fontWeight: '600' },
+  label: { fontSize: 11, fontWeight: '600' },
   badge: {
     position: 'absolute',
     top: -5,

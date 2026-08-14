@@ -132,7 +132,7 @@ export const kartStilleri = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.95)',
     justifyContent: 'center',
   },
-  condText: { fontSize: 10, fontWeight: '700', color: colors.onSurface },
+  condText: { fontSize: 10.5, fontWeight: '700', color: colors.onSurface },
 
   hasar: {
     position: 'absolute',
@@ -146,14 +146,14 @@ export const kartStilleri = StyleSheet.create({
     borderRadius: shape.full,
     backgroundColor: colors.tertiaryContainer,
   },
-  hasarText: { fontSize: 9.5, fontWeight: '800', color: colors.onTertiaryContainer },
+  hasarText: { fontSize: 10, fontWeight: '800', color: colors.onTertiaryContainer },
 
   govde: { paddingHorizontal: 12, paddingTop: 12, paddingBottom: 10, gap: 5 },
-  baslik: { fontSize: 12.5, fontWeight: '800', color: colors.onSurface, lineHeight: 16 },
+  baslik: { fontSize: 13.5, fontWeight: '800', color: colors.onSurface, lineHeight: 17.5 },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  metaText: { fontSize: 10.5, color: colors.onSurfaceVariant, fontWeight: '500', flexShrink: 1 },
-  metaAyrac: { fontSize: 10.5, color: colors.onSurfaceVariant, marginHorizontal: 1 },
-  skorText: { fontSize: 10.5, color: colors.primary, fontWeight: '700' },
+  metaText: { fontSize: 11, color: colors.onSurfaceVariant, fontWeight: '500', flexShrink: 1 },
+  metaAyrac: { fontSize: 11, color: colors.onSurfaceVariant, marginHorizontal: 1 },
+  skorText: { fontSize: 11, color: colors.primary, fontWeight: '700' },
 
   alt: { flexDirection: 'row', alignItems: 'center', marginTop: 3 },
   /* Hap içeriği kadar geniş (tasarımda da öyle), kalan boşluk kalbi sağa
@@ -162,12 +162,12 @@ export const kartStilleri = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    height: 22,
+    height: 24,
     paddingHorizontal: 9,
     borderRadius: shape.full,
     backgroundColor: colors.primaryContainer,
   },
-  puanText: { fontSize: 9.5, fontWeight: '800', color: colors.primary },
+  puanText: { fontSize: 10.5, fontWeight: '800', color: colors.primary },
   fav: {
     marginLeft: 'auto',
     width: 26,

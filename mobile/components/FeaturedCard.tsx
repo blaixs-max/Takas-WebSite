@@ -87,5 +87,5 @@ const styles = StyleSheet.create({
     borderRadius: shape.full,
     backgroundColor: 'rgba(255,255,255,0.95)',
   },
-  rozetText: { fontSize: 10, fontWeight: '800', color: colors.onSurface },
+  rozetText: { fontSize: 10.5, fontWeight: '800', color: colors.onSurface },
 });
