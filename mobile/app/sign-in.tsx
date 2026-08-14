@@ -14,7 +14,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../lib/auth';
-import { Mark } from '../components/brand/Mark';
+import { Wordmark } from '../components/brand/Wordmark';
 import { colors, elevation, shape } from '../theme/tokens';
 
 export default function SignIn() {
@@ -59,8 +59,12 @@ export default function SignIn() {
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 24 }} keyboardShouldPersistTaps="handled">
+        {/* Renkli kelime logosu. Turkuaz kare içinde tek harflik işaret
+            duruyordu; zemin krem olduğu için harfler doğrudan okunuyor ve
+            marka dokümanı da logonun hem krem hem koyu zeminde çalıştığını
+            söylüyor — kutuya gerek yok. */}
         <View style={styles.logo}>
-          <Mark size={30} color="#fff" />
+          <Wordmark height={30} />
         </View>
         <Text style={styles.h2}>{mode === 'in' ? 'Tekrar hoş geldin' : 'Aramıza katıl'}</Text>
         <Text style={styles.sub}>Takas Puanı'nı yönetmek için hesabına eriş.</Text>
@@ -132,15 +136,7 @@ const styles = StyleSheet.create({
   appbar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6 },
   appTitle: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: colors.onSurface },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  logo: {
-    width: 56,
-    height: 56,
-    borderRadius: shape.md,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 18,
-  },
+  logo: { alignSelf: 'flex-start', marginBottom: 18 },
   h2: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5, color: colors.onSurface },
   sub: { fontSize: 14, color: colors.onSurfaceVariant, fontWeight: '500', marginTop: 6, marginBottom: 22 },
   label: { fontSize: 12, fontWeight: '700', color: colors.onSurfaceVariant, letterSpacing: 0.4, marginBottom: 8, marginTop: 14 },
