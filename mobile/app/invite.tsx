@@ -39,8 +39,10 @@ export default function Invite() {
           <View style={styles.giftIc}>
             <MaterialIcons name="card-giftcard" size={32} color={colors.onPrimaryContainer} />
           </View>
-          <Text style={styles.heroTitle}>Her arkadaşın +100 puan</Text>
-          <Text style={styles.heroSub}>Davet ettiğin arkadaş ilk takasını yapınca ikinize de 100 Takas Puanı.</Text>
+          <Text style={styles.heroTitle}>Her arkadaşın için +100 Takas Puanı</Text>
+          <Text style={styles.heroSub}>
+          Davet ettiğin kişi ilk takasını tamamladığında ikiniz de 100 Takas Puanı kazanırsınız.
+        </Text>
         </View>
 
         <Text style={styles.label}>DAVET KODUN</Text>

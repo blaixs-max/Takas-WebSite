@@ -7,7 +7,6 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../lib/auth';
 import { Wordmark } from '../components/brand/Wordmark';
-import { BRAND } from '../lib/brand';
 import { colors, elevation, shape } from '../theme/tokens';
 
 export default function Onboarding() {
@@ -67,9 +66,11 @@ export default function Onboarding() {
             kategori mimarisi dokuz ana başlığa çıktığı için ürünü olduğundan
             dar tanıtıyordu. */}
         <Text style={styles.h2}>Bebek ve çocuk{'\n'}ürünlerinde akıllı takas.</Text>
+        {/* Rehber 02, slayt 1. Önceki cümle sistemi anlatıyordu ("… Takas
+            Puanı ve Güvenli Havuz sistemiyle değerinde el değiştirir");
+            rehberinki kullanıcıya ne yapacağını söylüyor. */}
         <Text style={styles.p}>
-          {BRAND}'de bebek ve çocuk ürünleri, Takas Puanı ve Güvenli Havuz sistemiyle değerinde el
-          değiştirir.
+          Kullanmadığın ürünleri Takas Puanı’na dönüştür, ihtiyacın olan ürünleri seç.
         </Text>
         <View style={styles.pg}>
           <View style={[styles.pgDot, styles.pgOn]} />
@@ -91,7 +92,7 @@ export default function Onboarding() {
                   <View style={styles.gBadge}>
                     <Text style={styles.gBadgeText}>G</Text>
                   </View>
-                  <Text style={styles.socialText}>Google</Text>
+                  <Text style={styles.socialText}>Google ile devam et</Text>
                 </>
               )}
             </Pressable>
@@ -101,7 +102,7 @@ export default function Onboarding() {
               ) : (
                 <>
                   <MaterialIcons name="phone-iphone" size={19} color={colors.onSurface} />
-                  <Text style={styles.socialText}>Apple</Text>
+                  <Text style={styles.socialText}>Apple ile devam et</Text>
                 </>
               )}
             </Pressable>
@@ -167,7 +168,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.outlineVariant,
   },
-  socialText: { fontWeight: '700', fontSize: 14, color: colors.onSurface },
+  /* Etiketler "Google" değil "Google ile devam et" (rehber 02); iki düğme
+     yan yana dururken bu punto ile sığıyorlar. */
+  socialText: { fontWeight: '700', fontSize: 11.5, color: colors.onSurface },
   /* #4285F4 Google'ın kendi marka mavisi. Marka paletine ÇEKİLMEZ — mağaza
      kuralları rozetin değiştirilmeden kullanılmasını şart koşuyor. Sitede
      aynı tuzağa iki kez düşüldü (bkz. icons/StoreMarks.tsx). */

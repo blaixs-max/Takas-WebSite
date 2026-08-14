@@ -719,11 +719,27 @@ hepsi 24 ekranın baskın renkleri sayılarak ölçüldü, göz kararı seçilme
 - [x] **Ton senli** — rehberin bütün nihai metinleri senli; uygulamada kalan
       otuz kadar sizli kalıp tek tek çevrildi (düz arama-değiştirme Türkçede
       yanlış çekim üretir).
-- [ ] Ürün ekle · fotoğraflar
-- [ ] Sohbet · mesaj listesi satırları
-- [ ] Adresler · güvenlik · yardım · davet · profili düzenle · ödeme
-- [ ] Açılış · onboarding · giriş
+- [x] **Ürün ekle · fotoğraflar** — bilgi kartı, versal alan etiketleri, tek
+      cümlelik eksik-alan uyarısı, çekim yönergeleri, "Kontrole gönder".
+- [x] **Adresler** — boş durum + iki bilgi kartı (turkuaz "ne yapabilirsin",
+      mor "seninle ilgili ne yapmıyoruz").
+- [x] **Yardım & Güvenli Havuz · Davet et · Karşılama · Giriş yap · Yetkisiz
+      alan · Kargo ödemesi** — rehberin nihai metinleri.
+- [x] **Marka terimi tek yazımda** — "Güvenli Havuz"un iki kelimesi de büyük
+      harfle başlıyor (rehber 01); "puan" geçen yerler "Takas Puanı" oldu.
+- [ ] Sohbet · mesaj listesi satırları (dolu hâl — boş hâl bitti)
+- [ ] Güvenlik · profili düzenle (tasarımda karşılığı yok; mevcut hâl
+      yeni renklerle uyumlu, ölçü turu yapılmadı)
 - [ ] Dört fotoğrafın kırpılıp `mobile/assets/` altına alınması
+
+> **Rehberin üç uygulama notu daha uygulandı.** (1) Yardım kartındaki
+> dördüncü adımdan "48 saat" düştü: süre doğru ama not, sabit süre sözünün
+> yalnızca yürürlükteki operasyon kuralı varsa yazılmasını istiyor ve özet
+> kartında rakam, koşulları okunmadan taahhüt gibi okunuyor — rakam
+> soru-cevapta duruyor. (2) Yetkisiz alan ekranı "Bu alan yönetim içindir"
+> diyordu, yani olmadığı söylenen şeyin yerini işaret ediyordu; artık
+> "Bu sayfaya erişimin yok". (3) Adres ekranında "Adres ekle" CTA'sı yok —
+> bu akışta adres önceden kaydedilmiyor.
 
 > **Rehberin iki açık yasağı uygulandı.** (1) "Kullanıcı adı yerine 'Üye'
 > yazılmaz" — profil başlığı ad yokken artık "Profilini tamamla". (2) Ürün

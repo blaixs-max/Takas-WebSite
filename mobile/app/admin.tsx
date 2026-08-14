@@ -193,11 +193,14 @@ export default function AdminScreen() {
   if (!yetkili) {
     return (
       <View style={[styles.root, styles.orta, { padding: 30 }]}>
+        {/* Rehber 23'ün uygulama notu: "Yönetim içindir" sistem ayrıntısı son
+            kullanıcıya gösterilmez. Ekran "burası yönetim alanı" diyordu —
+            yani olmadığı söylenen şeyin yerini işaret ediyordu. */}
         <MaterialIcons name="lock" size={44} color={colors.outline} />
-        <Text style={styles.bosBaslik}>Bu alan yönetim içindir</Text>
-        <Text style={styles.bosMetin}>Hesabının yönetim yetkisi yok.</Text>
-        <Pressable style={styles.geriBtn} onPress={() => router.back()}>
-          <Text style={styles.ikincilText}>Geri dön</Text>
+        <Text style={styles.bosBaslik}>Bu sayfaya erişimin yok</Text>
+        <Text style={styles.bosMetin}>Bu alan yalnızca yetkili hesaplar içindir.</Text>
+        <Pressable style={styles.geriBtn} onPress={() => router.replace('/(tabs)/profile')}>
+          <Text style={styles.ikincilText}>Hesabıma dön</Text>
         </Pressable>
       </View>
     );

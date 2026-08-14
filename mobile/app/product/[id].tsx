@@ -63,7 +63,7 @@ export default function ProductDetail() {
   const inSepet = product ? inCart(product.id) : false;
 
   /**
-   * Takası gerçekten açar. Puan bu çağrıda güvenli havuza girer ve ilan
+   * Takası gerçekten açar. Takas Puanı bu çağrıda Güvenli Havuz’a girer ve ilan
    * rezerve edilir, o yüzden önce ne olacağı açıkça soruluyor.
    */
   async function sohbetAc() {
@@ -119,7 +119,7 @@ export default function ProductDetail() {
             // kendiliğinden iptal olur, kullanıcıyı arada bırakmayalım.
             uyar(
               'Takas açıldı',
-              `${sonuc.points} puan havuzda.${satir}\n\nSon adım kargo ödemesi.`,
+              `${sonuc.points} Takas Puanı Güvenli Havuz’da.${satir}\n\nSon adım kargo ödemesi.`,
               [
                 { text: 'Sonra', style: 'cancel', onPress: () => router.replace('/trades') },
                 {
@@ -316,7 +316,7 @@ export default function ProductDetail() {
           </Pressable>
         </View>
 
-        {/* Güvenli havuz */}
+        {/* Güvenli Havuz */}
         {/* Başlık ve açıklama rehber 05'ten birebir. Altındaki üç mini çip
             ("Alıcı koruması · 3 gün kargo · 48 sa onay") kaldırıldı:
             tasarımda yoklar ve ikisi süre taahhüdüydü — burada tek satır

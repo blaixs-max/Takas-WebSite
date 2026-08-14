@@ -45,7 +45,7 @@ export default function CartScreen() {
           <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 200 }} showsVerticalScrollIndicator={false}>
             <Text style={styles.hint}>
               <MaterialIcons name="info-outline" size={13} color={colors.onSurfaceVariant} /> Her ürün ayrı takas + kargo
-              olarak işlenir; puanların güvenli havuzda bekler.
+              olarak işlenir; Takas Puanın Güvenli Havuz’da bekler.
             </Text>
             {items.map((p) => (
               <View key={p.id} style={styles.item}>

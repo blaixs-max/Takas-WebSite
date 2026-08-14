@@ -22,7 +22,8 @@ import { colors, elevation, shape } from '../theme/tokens';
 /**
  * Kargo bedeli ödemesi.
  *
- * Ürün bedeli burada ÖDENMEZ — o puanla ödendi ve havuzda duruyor. Buradan
+ * Ürün bedeli burada ÖDENMEZ — o Takas Puanıyla ödendi ve Güvenli Havuz’da
+ * duruyor. Buradan
  * geçen para yalnızca kargo, hizmet bedeli ve işlem payıdır. Ekran bunu
  * açıkça yazar; aksi hâlde kullanıcı ürünü ikinci kez ödediğini sanır.
  */
@@ -143,8 +144,8 @@ export default function PaymentScreen() {
           <View style={styles.bilgi}>
             <MaterialIcons name="info-outline" size={18} color={colors.onTertiaryContainer} />
             <Text style={styles.bilgiText}>
-              Ürünün bedelini Takas Puanınla ödedin; o puan Güvenli Havuz’da bekliyor. Buradan yalnızca
-              kargo ve hizmet bedeli tahsil edilir.
+              Ürünün Takas Puanı Güvenli Havuz’da bekliyor. Bu adımda yalnızca kargo ve
+              hizmet bedelini ödersin.
             </Text>
           </View>
 

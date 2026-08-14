@@ -80,7 +80,7 @@ export default function SignIn() {
           <Wordmark height={30} />
         </View>
         <Text style={styles.h2}>{mode === 'in' ? 'Tekrar hoş geldin' : 'Aramıza katıl'}</Text>
-        <Text style={styles.sub}>Takas Puanı'nı yönetmek için hesabına eriş.</Text>
+        <Text style={styles.sub}>Takaslarına kaldığın yerden devam et.</Text>
 
         {mode === 'up' && (
           <>
@@ -123,7 +123,7 @@ export default function SignIn() {
           <MaterialIcons name="lock-outline" size={20} color={colors.onSurfaceVariant} />
           <TextInput
             style={styles.input}
-            placeholder="••••••••"
+            placeholder="Şifreni yaz"
             placeholderTextColor={colors.onSurfaceVariant}
             secureTextEntry
             value={password}

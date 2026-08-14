@@ -304,7 +304,7 @@ export default function ProfileScreen() {
                 <Text style={styles.accTitle}>Takaslarım</Text>
                 <Text style={styles.accSub}>
                   {istatistik && istatistik.aktifTakas > 0
-                    ? `${istatistik.aktifTakas} aktif takas · güvenli havuz`
+                    ? `${istatistik.aktifTakas} aktif takas · Güvenli Havuz`
                     : 'Aktif takasın yok'}
                 </Text>
               </View>

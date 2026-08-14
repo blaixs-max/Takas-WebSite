@@ -5,18 +5,31 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, elevation, shape } from '../theme/tokens';
 
+/**
+ * Adımlar ve sorular rehber 19'dan birebir.
+ *
+ * İki değişiklik yalnızca doğruluk içindi:
+ *
+ * - Dördüncü adım "48 saat içinde sorun olmazsa puan satıcıya geçer" diyordu.
+ *   Süre doğru (Ana Doküman), ama rehber 19'un uygulama notu **sabit süre,
+ *   tazmin veya otomatik iade sözünün yalnızca yürürlükteki operasyon kuralı
+ *   varsa** yazılmasını istiyor. Özet kartında rakam vermek, koşulları
+ *   okunmadan bir taahhüt gibi okunuyor; süre yerini soru-cevaba bıraktı.
+ * - "Güvenli havuz" küçük harfliydi. Marka terimi: her iki kelime de büyük
+ *   harfle başlar.
+ */
 const STEPS = [
-  { icon: 'lock', title: 'Puan havuza alınır', body: 'Takas başlayınca alıcının puanı güvenli havuzda kilitlenir.' },
-  { icon: 'inventory-2', title: 'Paketleme kanıtı', body: 'Satıcı kargo öncesi fotoğraf ve barkod yükler.' },
-  { icon: 'local-shipping', title: 'Kargo', body: 'Anlaşmalı kargo ile gönderim takip edilir.' },
-  { icon: 'verified', title: 'Teslim & aktarım', body: '48 saat içinde sorun olmazsa puan satıcıya geçer.' },
+  { icon: 'lock', title: 'Takas Puanı havuza alınır', body: 'Takas başladığında ürünü alanın Takas Puanı Güvenli Havuz’da bekletilir.' },
+  { icon: 'inventory-2', title: 'Gönderi hazırlanır', body: 'İlan sahibi ürünü paketler, kargo etiketini oluşturur ve gerekli gönderi fotoğraflarını ekler.' },
+  { icon: 'local-shipping', title: 'Kargo izlenir', body: 'Anlaşmalı kargo ile gönderinin durumu uygulamadan takip edilir.' },
+  { icon: 'verified', title: 'Teslimat tamamlanır', body: 'Teslimden sonra sorun bildirilmezse Takas Puanı ilan sahibine aktarılır.' },
 ] as const;
 
 const FAQ = [
-  { q: 'Takas Puanı nedir?', a: 'Ürünlerini değerlendirip kazandığın, başka ürünleri almak için kullandığın puandır. Parayla satın alınmaz.' },
-  { q: 'Güvenli havuz neyi korur?', a: 'Alıcının puanı, ürün teslim edilip onaylanana kadar havuzda bekler; satıcı göndermeden puan geçmez, alıcı da ürün gelmeden puanını kaybetmez.' },
-  { q: 'Kargo ücretini kim öder?', a: 'Kargo bedeli alıcı tarafından ödenir; platform anlaşmalı kargo ile indirimli gönderim sağlar.' },
-  { q: 'Ürünüm beyana uymazsa?', a: 'Teslim sonrası 48 saat içinde itiraz edebilirsin; inceleme sonucu puan iade edilir.' },
+  { q: 'Takas Puanı nedir?', a: 'Ürünlerini takasa açarak kazandığın ve başka ürünleri takas etmek için kullandığın platform içi değerdir. Parayla satın alınmaz, nakde çevrilmez.' },
+  { q: 'Güvenli Havuz neyi korur?', a: 'Takas Puanını teslimat tamamlanana kadar bekletir. Sorun bildirildiğinde aktarım durur ve inceleme başlar.' },
+  { q: 'Kargo ve hizmet bedelini kim öder?', a: 'Ürünü alan kullanıcı, takası başlatırken gösterilen kargo ve hizmet bedelini öder.' },
+  { q: 'Ürün ilana uymazsa ne olur?', a: 'Teslim ekranından sorun bildir. İnceleme tamamlanana kadar Takas Puanı Güvenli Havuz’da kalır.' },
 ];
 
 export default function Help() {
@@ -30,15 +43,15 @@ export default function Help() {
         <Pressable style={styles.iconBtn} onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={24} color={colors.onSurface} />
         </Pressable>
-        <Text style={styles.title}>Yardım & güvenli havuz</Text>
+        <Text style={styles.title}>Yardım & Güvenli Havuz</Text>
         <View style={styles.iconBtn} />
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           <MaterialIcons name="verified-user" size={28} color={colors.onPrimaryContainer} />
-          <Text style={styles.heroTitle}>Güvenli havuz nasıl çalışır?</Text>
-          <Text style={styles.heroSub}>Hem alıcıyı hem satıcıyı koruyan 4 adımlı akış.</Text>
+          <Text style={styles.heroTitle}>Güvenli Havuz nasıl çalışır?</Text>
+          <Text style={styles.heroSub}>Her iki tarafı koruyan dört adımlı süreç.</Text>
         </View>
 
         {STEPS.map((s, i) => (

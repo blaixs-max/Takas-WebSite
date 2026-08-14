@@ -47,12 +47,12 @@ interface DurumBilgi {
 const DURUM: Record<TradeStatus, DurumBilgi> = {
   CREATED: {
     etiket: 'Başlatıldı',
-    aciklama: 'Takas açıldı, puan havuza alınıyor.',
+    aciklama: 'Takas açıldı, Takas Puanı Güvenli Havuz’a alınıyor.',
     ikon: 'hourglass-empty',
     ton: 'bekliyor',
   },
   POINTS_HELD: {
-    etiket: 'Puan havuzda',
+    etiket: 'Güvenli Havuz’da',
     aciklama: 'Kargo bedelini ödeyince satıcıya gönderim bildirilir.',
     ikon: 'lock',
     ton: 'bekliyor',
