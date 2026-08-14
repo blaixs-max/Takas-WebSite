@@ -71,6 +71,18 @@ alınamayan sahte ilan olurlardı.
       - Ölü bağlantı kalktı: paylaşım metinleri `kidstrade.app` adresine
         gidiyordu, o alan adı bize ait değil.
 
+### Canlı vitrin (2026-08-14)
+- [x] **Uygulamadaki vitrin sitede görünüyor.** Site veri tabanına bağlanmıyor;
+      `scripts/vitrin-cek.mjs` (karşı repo) derleme anında anlık görüntü
+      üretiyor. İlk canlı ilan "Suluk" uçtan uca doğrulandı: ilan → yedi kare →
+      yönetici onayı → `publish_listing()` → derleme → sitede kart.
+- [x] **Tazeleme otomatik.** `20260814100000_vitrin_tazele.sql`: `pg_net`,
+      `site_settings` (RLS açık, politika yok, yetkiler geri alınmış),
+      `vitrin_tazele()` ve `products` üzerinde trigger. ACTIVE'e giren **ve
+      çıkan** her geçiş tetikliyor — yalnızca girişi dinleseydik satılan ilan
+      vitrinde asılı kalırdı. 60 saniyelik gecikme sayacı derleme yağmurunu
+      kesiyor. Canlıda sınandı: HTTP 201, ikinci çağrı "atlandı: 23 saniye önce".
+
 ### Güvenlik (P0 — 2026-08-07)
 - [x] **Defter değişmezliği** — `wallet_entries` üzerinde UPDATE/DELETE trigger ile
       engellendi; `service_role` dahil hiçbir rol geçemez
@@ -257,6 +269,22 @@ alınamayan sahte ilan olurlardı.
       yakalarsa oturumu devralabilirdi. `lib/webcrypto.ts` expo-crypto'nun
       yerel SHA-256'sını WebCrypto arayüzü olarak kuruyor. Cihazda doğrulama:
       konsoldaki "WebCrypto API is not supported" uyarısı kaybolmalı
+
+### Depo görünürlüğü — karar bekliyor (2026-08-14)
+
+- [ ] **Bu repo herkese açık, pazarlama sitesi reposu özel.** Muhtemelen ters.
+      `blaixs-max/Takas-WebSite` → **public** · `blaixs-max/Takas-site` → private.
+
+      Bugün bir sızıntı yok: `service_role` repoda hiçbir yerde geçmiyor, anon
+      anahtarı zaten uygulama paketine gömülü ve korumayı RLS yapıyor. Yani
+      açık olması *savunulabilir* — ama bilinçli bir karar mı, emin değilim.
+
+      Somut sonucu şu: Vercel deploy hook URL'si göç dosyasına yazılamıyor
+      (yazıldı, commit'ten önce çıkarıldı). Yetki bağlantıları ve ileride
+      eklenecek her sır bu repoda duramaz.
+
+      Karar: açık kalacaksa "burası açıktır" CLAUDE.md'ye kural olarak yazılsın;
+      kapanacaksa Settings → Danger Zone → Change visibility.
 
 ## ⏳ Sıradaki (öncelik sırası)
 
