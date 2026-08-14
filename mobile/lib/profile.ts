@@ -108,3 +108,95 @@ export function yaptirimMetni(s: Sanction): { baslik: string; metin: string } {
     metin: 'Skorunuz düşmeye devam ederse yeni ilan verme ve alım yapma yetkiniz geçici olarak durur.',
   };
 }
+
+/* ==========================================================================
+   Profil bilgileri — ad, konum, hakkında
+   ========================================================================== */
+
+export interface Profile {
+  fullName: string;
+  city: string;
+  bio: string;
+}
+
+export const BOS_PROFIL: Profile = { fullName: '', city: '', bio: '' };
+
+export type KaydetSonucu = { ok: true } | { ok: false; message: string };
+
+/**
+ * Profili okur.
+ *
+ * Ad iki yerde duruyor ve bu bilinçli: tek gerçek kaynak
+ * `auth.users.raw_user_meta_data.full_name` — `create_listing` oradan okuyor
+ * ve GoTrue'nun kendi API'siyle yazılıyor. `profiles` tablosu onun aynası,
+ * ayrıca konum ve hakkında alanlarını taşıyor.
+ *
+ * Okurken metadata öncelikli: yazma sırası önce GoTrue sonra tablo olduğu
+ * için ikisi ayrışırsa güncel olan metadata'dır.
+ */
+export async function loadProfile(): Promise<Profile> {
+  if (!supabaseConfigured || !supabase) return BOS_PROFIL;
+
+  const { data: oturum } = await supabase.auth.getUser();
+  const metaAd = (oturum?.user?.user_metadata?.full_name as string | undefined) ?? '';
+
+  const { data } = await supabase.from('profiles').select('full_name, city, bio').maybeSingle();
+
+  return {
+    fullName: metaAd || data?.full_name || '',
+    city: data?.city ?? '',
+    bio: data?.bio ?? '',
+  };
+}
+
+/**
+ * Profili kaydeder.
+ *
+ * İki adım, ikisi de gerekli:
+ *
+ *   1. `auth.updateUser` — adı GoTrue metadata'sına yazar. `create_listing`
+ *      yeni ilanın `seller_name`'ini buradan türetiyor.
+ *   2. `update_profile` RPC — `profiles` satırını yazar **ve** kullanıcının
+ *      mevcut ilanlarındaki `seller_name` kopyasını tazeler.
+ *
+ * Sıra önemli. Metadata önce yazılıyor: ikinci adım düşerse yeni ilanlar
+ * doğru adı alır, eski ilanlar eski adı taşımaya devam eder — kısmi ama
+ * ilerleyen bir durum. Ters sırada ikinci adım düştüğünde kullanıcı "kaydettim"
+ * görür, sonraki ilan hâlâ e-postadan türeyen adı taşır.
+ */
+export async function saveProfile(p: Profile): Promise<KaydetSonucu> {
+  if (!supabaseConfigured || !supabase) {
+    return { ok: false, message: 'Sunucu bağlantısı yok. Anahtarlar tanımlı değil.' };
+  }
+
+  const ad = p.fullName.trim();
+  if (ad.length < 2) return { ok: false, message: 'Adınızı yazın (en az 2 karakter).' };
+  if (ad.length > 60) return { ok: false, message: 'Ad en fazla 60 karakter olabilir.' };
+
+  const { error: metaHata } = await supabase.auth.updateUser({ data: { full_name: ad } });
+  if (metaHata) return { ok: false, message: metaHata.message };
+
+  const { error: rpcHata } = await supabase.rpc('update_profile', {
+    p_full_name: ad,
+    p_city: p.city.trim() || null,
+    p_bio: p.bio.trim() || null,
+  });
+  if (rpcHata) return { ok: false, message: rpcHata.message };
+
+  return { ok: true };
+}
+
+/**
+ * Görünen addan baş harfler; sunucudaki `seller_initials` ile aynı kural.
+ * Ad yoksa em dash — uydurma bir harf koymaktan iyidir.
+ */
+export function basHarfler(ad: string): string {
+  const p = ad.trim().split(/\s+/).filter(Boolean);
+  if (p.length === 0) return '—';
+  return (p[0][0] + (p.length > 1 ? p[1][0] : p[0][0])).toLocaleUpperCase('tr-TR');
+}
+
+/** Selamlamada kullanılan ilk ad. Ad yoksa boş döner, çağıran karar verir. */
+export function ilkAd(ad: string): string {
+  return ad.trim().split(/\s+/).filter(Boolean)[0] ?? '';
+}

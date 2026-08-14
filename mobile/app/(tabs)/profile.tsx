@@ -6,6 +6,7 @@ import Svg, { Circle } from 'react-native-svg';
 import { useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../lib/auth';
+import { BOS_PROFIL, Profile, basHarfler, loadProfile } from '../../lib/profile';
 import { amIAdmin } from '../../lib/admin';
 import { loadDrafts } from '../../lib/listings';
 import {
@@ -87,12 +88,23 @@ export default function ProfileScreen() {
     };
   }, [user]);
 
-  // Oturum varsa e-postadan ad türet; yoksa demo isim
+  /* Ad profilden geliyor. Eskiden e-postanın kullanıcı adı kısmı
+     gösteriliyordu ("emrahatabek"), oturum yoksa da sabit bir demo isim. */
+  const [profil, setProfil] = useState<Profile>(BOS_PROFIL);
+  useEffect(() => {
+    let iptal = false;
+    loadProfile().then((pr) => {
+      if (!iptal) setProfil(pr);
+    });
+    return () => {
+      iptal = true;
+    };
+  }, [user]);
+
   const email = user?.email ?? null;
-  const displayName = email ? email.split('@')[0] : 'Emrah Atabek';
-  const parts = displayName.split(/[\s._-]+/).filter(Boolean);
-  const initials = (parts.length > 1 ? parts[0][0] + parts[1][0] : displayName.slice(0, 2)).toUpperCase();
-  const memberLine = email ? email : 'Kadıköy, İstanbul · 2024\'ten beri';
+  const displayName = profil.fullName || 'Üye';
+  const initials = profil.fullName ? basHarfler(profil.fullName) : '—';
+  const memberLine = profil.city || email || 'Profilinizi tamamlayın';
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.appbar}>

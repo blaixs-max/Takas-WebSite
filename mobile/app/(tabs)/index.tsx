@@ -8,6 +8,7 @@ import { FeaturedCard } from '../../components/FeaturedCard';
 import { ALL_CATEGORIES, CATEGORY_TREE, subsOf } from '../../data/categories';
 import { useProducts } from '../../hooks/useProducts';
 import { unreadCount } from '../../lib/notifications';
+import { basHarfler, ilkAd, loadProfile } from '../../lib/profile';
 import { colors, elevation, shape } from '../../theme/tokens';
 
 /** 'Tümü' bir kategori değil, süzgecin kapalı hâli — listeye burada ekleniyor. */
@@ -42,6 +43,22 @@ export default function ShelfScreen() {
     };
   }, []);
   const [q, setQ] = useState('');
+
+  /* Selamlama gerçek addan geliyor. Sabit "Merhaba, Emrah" yazıyordu — her
+     kullanıcıya aynı ismi söyleyen bir karşılama. */
+  const [kullaniciAdi, setKullaniciAdi] = useState('');
+  const [basHarf, setBasHarf] = useState('—');
+  useEffect(() => {
+    let iptal = false;
+    loadProfile().then((pr) => {
+      if (iptal) return;
+      setKullaniciAdi(ilkAd(pr.fullName));
+      setBasHarf(pr.fullName ? basHarfler(pr.fullName) : '—');
+    });
+    return () => {
+      iptal = true;
+    };
+  }, []);
   const { products, featured, loading, refreshing, refresh } = useProducts();
 
   const query = q.toLowerCase().trim();
@@ -63,8 +80,15 @@ export default function ShelfScreen() {
       {/* Kişiselleştirilmiş app bar */}
       <View style={styles.appbar}>
         <View style={{ flex: 1, paddingLeft: 10 }}>
-          <Text style={styles.greeting}>Merhaba, Emrah</Text>
-          <Text style={styles.sub}>Kadıköy · 1.248 ürün takasta</Text>
+          <Text style={styles.greeting}>
+            {kullaniciAdi ? `Merhaba, ${kullaniciAdi}` : 'Merhaba'}
+          </Text>
+          {/* Sayı gerçek: yüklenen yayındaki ilan sayısı. Önce sabit "1.248"
+              yazıyordu — karşılığı olmayan bir sayı, ve ekrandaki her sayıya
+              olan güveni götüren türden. */}
+          <Text style={styles.sub}>
+            {loading ? 'Vitrin yükleniyor…' : `${products.length} ürün takasta`}
+          </Text>
         </View>
         <Pressable style={styles.iconBtn} onPress={() => router.push('/notifications')}>
           <MaterialIcons name="notifications-none" size={24} color={colors.onSurface} />
@@ -102,7 +126,7 @@ export default function ShelfScreen() {
               <MaterialIcons name="mic" size={24} color={colors.onSurfaceVariant} />
             )}
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>EA</Text>
+              <Text style={styles.avatarText}>{basHarf}</Text>
             </View>
           </View>
         </View>
@@ -157,20 +181,26 @@ export default function ShelfScreen() {
           </ScrollView>
         )}
 
-        {/* Öne çıkanlar */}
-        <View style={styles.sec}>
-          <Text style={styles.secTitle}>Öne çıkan takaslar</Text>
-          <Text style={styles.secLink}>Tümü</Text>
-        </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.carousel}
-        >
-          {featured.map((p) => (
-            <FeaturedCard key={p.id} product={p} />
-          ))}
-        </ScrollView>
+        {/* Öne çıkanlar — rozetli ilan yoksa başlık da çizilmiyor. Sitede
+            aynı kusur canlı vitrine geçince ortaya çıkmıştı: başlık duruyor,
+            altı boş. */}
+        {featured.length > 0 && (
+          <>
+            <View style={styles.sec}>
+              <Text style={styles.secTitle}>Öne çıkan takaslar</Text>
+              <Text style={styles.secLink}>Tümü</Text>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.carousel}
+            >
+              {featured.map((p) => (
+                <FeaturedCard key={p.id} product={p} />
+              ))}
+            </ScrollView>
+          </>
+        )}
 
         {/* Yakındaki raflar */}
         <View style={styles.sec}>

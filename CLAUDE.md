@@ -176,6 +176,34 @@ Bu ayrım her zaman geçerlidir.
   da yanıt çözümlenemezse kare `pending` kalır — bu "geçti" demek değildir. Hiçbir
   kod yolu kareyi kendiliğinden `approved` yapmaz.
 
+## Profil ve satıcı adı
+
+**`seller_name` bir kopyadır.** İlan yazıldığı anda `products` satırına
+donduruluyor; kart her açılışta profil tablosuna gitmiyor ve eski takasların
+kaydı o günkü adı taşıyor. İkisi de doğru.
+
+Ama kullanıcının **kendi** ilanlarındaki kopya, adını değiştirdiğinde
+tazelenmezse sonsuza kadar kayar. `update_profile()` bu yüzden profili
+yazarken kendi ilanlarının `seller_name`/`seller_initials` alanlarını da
+güncelliyor.
+
+**Ad kaydı iki adımdır ve sırası önemli:**
+
+1. `supabase.auth.updateUser({ data: { full_name } })` — GoTrue metadata'sı.
+   `create_listing` yeni ilanın adını buradan türetiyor; **tek gerçek kaynak
+   burasıdır**. `auth.users` `supabase_auth_admin`'e ait, SQL'den yazılmaz.
+2. `update_profile()` RPC — `profiles` satırı (konum, hakkında) + kendi
+   ilanlarındaki kopya.
+
+Metadata önce yazılıyor: ikinci adım düşerse yeni ilanlar doğru adı alır,
+eskiler eski adı taşır — kısmi ama ilerleyen bir durum. Ters sırada kullanıcı
+"kaydettim" görür ve sonraki ilan hâlâ e-postadan türeyen adı taşır.
+
+**Ad boşsa `create_listing` `split_part(email, '@', 1)` kullanıyor.** İlk canlı
+ilan pazarlama sitesine "emrahatabek" adıyla düştü — kişinin e-postasının
+yarısı, indekslenen bir sayfada. Site tarafı artık böyle bir adı yayınlamıyor
+("Üye" yazıyor), ama asıl çözüm profilin dolu olması.
+
 ## Güvenlik kuralları (ASLA ihlal etme)
 - `service_role` / iyzico `secret key` **asla mobilde** olmaz; yalnızca backend.
 - Mobilde yalnızca `EXPO_PUBLIC_SUPABASE_ANON_KEY`. RLS, `auth.uid()` ile korur.

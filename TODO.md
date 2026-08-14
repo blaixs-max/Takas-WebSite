@@ -83,6 +83,25 @@ alınamayan sahte ilan olurlardı.
       vitrinde asılı kalırdı. 60 saniyelik gecikme sayacı derleme yağmurunu
       kesiyor. Canlıda sınandı: HTTP 201, ikinci çağrı "atlandı: 23 saniye önce".
 
+### Profil gerçekten kaydediyor (2026-08-14)
+- [x] **`edit-profile` maketti.** Alanlar sabit metinle ("Emrah Atabek",
+      "Kadıköy, İstanbul") doluyordu, iki kaydet düğmesi de yalnızca
+      `router.back()` çağırıyordu. Kaydettiğini söyleyip hiçbir şey
+      kaydetmiyordu — kusurun en kötü türü.
+      Gelenler: `profiles` tablosu (RLS, yalnızca kendi satırı),
+      `update_profile()` RPC'si, `lib/profile.ts` içinde oku/yaz katmanı,
+      ekranda gerçek değerler + kaydediliyor durumu + hata mesajı.
+- [x] **Kendi ilanlarındaki ad kopyası tazeleniyor.** `seller_name` denormalize;
+      güncellenmeseydi profilde "Emrah Atabek", vitrinde "emrahatabek" kalırdı.
+      Canlıda geri alınan bir işlemde sınandı: kopya doğru tazelendi.
+- [x] **Sabit kişisel metin temizlendi.** "Merhaba, Emrah" → gerçek ad,
+      arama çubuğundaki "EA" rozeti → gerçek baş harfler, profil ekranındaki
+      e-posta türevi ad → profil adı.
+- [x] **Uydurma sayı kalktı:** rafta "Kadıköy · 1.248 ürün takasta" yazıyordu.
+      Artık yüklenen gerçek ilan sayısı.
+- [x] **Boş "Öne çıkan takaslar" bölümü** rozetli ilan yoksa hiç çizilmiyor
+      (sitede de aynı kusur vardı, aynı turda kapandı).
+
 ### Güvenlik (P0 — 2026-08-07)
 - [x] **Defter değişmezliği** — `wallet_entries` üzerinde UPDATE/DELETE trigger ile
       engellendi; `service_role` dahil hiçbir rol geçemez
@@ -285,6 +304,14 @@ alınamayan sahte ilan olurlardı.
 
       Karar: açık kalacaksa "burası açıktır" CLAUDE.md'ye kural olarak yazılsın;
       kapanacaksa Settings → Danger Zone → Change visibility.
+
+### Hâlâ maket olan ekranlar
+
+- [ ] **`addresses.tsx`** sabit iki adres gösteriyor ("Emrah Atabek", Moda Cad.,
+      Levent). Adres tablosu bilerek açılmadı: Ana Doküman fatura bilgisi ve
+      T.C. kimlik numarasının saklanmamasını söylüyor ve adres saklamaya geçmek
+      bir KVKK kararı. Karar verilmeden tablo açılmaz — ama ekranın maket
+      olduğu da kullanıcıya belli değil.
 
 ## ⏳ Sıradaki (öncelik sırası)
 
