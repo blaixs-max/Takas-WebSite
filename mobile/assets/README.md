@@ -101,3 +101,23 @@ ama amblem yeniden çizilirse `#008BAA`'ya çekilir.
 bir alt yazı taşıyor ("Bebek ve çocuk ürünlerinde akıllı takas."); o bilerek
 alınmadı — istenen slogandı ve iki satır üst üste açılış ekranını kalabalık
 yapıyor.
+
+## Ürün ve karşılama fotoğrafları
+
+`products/` altındaki dosyaların **dördü tasarım paketinden** geliyor
+(`tasarim/photos_4k/`, 3840×2160 PNG). Kaynaklar 16:9; uygulamada
+kullanıldıkları yerin oranı farklı olduğu için oraya göre kırpıldılar.
+`resizeMode="cover"` zaten kırpardı ama kadrajı gözetmeden, ortadan.
+
+| Dosya | Kırpma oranı | Çıktı | Nerede |
+|---|---|---|---|
+| `onboarding-aile.jpg` | 1.234 | 1200×973 | Karşılama sanat alanı (tasarımda tam genişlik, 316 pt) |
+| `urun-montessori-set.jpg` | 1.5 | 1400×933 | `blocks` ilanının kapağı |
+| `urun-puset.jpg` | 1.5 | 1400×933 | `puset` ilanı |
+| `urun-kitap-seti.jpg` | 1.5 | 1400×933 | `kitaplar` ilanı |
+
+JPEG kalite 82, 129–236 KB. Uzun kenar 1400: kart en fazla 172 pt × 3 = 516
+piksel istiyor, 1400 tam ekran görüntüleyiciye de yetiyor.
+
+Yeniden üretmek gerekirse ölçüler yukarıdaki tabloda; kırpma **ortadan
+hizalı**, önce orana göre kesilip sonra ölçekleniyor.

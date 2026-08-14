@@ -112,7 +112,11 @@ Bu ayrım her zaman geçerlidir.
 - Kategoriler: `data/categories.ts` — **9 ana + 62 alt kategori**, ikon
   eşlemeli. Her ürün tam olarak bir ana ve bir alt kategoriye aittir; "Tümü"
   kategori değil, süzgecin kapalı hâlidir. Ürün görselleri `data/productImages.ts`.
-- İlan açma iki adımdır: `add-listing` (beyanlar + desi) → `listing-photos` (yedi kare + yayın).
+- İlan açma iki adımdır: `add-listing` (beyanlar + desi) → `listing-photos`
+  (kareler + kontrole gönderme). **Beş kare her ilanda zorunlu**, altıncısı
+  hasar beyan edilmişse ve yedincisi ürün setse isteniyor — sayaç bu yüzden
+  çoğu ilanda 0/5 diyor. Arayüzde "yedi" yazmak yanlış; tek doğruluk kaynağı
+  veri tabanındaki `required_slots()`, `data/photoSlots.ts` onun aynası.
 
 ## Kritik iş kuralları (mimariyi belirler)
 - **Güvenli havuz = PUAN tutar, gerçek para DEĞİL.** Escrow kendi çift girişli
@@ -210,9 +214,55 @@ yarısı, indekslenen bir sayfada. Site tarafı artık böyle bir adı yayınlam
 - Puan yazan fonksiyonlar `SECURITY DEFINER` + yalnızca `service_role`'a `grant`.
 - iyzico callback'inde gövdeye güvenme; her zaman **RETRIEVE ile doğrula**.
 
+## Görünüm — tasarım paketi ve rehber
+
+Görsel tek doğruluk kaynağı `tasarim/` klasörüdür:
+
+| Ne | Nerede | Neyin kaynağı |
+|---|---|---|
+| 24 ekran karesi | `tasarim/yeni ekran UI'ları/` | **Ölçü ve yerleşim** |
+| Metin ve UX rehberi | `tasarim/Eldenele_App_Metin_ve_UX_Rehberi_Nihai.docx` | **Ekran metinleri** |
+| Dört fotoğraf (3840×2160) | `tasarim/photos_4k/` | Karşılama ve vitrin kareleri |
+
+**Ölçü göz kararı alınmaz.** Kareler 739×1600, yani 390×844 ekranın 1.895
+katı; bir sayı gerektiğinde kareden okunur. Bu yolla sabitlenenler: sayfa
+kenarı 18, kart 172, kartlar arası 10, kart görseli 1.5, ürün detayı hero
+1.54, puan hapı 22, CTA 46, arama alanı `#F3EBDD`.
+
+**Punto tasarımın birebir ölçüsü değildir** (kullanıcı kararı, 2026-08-14).
+Tasarımın tipografisi 390 pt'lik ekranda küçük kalıyordu; ölçek tasarım ile
+bir önceki iri hâlin ortasına çekildi: selamlama 24, bölüm başlığı 18, kart
+başlığı 13.5, gövde 13, ikincil 11.5. Yeni ekran bunlara uyar.
+
+**Yazı tipi Nunito DEĞİL.** Bir tur bağlandı ve geri alındı: tasarım kareleri
+de pazarlama sitesi de grotesk kullanıyor. Nunito markanın **kelime
+logosunun** yüzü — `splash.png` içinde ve sitenin logo SVG'sinde kontur
+olarak var, gövde metninde hiçbir yerde yok. Telefonda platformun kendi
+grotesk'i (SF Pro / Roboto) zaten tasarımdaki yüz. `@expo-google-fonts/*`
+kurulmaz.
+
+**Metin rehberden alınır, biçim tasarımdan.** Rehber alan etiketini
+"Ana kategori" diye verir, tasarım onu versal çizer: dize rehberin,
+`textTransform` tasarımın. Rehberin "uygulama notu" satırları **kuraldır**,
+öneri değil — bugüne kadar uygulananlar: ad yokken "Üye" yazılmaz, ürün
+detayında TL değer aralığı gösterilmez, "AI incelemesi" iddia edilmez, sabit
+süre sözü yalnızca yürürlükteki operasyon kuralı varsa yazılır, yetkisiz alan
+ekranı erişilemeyen şeyin ne olduğunu söylemez.
+
+**Boş durum tek bileşendir** (`components/BosDurum.tsx`). Sekiz ekran onu
+çiziyor. Yeni bir boş ekran yazarken kendi kopyanı açma — altı ayrı kopya bir
+kez birbirinden ayrıştı ve biri senli biri sizliydi.
+
+**Bağlantı hatası boş durum değildir.** Sunucuya ulaşılamıyorken "hiç mesajın
+yok" demek yanlış bilgi; ayrı bir kart ("… yüklenemedi" + "Yeniden dene")
+gösterilir.
+
 ## Konvansiyonlar
 - Tüm kullanıcıya görünen metin **Türkçe**. Kod yorumları Türkçe.
 - Renk/ölçü için `mobile/theme/tokens.ts` (M3 tonal palet). Sabit renk yazma.
+  Tokenlar tasarım karelerinden **ölçülerek** türetildi. `accent` /
+  `accentContainer` paletin moru (`#8B5CF6`) ve düşük opaklıktaki zemini;
+  büyük yüzeye sürülmez, tek kullanımı adres ekranındaki gizlilik kartı.
 - İkonlar: `@expo/vector-icons/MaterialIcons`.
 - Para olmayan model: cüzdan anahtarsızken **DEMO** veriye düşer (kırılmaz).
 
