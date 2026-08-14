@@ -17,6 +17,17 @@
 export const BRAND = 'Eldenele';
 
 /**
+ * Slogan — **yalnızca uygulama açılış ekranında.**
+ *
+ * Bilerek tek yerde: pazarlama sitesinin ekran metinleri marka revizyonu
+ * paketinin "onaylı ekran metni" bölümlerinden birebir geliyor ve slogan
+ * orada geçmiyor. Uygulamanın içine de serpiştirilirse iki üründe iki farklı
+ * ses çıkar. Açılış ekranı markanın kendini bir kez tanıttığı yer; slogan
+ * oraya ait, başka yere değil.
+ */
+export const SLOGAN = 'Paylaş, değiştir, mutlu et!';
+
+/**
  * Derin bağlantı şeması. `app.json` içindeki `scheme` ile **aynı** olmak
  * zorunda; ayrışırsa OAuth dönüşü ve ödeme dönüşü sessizce uygulamaya
  * ulaşmaz — tarayıcı açık kalır, kullanıcı bekler.

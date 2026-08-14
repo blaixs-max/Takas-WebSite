@@ -1,12 +1,42 @@
-import { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { useEffect, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../lib/auth';
 import { FavoritesProvider } from '../lib/favorites';
 import { CartProvider } from '../lib/cart';
+import { AcilisEkrani } from '../components/brand/AcilisEkrani';
 import { colors } from '../theme/tokens';
+
+/**
+ * Yerel açılış ekranı kendiliğinden kapanmasın: paket yüklenip ilk kare
+ * çizilene kadar açık kalsın, sonra `AcilisEkrani`'na devretsin. Kapanmasını
+ * engellemezsek arada bir kare boş beyaz görünüyor.
+ *
+ * Expo Go'da bu çağrının görünür bir etkisi yok — orada yükleme ekranını
+ * `app.json`'daki simge ve ad çiziyor, `splash.png` hiç kullanılmıyor.
+ */
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
+/**
+ * Açılış ekranının en az görünme süresi.
+ *
+ * Oturum çözümü çoğu açılışta 100 ms'nin altında bitiyor; süre konmazsa logo
+ * göz kırpması gibi geçip gidiyor ve marka anı diye bir şey kalmıyor. Alt
+ * sınır giriş animasyonunun (520 ms) bitmesine yetiyor, bekletme hissi
+ * verecek kadar uzun değil.
+ */
+const ACILIS_EN_AZ_MS = 1100;
+
+function useEnAzSure(ms: number): boolean {
+  const [doldu, setDoldu] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setDoldu(true), ms);
+    return () => clearTimeout(t);
+  }, [ms]);
+  return doldu;
+}
 
 const AUTH_ROUTES = ['onboarding', 'sign-in', 'auth-callback'];
 
@@ -29,15 +59,17 @@ function useProtectedRoute() {
 
 function RootNavigator() {
   const { loading } = useAuth();
+  const sureDoldu = useEnAzSure(ACILIS_EN_AZ_MS);
   useProtectedRoute();
 
-  if (loading) {
-    return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface }}>
-        <ActivityIndicator color={colors.primary} size="large" />
-      </View>
-    );
-  }
+  /* İlk kare çizildi; yerel açılış ekranı artık kapanabilir. Kapanınca
+     altından bu ekran çıkıyor ve ikisi aynı krem zemini paylaştığı için
+     geçiş görünmüyor. */
+  useEffect(() => {
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
+
+  if (loading || !sureDoldu) return <AcilisEkrani />;
 
   return (
     <Stack

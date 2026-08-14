@@ -117,10 +117,14 @@ eas submit --platform android --profile production --latest
 - [ ] Yaş derecelendirmesi anketi
 - [ ] iOS: App Privacy ("veri toplama") beyanı
 - [ ] Apple Developer (99$/yıl) ve Google Play (25$ tek sefer) hesapları aktif
+- [ ] App Store'un 1024 px liste simgesi — elimizdeki amblem 452 px, büyütmek
+      yumuşak çıkarır; vektör ya da ≥1024 özgün dosya gerekiyor
+      (`assets/README.md`)
 
 ## Notlar
-- `assets/app/icon.png`, `adaptive-icon.png`, `splash.png` marka placeholder'larıdır;
-  nihai görsellerle değiştirilebilir.
+- `assets/app/` içindeki simge ve açılış görselleri artık placeholder değil:
+  marka paketindeki ana amblemden üretiliyor. Kaynak, çözünürlük sınırı ve
+  açılışın birbirine karışan üç ayrı katmanı **`assets/README.md`** içinde.
 - Ürün verisi şimdilik `data/products.ts` içinde statiktir; canlıya geçişte
   `products` tablosuna bağlanır (cüzdan + auth zaten Supabase'e bağlı).
 - `metro.config.js`, `supabase-js`'in opsiyonel `@opentelemetry/api` importunu boş
