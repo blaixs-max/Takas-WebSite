@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "start": "expo start --tunnel",
+    "start:temiz": "expo start --tunnel --clear",
+    "start:yerel": "expo start",
+    "android": "expo start --tunnel --android",
+    "ios": "expo start --tunnel --ios",
     "web": "expo start --web",
     "lint": "expo lint"
   },

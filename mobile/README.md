@@ -60,15 +60,46 @@ E-posta/şifre ise ekstra config gerektirmez.
 cd mobile
 npm install
 cp .env.example .env   # değerler eas.json'daki development profilinde
-npx expo start -c      # QR kodu Expo Go ile telefonda aç
-# veya: npm run ios / npm run android (simülatör/emülatör)
+npm start              # QR kodu Expo Go ile telefonda aç
 ```
 
-`-c` Metro önbelleğini temizler. Varlık ya da ortam değişkeni değiştiyse
-**gerekli**: Metro eskisini önbellekten servis ediyor ve değişiklik
-görünmüyor — bir kez bu yüzden 22 ekran görüntüsü yanlış çekildi.
+| Komut | Ne yapar |
+|---|---|
+| `npm start` | **Tünel.** Varsayılan bu. |
+| `npm run start:temiz` | Tünel + Metro önbelleğini temizler |
+| `npm run start:yerel` | Aynı ağ (LAN). Yalnızca kendi telefonun, daha hızlı. |
 
-Telefon ve bilgisayar aynı ağda olmalı; olmuyorsa `npx expo start --tunnel`.
+## Tünel neden varsayılan
+
+Yerel ağ (LAN) modu telefonla bilgisayarın **aynı Wi-Fi'de** olmasını şart
+koşuyor. Uygulamayı başkasına — başka bir evdeki birine, telefonu mobil veride
+olan birine — göstermek isteyince o mod hiç çalışmıyor ve QR sessizce
+bağlanamıyor. Tünel internet üzerinden çalışıyor, karşılığında ilk yükleme
+belirgin yavaş.
+
+`start:yerel` duruyor: yalnızca kendi telefonunla çalışırken tünel gereksiz
+bir yavaşlık.
+
+**`start:temiz` ne zaman gerekli:** varlık (simge, açılış görseli) ya da
+ortam değişkeni değiştiğinde. Metro eskisini önbellekten servis ediyor ve
+değişiklik görünmüyor; bir kez bu yüzden 22 ekran görüntüsü yanlış çekildi.
+
+## Tünel açılmazsa
+
+`CommandError: failed to start tunnel` / `remote gone away` görürsen:
+
+1. **Tekrar dene.** Çoğu zaman ngrok tarafındaki geçici bir kopma.
+2. https://status.ngrok.com — kesinti var mı.
+3. Kesinti yoksa engelleyen taraf senin ağın: kurumsal ağ, antivirüs ya da
+   modem ngrok'a çıkışı kesiyor olabilir.
+
+**`@expo/ngrok`'u global kurmaya çalışma** — paket zaten `dependencies`
+içinde ve `npm install` ile geliyor. Bu hata paketin eksikliğinden değil,
+servise ulaşılamamasından çıkıyor; global kurulum onu değiştirmez.
+
+Tünel ısrarla açılmıyorsa ve amaç uygulamayı başkasına göstermekse doğru yol
+zaten `eas build -p android --profile preview`: kurulabilir bir APK üretir,
+senin bilgisayarına da Expo Go'ya da ihtiyaç bırakmaz.
 
 > Expo Go'nun yükleme ekranı `app.json`'daki **simge + ad**'ı gösterir,
 > `splash.png`'yi değil. Açılış görsellerini değiştirdiysen hangi katmanın

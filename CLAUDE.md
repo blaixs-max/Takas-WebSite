@@ -221,7 +221,9 @@ yarısı, indekslenen bir sayfada. Site tarafı artık böyle bir adı yayınlam
 # Mobil
 cd mobile && npm install
 npx tsc --noEmit                      # tip kontrolü (commit öncesi)
-npx expo start                        # geliştirme (Expo Go)
+npm start                             # geliştirme (Expo Go) — TÜNEL varsayılan
+# npm run start:temiz  → tünel + Metro önbelleği temiz (varlık/env değiştiyse)
+# npm run start:yerel  → aynı Wi-Fi (LAN); yalnızca kendi telefonunla hızlı
 EXPO_NO_TELEMETRY=1 CI=1 npx expo export --platform web   # derleme doğrulama
 
 # Arka uç testleri (yerel geçici Postgres): migration'ları sırayla uygula,
