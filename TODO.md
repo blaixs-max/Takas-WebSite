@@ -585,7 +585,9 @@ değiştirilemez.
 - [ ] Dekoratif linkler (Anasayfa "Tümü/Harita") → gerçek hedef
 
 ## 🚀 Yayın (config gerektirir)
-- [ ] Supabase dashboard: Google/Apple provider + redirect `kidstrade://auth-callback`
+- [ ] Supabase dashboard: Google/Apple provider + redirect `eldenele://auth-callback`
+      (şema değişti; bu satır `kidstrade` yazıyordu — yukarıdaki "panelde
+      tamamlanması gereken iki adım" maddesiyle aynı iş)
 - [ ] iyzico **sandbox** anahtarları → uçtan uca ödeme testi → canlı anahtar
 - [ ] EAS build + submit (App Store + Google Play) — `mobile/README.md`
 - [ ] Gizlilik politikası (KVKK), mağaza görselleri, yaş derecelendirmesi
