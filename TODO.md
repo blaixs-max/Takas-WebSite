@@ -660,6 +660,62 @@ değiştirilemez.
       - Profil "İlanlarım → Tümü" — hemen altındaki kutu zaten rafa götüren
         gerçek düğme; ikisinden biri çalışıyordu, diğeri süstü.
 
+## 🎨 Yeni UI turu (2026-08-14 · sürüyor)
+
+Kaynak: `tasarim/` — "Eldenele App Metin ve UX Rehberi (Nihai, 14 Ağustos
+2026)", 24 benzersiz ekran tasarımı ve 4 fotoğraf.
+
+**Kapsam yalnızca görünüm ve metin.** Kullanıcı kararıyla fonksiyon aynı
+kalıyor: ürün durumları bizim üçlümüz (veri tabanı kısıtı değişmiyor),
+filtre/sırala bizim çip satırımız (rehberdeki iki ayrı ekran yapılmıyor),
+kartta avatar + güven skoru + hasar rozeti duruyor, ürün detayında küçük
+resim şeridi duruyor.
+
+**Palet değişmedi.** Rehber aynı sekiz rengi ve "yeni ana renk eklenmez"
+kuralını tekrarlıyor. Değişen, çevresindeki krem ve turkuaz basamaklar —
+hepsi 24 ekranın baskın renkleri sayılarak ölçüldü, göz kararı seçilmedi.
+
+- [x] **Tema tokenları** — zemin `#FBF8F2`, kart `#FFFFFF`, alt bar
+      `#FFF9EF`, ayraç `#F3EBDD`, arama alanı `#F3EBDD`, açık turkuaz
+      `#DDF5F8`, ikincil metin `#5E6876`, cüzdan gradyanı
+      `#008BAA → #1896B2`. `primary` `#00718A`de kaldı; tasarımdaki seçili
+      çip metnini ölçtüğümde `#006F84` çıktı, yani tasarım da aynı koyu
+      turkuazı kullanıyor.
+- [x] **Ürün kartı** — beyaz gövde, 1.5 oranlı görsel, açık turkuaz puan
+      hapı, görselde durum çipi + hasar rozeti, konum satırında güven skoru,
+      alt satırda hap + kalp. Ölçüler tasarımdan piksel piksel okundu
+      (`08_04_Anasayfa.png`, 739×1600 = 390×844 @1.895): kenar 18, kart arası
+      10, kart 172, hap y22, kalp 26.
+- [x] **Öne çıkan kart** — siyah gradyan perdeli eski kart dili kalktı;
+      artık raf kartıyla **aynı** dili konuşuyor: aynı genişlik, aynı stiller,
+      tek farkı rozet. Stiller `ProductCard`'tan geliyor.
+- [x] **Anasayfa** — selamlama, dolu krem arama alanı, beyaz/turkuaz
+      çipler, bölüm başlıkları, "Tümünü gör" ve "Haritada gör" çalışıyor.
+- [x] **Punto ölçeği** — bütün yazılar tasarımın ölçüsüne çekildi
+      (selamlama 27→22, bölüm başlığı 19.5→17, kart başlığı 14.5→12.5,
+      hap 10.5→9.5). Ölçüm aynı yazı tipiyle yapıldı, göz kararı değil.
+- [x] **Alt sekme şeridi** — zemin `#F6F3ED` idi, yani sayfa zemininden
+      **koyu**; tasarımda `#FFF9EF`, yani bir ton açık. Etiket "Ürün Ekle"
+      değil "Ürün ekle" (rehber 09).
+
+> **Yazı tipi Nunito değil.** Bir tur Nunito bağlandı ve geri alındı:
+> tasarım kareleri de pazarlama sitesi de grotesk kullanıyor (sistem yığını /
+> Roboto). Nunito markanın **kelime logosunun** yüzü — `splash.png` içinde ve
+> sitenin logo SVG'sinde kontur olarak var, gövde metninde hiçbir yerde yok.
+> Bağlansaydı uygulama hem tasarımdan hem siteden ayrılırdı. Telefonda
+> platformun kendi grotesk'i (SF Pro / Roboto) zaten tasarımdaki yüz.
+- [ ] Ürün detayı · sepet · favoriler · profil
+- [ ] Ürün ekle · fotoğraflar · taslaklar
+- [ ] Takaslarım · cüzdan · mesajlar · sohbet · bildirimler
+- [ ] Adresler · güvenlik · yardım · davet · profili düzenle · ödeme
+- [ ] Açılış · onboarding · giriş
+- [ ] Rehberdeki nihai metinlerin ekran ekran uygulanması
+- [ ] Dört fotoğrafın kırpılıp `mobile/assets/` altına alınması
+
+> **"Haritada gör" arkasında harita ekranı yok.** Kullanıcı kararıyla duruyor
+> ve şimdilik dokunulunca ne olduğunu söylüyor — sessizce hiçbir şey yapmayan
+> bir bağlantı değil. Yayından önce ya harita yazılacak ya bağlantı düşecek.
+
 ## 🔒 Yayın öncesi güvenlik turu (KURAL — atlanamaz)
 
 Launch'tan önce hem site hem uygulama için ayrı ayrı, kapsamlı bir güvenlik

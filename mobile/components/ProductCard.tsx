@@ -6,70 +6,95 @@ import { Product } from '../data/products';
 import { useFavorites } from '../lib/favorites';
 import { colors, elevation, shape } from '../theme/tokens';
 
-/** v2 ürün kartı — kondisyon rozeti, favori, puan pill'i + satıcı avatarı. */
+/**
+ * Ürün kartı — yeni UI tasarımı.
+ *
+ * Ölçüler `tasarim/yeni ekran UI'ları/08_04_Anasayfa.png` üzerinden piksel
+ * piksel okundu (tasarım 739×1600 = 390×844 @1.895):
+ *
+ * | Öğe | Tasarım |
+ * |---|---|
+ * | sayfa kenarı · kart arası | 18 pt · 10 pt → kart 172 pt |
+ * | görsel | kart genişliği, yükseklik 114 pt → oran ~1.5 |
+ * | gövde iç boşluğu | 12 pt, alt 10 pt |
+ * | puan hapı | y 22 pt, zemin `#DDF5F8`, metin `#006F84` |
+ * | kalp | 26 pt daire, zemin `#F3EBDD`, **alt satırın sağında** |
+ *
+ * ## Tasarımdan sapılan yerler
+ *
+ * Tasarımın kartı sade: görsel + durum çipi + başlık + konum + (puan hapı,
+ * kalp). Bizde iki bilgi fazladan var ve ikisi de kalıyor:
+ *
+ * - **Hasar beyanı** görselde, durum çipinin altında. İkinci el üründe en çok
+ *   merak edilen bilgi; kartı açmadan görünmeli.
+ * - **Güven skoru** konum satırının devamında, ayraçtan sonra. Kendi satırını
+ *   istemiyor, yani kart uzamıyor.
+ *
+ * **Satıcı avatarı kaldırıldı.** Bir tur boyunca alt satırda, puan hapının
+ * karşısında durdu; hap + avatar + kalp üçlüsü 172 pt'lik karta sığmadı ve
+ * "420 Takas P…" diye kesildi. Tasarımın alt satırında tam olarak iki öğe var,
+ * kart da ona göre ölçülmüş. Baş harfler kartta kimseye bir şey söylemiyordu
+ * zaten — satıcı kimliği ürün detayındaki satıcı satırında, adıyla duruyor.
+ */
 export function ProductCard({ product }: { product: Product }) {
   const { isFavorite, toggle } = useFavorites();
   const fav = isFavorite(product.id);
+  /* Skor yalnızca hak edilmişse: `seller_trust` varsayılanı 90 ve hiç takas
+     yapmamış birinde 90 göstermek, profildeki "güven skorun henüz oluşmadı"
+     ile çelişirdi. */
+  const skorVar = product.seller.trades > 0;
+
   return (
     <Link href={`/product/${product.id}`} asChild>
       <Pressable style={styles.card}>
         <View style={styles.media}>
           <Image source={product.image} style={styles.img} resizeMode="cover" />
+
           <View style={styles.cond}>
             <Text style={styles.condText}>{product.condition}</Text>
           </View>
-          {/* Hasar beyanı kapakta.
-              `products.has_damage` `product_photos` göçünden beri var ve
-              yedinci kareyi zorunlu yapıyor, ama arayüze hiç çıkmıyordu:
-              alıcı hasarı ancak ilanı açıp yedinci kareye bakınca görüyordu.
-              İkinci el üründe en çok merak edilen şeyin kartta olmaması,
-              kusuru saklamak gibi okunuyor. Rozet uyarı değil bilgi — beyan
-              edilmiş olması iyi bir şey; gizlenmiş olması kötü olurdu. */}
+
           {product.hasDamage && (
             <View style={styles.hasar}>
-              <MaterialIcons name="report-problem" size={12} color={colors.onTertiaryContainer} />
+              <MaterialIcons name="report-problem" size={11} color={colors.onTertiaryContainer} />
               <Text style={styles.hasarText}>Hasar beyanlı</Text>
             </View>
           )}
-          <Pressable style={styles.fav} onPress={() => toggle(product.id)} hitSlop={8}>
-            <MaterialIcons
-              name={fav ? 'favorite' : 'favorite-border'}
-              size={19}
-              color={fav ? colors.tertiary : colors.onSurface}
-            />
-          </Pressable>
         </View>
-        <View style={styles.pc}>
-          <Text style={styles.tt} numberOfLines={2}>
+
+        <View style={styles.govde}>
+          <Text style={styles.baslik} numberOfLines={2}>
             {product.title}
           </Text>
+
           <View style={styles.meta}>
-            <MaterialIcons name="location-on" size={14} color={colors.onSurfaceVariant} />
-            <Text style={styles.metaText}>{product.location}</Text>
-            <View style={styles.dot} />
-            <Text style={styles.metaText}>★ {product.rating.toFixed(1)}</Text>
+            <MaterialIcons name="location-on" size={12} color={colors.onSurfaceVariant} />
+            <Text style={styles.metaText} numberOfLines={1}>
+              {product.location}
+            </Text>
+            {skorVar && (
+              <>
+                <Text style={styles.metaAyrac}>·</Text>
+                <MaterialIcons name="verified-user" size={11} color={colors.primary} />
+                <Text style={styles.skorText}>{product.seller.trust}</Text>
+              </>
+            )}
           </View>
-          <View style={styles.foot}>
-            <View style={styles.pts}>
-              <Diamond size={14} color={colors.onPrimaryContainer} />
-              <Text style={styles.ptsText}>{product.points}</Text>
+
+          <View style={styles.alt}>
+            <View style={styles.puan}>
+              <Diamond size={11} color={colors.primary} />
+              <Text style={styles.puanText} numberOfLines={1}>
+                {product.points} Takas Puanı
+              </Text>
             </View>
-            <View style={styles.satici}>
-              {/* Skor yalnızca satıcı en az bir takas tamamladıysa görünüyor.
-                  `products.seller_trust` varsayılanı 90; hiç takas yapmamış
-                  birinde 90 göstermek, profil ekranının "Güven skoru henüz
-                  oluşmadı" demesiyle çelişirdi ve kazanılmamış bir sayıyı
-                  kazanılmış gibi sunardı. */}
-              {product.seller.trades > 0 && (
-                <View style={styles.guven}>
-                  <MaterialIcons name="verified-user" size={11} color={colors.primary} />
-                  <Text style={styles.guvenText}>{product.seller.trust}</Text>
-                </View>
-              )}
-              <View style={styles.av}>
-                <Text style={styles.avText}>{product.seller.initials}</Text>
-              </View>
-            </View>
+            <Pressable style={styles.fav} onPress={() => toggle(product.id)} hitSlop={10}>
+              <MaterialIcons
+                name={fav ? 'favorite' : 'favorite-border'}
+                size={15}
+                color={fav ? colors.tertiaryOn : colors.onSurfaceVariant}
+              />
+            </Pressable>
           </View>
         </View>
       </Pressable>
@@ -77,80 +102,84 @@ export function ProductCard({ product }: { product: Product }) {
   );
 }
 
-const styles = StyleSheet.create({
+/**
+ * Kart genişliği. Raf ızgarası kartı esnetiyor (`flex: 1`), öne çıkanlar şeridi
+ * yatay kaydığı için esneyemiyor ve sayıyı buradan alıyor — ikisi aynı kalsın
+ * diye tek yerde: 390 − 2×18 kenar − 10 boşluk, ikiye bölünmüş.
+ */
+export const KART_GENISLIGI = 172;
+
+/** Kart gövdesi iki kart tipinde de aynı — öne çıkanlar şeridi de bunu kullanır. */
+export const kartStilleri = StyleSheet.create({
   card: {
-    flex: 1,
+    borderRadius: shape.lg,
     backgroundColor: colors.surfaceContainerLowest,
-    borderRadius: shape.md,
     overflow: 'hidden',
     ...elevation.level1,
   },
-  media: { aspectRatio: 1, backgroundColor: colors.surfaceContainerHighest },
+  media: { aspectRatio: 1.5, backgroundColor: colors.surfaceContainerHigh },
   img: { width: '100%', height: '100%' },
+
+  /* Görselin üstündeki hapların zemini yarı saydam beyaz: fotoğraf koyu da
+     olsa açık da olsa metin okunuyor, tam beyaz gibi de kesip atmıyor. */
   cond: {
     position: 'absolute',
     left: 8,
     top: 8,
-    height: 25,
-    paddingHorizontal: 9,
-    borderRadius: shape.xs,
-    backgroundColor: 'rgba(255,255,255,0.94)',
+    height: 23,
+    paddingHorizontal: 10,
+    borderRadius: shape.full,
+    backgroundColor: 'rgba(255,255,255,0.95)',
     justifyContent: 'center',
-    ...elevation.level1,
   },
-  condText: { fontSize: 11, fontWeight: '700', color: colors.onSurface },
+  condText: { fontSize: 10, fontWeight: '700', color: colors.onSurface },
+
   hasar: {
     position: 'absolute',
     left: 8,
-    top: 39,
+    top: 36,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    height: 21,
+    paddingHorizontal: 7,
+    borderRadius: shape.full,
+    backgroundColor: colors.tertiaryContainer,
+  },
+  hasarText: { fontSize: 9.5, fontWeight: '800', color: colors.onTertiaryContainer },
+
+  govde: { paddingHorizontal: 12, paddingTop: 12, paddingBottom: 10, gap: 5 },
+  baslik: { fontSize: 12.5, fontWeight: '800', color: colors.onSurface, lineHeight: 16 },
+  meta: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  metaText: { fontSize: 10.5, color: colors.onSurfaceVariant, fontWeight: '500', flexShrink: 1 },
+  metaAyrac: { fontSize: 10.5, color: colors.onSurfaceVariant, marginHorizontal: 1 },
+  skorText: { fontSize: 10.5, color: colors.primary, fontWeight: '700' },
+
+  alt: { flexDirection: 'row', alignItems: 'center', marginTop: 3 },
+  /* Hap içeriği kadar geniş (tasarımda da öyle), kalan boşluk kalbi sağa
+     itiyor. `flex: 1` verilseydi hap kartı doldurur, kalp yapışırdı. */
+  puan: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    height: 23,
-    paddingHorizontal: 8,
-    borderRadius: shape.xs,
-    backgroundColor: colors.tertiaryContainer,
-    ...elevation.level1,
-  },
-  hasarText: { fontSize: 10.5, fontWeight: '800', color: colors.onTertiaryContainer },
-  satici: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  guven: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  guvenText: { fontSize: 11, fontWeight: '800', color: colors.primary },
-  fav: {
-    position: 'absolute',
-    right: 7,
-    top: 7,
-    width: 34,
-    height: 34,
+    height: 22,
+    paddingHorizontal: 9,
     borderRadius: shape.full,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...elevation.level1,
-  },
-  pc: { paddingHorizontal: 12, paddingTop: 11, paddingBottom: 13 },
-  tt: { fontSize: 13.5, fontWeight: '600', lineHeight: 17, color: colors.onSurface, minHeight: 34 },
-  meta: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 7 },
-  metaText: { fontSize: 11.5, color: colors.onSurfaceVariant, fontWeight: '500' },
-  dot: { width: 3, height: 3, borderRadius: 2, backgroundColor: colors.outline },
-  foot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 11 },
-  pts: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    height: 28,
-    paddingHorizontal: 11,
-    borderRadius: shape.xs,
     backgroundColor: colors.primaryContainer,
   },
-  ptsText: { fontWeight: '800', fontSize: 13, color: colors.onPrimaryContainer },
-  av: {
-    width: 24,
-    height: 24,
+  puanText: { fontSize: 9.5, fontWeight: '800', color: colors.primary },
+  fav: {
+    marginLeft: 'auto',
+    width: 26,
+    height: 26,
     borderRadius: shape.full,
-    backgroundColor: colors.secondaryContainer,
+    backgroundColor: colors.surfaceContainerHigh,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avText: { fontSize: 10, fontWeight: '800', color: colors.onSecondaryContainer },
+});
+
+const styles = StyleSheet.create({
+  ...kartStilleri,
+  card: { ...kartStilleri.card, flex: 1 },
 });

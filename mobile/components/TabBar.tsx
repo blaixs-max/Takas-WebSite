@@ -20,8 +20,8 @@ const ICON: Record<string, { on: keyof typeof MaterialIcons.glyphMap; off: keyof
 };
 
 /**
- * Özel alt menü: Anasayfa · Sepetim · [Ürün Ekle] · Favoriler · Hesabım
- * Ortadaki "Ürün Ekle" yükseltilmiş, primary renkli dairesel buton; gerçek
+ * Özel alt menü: Anasayfa · Sepetim · [Ürün ekle] · Favoriler · Hesabım
+ * Ortadaki "Ürün ekle" yükseltilmiş, primary renkli dairesel buton; gerçek
  * sekme değil — /add-listing modalını açar. Diğer 4'ü gerçek sekme.
  */
 export function TabBar({ state, navigation }: BottomTabBarProps) {
@@ -73,7 +73,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
           <MaterialIcons name="add-a-photo" size={26} color={colors.onPrimary} />
         </Pressable>
         <Text style={[styles.label, styles.fabLabel]} numberOfLines={1}>
-          Ürün Ekle
+          Ürün ekle
         </Text>
       </View>
 
@@ -87,14 +87,17 @@ const styles = StyleSheet.create({
   bar: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: colors.surfaceContainer,
+    /* Ölçüldü: tasarımda şerit `#FFF9EF` — krem zeminin bir ton **açığı**.
+       Bir tur boyunca `surfaceContainer` (#F6F3ED) idi, yani zeminden koyu;
+       şerit sayfanın altına yapışmış gri bir bant gibi duruyordu. */
+    backgroundColor: colors.surfaceContainerLow,
     borderTopLeftRadius: shape.xl,
     borderTopRightRadius: shape.xl,
     paddingTop: 10,
     ...elevation.level2,
   },
   slot: { flex: 1, alignItems: 'center', justifyContent: 'flex-start', gap: 4, paddingTop: 4 },
-  label: { fontSize: 11.5, fontWeight: '600' },
+  label: { fontSize: 10.5, fontWeight: '600' },
   badge: {
     position: 'absolute',
     top: -5,
@@ -107,7 +110,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: colors.surfaceContainer,
+    borderColor: colors.surfaceContainerLow,
   },
   badgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
   fab: {

@@ -1,38 +1,70 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Diamond } from './brand/Diamond';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Link } from 'expo-router';
 import { Product } from '../data/products';
-import { colors, elevation, shape } from '../theme/tokens';
+import { useFavorites } from '../lib/favorites';
+import { KART_GENISLIGI, kartStilleri } from './ProductCard';
+import { colors, shape } from '../theme/tokens';
 
-/** Öne çıkanlar yatay carousel kartı. */
+/**
+ * Öne çıkanlar şeridindeki kart.
+ *
+ * Eskiden bambaşka bir kart dili vardı: fotoğrafın üstüne siyah gradyan perde,
+ * beyaz başlık, koyu zeminde puan hapı. Tasarımda öne çıkan kartlarla rafın
+ * kartları **birebir aynı**: aynı genişlik, aynı görsel oranı, aynı alt satır.
+ * Tek farkları rozet taşımaları. Bu yüzden stiller `ProductCard`'tan geliyor —
+ * iki dosyada iki kez ölçü tutmak, ilk değişiklikte ayrışmaları demekti.
+ *
+ * Genişlik de rafla aynı (172 pt): bir tur boyunca 214 pt idi ve şeritte ikinci
+ * kart ekranın kenarından taşıyordu; tasarımda iki kart tam oturuyor.
+ */
 export function FeaturedCard({ product }: { product: Product }) {
-  const isEditor = product.badge === 'Editör seçimi';
+  const { isFavorite, toggle } = useFavorites();
+  const fav = isFavorite(product.id);
+  const editor = product.badge === 'Editör seçimi';
+
   return (
     <Link href={`/product/${product.id}`} asChild>
-      <Pressable style={styles.feat}>
-        <Image source={product.image} style={styles.img} resizeMode="cover" />
-        <LinearGradient
-          colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.72)']}
-          locations={[0.3, 1]}
-          style={StyleSheet.absoluteFill}
-        />
-        <View style={styles.tag}>
-          <MaterialIcons
-            name={isEditor ? 'star' : 'local-fire-department'}
-            size={15}
-            color={colors.tertiary}
-          />
-          <Text style={styles.tagText}>{product.badge}</Text>
+      <Pressable style={styles.card}>
+        <View style={styles.media}>
+          <Image source={product.image} style={styles.img} resizeMode="cover" />
+
+          {/* Rozet, rafın kartındaki durum çipiyle aynı yuvada duruyor: iki
+              kart yan yana geldiğinde göz aynı köşede aynı boyda bir hap
+              görüyor, yalnızca içeriği değişiyor. */}
+          <View style={styles.rozet}>
+            <MaterialIcons
+              name={editor ? 'star' : 'local-fire-department'}
+              size={12}
+              color={colors.tertiaryOn}
+            />
+            <Text style={styles.rozetText}>{product.badge}</Text>
+          </View>
         </View>
-        <View style={styles.cap}>
-          <Text style={styles.capTitle} numberOfLines={1}>
+
+        <View style={styles.govde}>
+          <Text style={styles.baslik} numberOfLines={2}>
             {product.title}
           </Text>
-          <View style={styles.pts}>
-            <Diamond size={13} color={colors.onPrimaryContainer} />
-            <Text style={styles.ptsText}>{product.points} puan</Text>
+          <View style={styles.meta}>
+            <MaterialIcons name="location-on" size={12} color={colors.onSurfaceVariant} />
+            <Text style={styles.metaText} numberOfLines={1}>
+              {product.location}
+            </Text>
+          </View>
+          <View style={styles.alt}>
+            <View style={styles.puan}>
+              <Diamond size={11} color={colors.primary} />
+              <Text style={styles.puanText}>{product.points} Takas Puanı</Text>
+            </View>
+            <Pressable style={styles.fav} onPress={() => toggle(product.id)} hitSlop={10}>
+              <MaterialIcons
+                name={fav ? 'favorite' : 'favorite-border'}
+                size={15}
+                color={fav ? colors.tertiaryOn : colors.onSurfaceVariant}
+              />
+            </Pressable>
           </View>
         </View>
       </Pressable>
@@ -41,39 +73,19 @@ export function FeaturedCard({ product }: { product: Product }) {
 }
 
 const styles = StyleSheet.create({
-  feat: {
-    width: 252,
-    height: 184,
-    borderRadius: shape.lg,
-    overflow: 'hidden',
-    ...elevation.level2,
-  },
-  img: { width: '100%', height: '100%' },
-  tag: {
+  ...kartStilleri,
+  card: { ...kartStilleri.card, width: KART_GENISLIGI },
+  rozet: {
     position: 'absolute',
-    top: 12,
-    left: 12,
+    left: 8,
+    top: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    height: 28,
-    paddingHorizontal: 10,
+    gap: 4,
+    height: 23,
+    paddingHorizontal: 9,
     borderRadius: shape.full,
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    backgroundColor: 'rgba(255,255,255,0.95)',
   },
-  tagText: { fontSize: 11, fontWeight: '800', color: colors.onSurface },
-  cap: { position: 'absolute', left: 14, right: 14, bottom: 13 },
-  capTitle: { color: '#fff', fontSize: 15, fontWeight: '800', letterSpacing: -0.2 },
-  pts: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    alignSelf: 'flex-start',
-    marginTop: 8,
-    height: 26,
-    paddingHorizontal: 10,
-    borderRadius: shape.full,
-    backgroundColor: colors.primaryContainer,
-  },
-  ptsText: { fontSize: 12, fontWeight: '800', color: colors.onPrimaryContainer },
+  rozetText: { fontSize: 10, fontWeight: '800', color: colors.onSurface },
 });

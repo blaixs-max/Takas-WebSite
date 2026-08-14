@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, T
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { uyar } from '../../components/Dialog';
 import { ProductCard } from '../../components/ProductCard';
 import { FeaturedCard } from '../../components/FeaturedCard';
 import { ALL_CATEGORIES, CATEGORY_TREE, subsOf } from '../../data/categories';
@@ -122,9 +123,9 @@ export default function ShelfScreen() {
         {/* Arama */}
         <View style={styles.searchWrap}>
           <View style={styles.search}>
-            <MaterialIcons name="search" size={24} color={colors.onSurfaceVariant} />
+            <MaterialIcons name="search" size={20} color={colors.onSurfaceVariant} />
             <TextInput
-              placeholder="Oyuncak, kitap, montessori…"
+              placeholder="Ürün, marka veya kategori ara"
               placeholderTextColor={colors.onSurfaceVariant}
               style={styles.searchInput}
               value={q}
@@ -142,9 +143,28 @@ export default function ShelfScreen() {
                 <MaterialIcons name="close" size={22} color={colors.onSurfaceVariant} />
               </Pressable>
             )}
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{basHarf}</Text>
-            </View>
+            {/* Tasarımda burada turuncu bir daire var ve içinde süzgeç
+                simgesi. Bizde süzgeç ekranı yok — süzme hemen altındaki çip
+                satırıyla yapılıyor (kullanıcı kararı), o yüzden aynı daire
+                profile kısayolu olarak duruyor.
+
+                Daire bir tur boyunca `View` idi: dokunmaya cevap vermeyen,
+                çizilmiş bir düğme — sildiğim mikrofonla aynı kusur. Artık
+                gerçekten bir yere gidiyor. Ad yokken "—" bir hata gibi
+                okunuyordu; kişi ikonu profilin henüz boş olduğunu söylüyor. */}
+            <Pressable
+              style={styles.avatar}
+              onPress={() => router.push('/(tabs)/profile')}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Profilim"
+            >
+              {basHarf === '—' ? (
+                <MaterialIcons name="person" size={17} color={colors.onTertiaryContainer} />
+              ) : (
+                <Text style={styles.avatarText}>{basHarf}</Text>
+              )}
+            </Pressable>
           </View>
         </View>
 
@@ -164,8 +184,8 @@ export default function ShelfScreen() {
               >
                 <MaterialIcons
                   name={f.icon}
-                  size={18}
-                  color={sel ? colors.onSecondaryContainer : colors.onSurfaceVariant}
+                  size={16}
+                  color={sel ? colors.primary : colors.onSurfaceVariant}
                 />
                 <Text style={[styles.chipText, sel && styles.chipTextSel]}>{f.label}</Text>
               </Pressable>
@@ -208,6 +228,18 @@ export default function ShelfScreen() {
                 altındaki rafın bir alt kümesi, tam liste zaten aynı ekranda. */}
             <View style={styles.sec}>
               <Text style={styles.secTitle}>Öne çıkan takaslar</Text>
+              {/* Bağlantı bu kez gerçekten çalışıyor: süzgeci sıfırlayıp
+                  aramayı temizliyor, yani tam rafı gösteriyor. Öne çıkanlar
+                  zaten o rafın alt kümesi. */}
+              <Pressable
+                onPress={() => {
+                  anaSec(ALL_CATEGORIES);
+                  setQ('');
+                }}
+                hitSlop={8}
+              >
+                <Text style={styles.secLink}>Tümünü gör</Text>
+              </Pressable>
             </View>
             <ScrollView
               horizontal
@@ -221,13 +253,24 @@ export default function ShelfScreen() {
           </>
         )}
 
-        {/* Yakındaki raflar */}
-        {/* "Harita" da kalktı: uygulamada harita ekranı yok. Sitede var ama
-            burada karşılığı hiç yazılmadı — dokunulamayan bir bağlantı,
-            olmayan bir özelliği varmış gibi gösteriyordu. Harita gerçekten
-            yapılırsa bağlantı da onunla birlikte döner. */}
+        {/* Rehberdeki başlık "Yakınındaki ürünler". */}
         <View style={styles.sec}>
-          <Text style={styles.secTitle}>Yakınındaki raflar</Text>
+          <Text style={styles.secTitle}>Yakınındaki ürünler</Text>
+          {/* "Haritada gör" tasarımda ve rehberde var, arkasında harita
+              ekranı YOK. Kullanıcı kararıyla duruyor; yayından önce ya
+              harita yazılacak ya bu bağlantı düşecek. Şimdilik dokunulunca
+              ne olduğunu söylüyor — sessizce hiçbir şey yapmıyor değil. */}
+          <Pressable
+            onPress={() =>
+              uyar(
+                'Harita yakında',
+                'Yakınındaki ürünleri haritada görme özelliği hazırlanıyor. Şu an ürünler mesafeye göre listeleniyor.',
+              )
+            }
+            hitSlop={8}
+          >
+            <Text style={styles.secLink}>Haritada gör</Text>
+          </Pressable>
         </View>
         {loading ? (
           <View style={styles.loading}>
@@ -250,9 +293,9 @@ export default function ShelfScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
-  appbar: { flexDirection: 'row', alignItems: 'center', height: 56, paddingHorizontal: 6 },
-  greeting: { fontSize: 22, fontWeight: '700', letterSpacing: -0.3, color: colors.onSurface },
-  sub: { fontSize: 12, fontWeight: '500', color: colors.onSurfaceVariant, marginTop: 1 },
+  appbar: { flexDirection: 'row', alignItems: 'center', paddingTop: 8, paddingBottom: 12, paddingHorizontal: 6 },
+  greeting: { fontSize: 22, fontWeight: '800', letterSpacing: -0.6, color: colors.onSurface },
+  sub: { fontSize: 11, fontWeight: '500', color: colors.onSurfaceVariant, marginTop: 2 },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   badge: {
     position: 'absolute',
@@ -269,66 +312,78 @@ const styles = StyleSheet.create({
     borderColor: colors.surface,
   },
   badgeText: { color: '#fff', fontSize: 9, fontWeight: '800' },
-  searchWrap: { paddingHorizontal: 18, marginTop: 6, marginBottom: 16 },
+  searchWrap: { paddingHorizontal: 18, marginTop: 2, marginBottom: 14 },
+  /* Ölçüldü (`08_04_Anasayfa.png`): alan 354×35 pt, gölgesiz, zemin `#F3EBDD`.
+     Bir tur boyunca 54 pt yüksekliğinde ve bir ton daha koyu (`#E7E1D5`) idi;
+     krem zeminin üstünde gri bir kutu gibi duruyordu. Yükseklik tasarımdaki
+     35 yerine 40: 35 pt'lik bir dokunma alanı, içindeki metin alanıyla
+     birlikte, parmakla ıskalanıyor. */
   search: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    height: 56,
-    paddingHorizontal: 16,
+    gap: 9,
+    height: 40,
+    paddingLeft: 14,
+    paddingRight: 6,
     borderRadius: shape.full,
     backgroundColor: colors.surfaceContainerHigh,
-    ...elevation.level1,
   },
-  searchInput: { flex: 1, fontSize: 15, color: colors.onSurface },
+  searchInput: { flex: 1, fontSize: 13, color: colors.onSurface },
+  /* Turuncu daire 28 pt (ölçüldü). Metin koyu — beyaz `#FFA726` üzerinde
+     okunmuyor. */
   avatar: {
-    width: 34,
-    height: 34,
+    width: 28,
+    height: 28,
     borderRadius: shape.full,
-    backgroundColor: colors.tertiary,
+    backgroundColor: colors.tertiaryOn,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  chips: { gap: 8, paddingHorizontal: 18, paddingBottom: 6 },
+  avatarText: { color: colors.onTertiaryContainer, fontWeight: '800', fontSize: 11 },
+  chips: { gap: 8, paddingHorizontal: 18, paddingBottom: 4 },
+  /* Tasarım: beyaz hap + ince kenarlık, yüksekliği 25 pt; seçili olan açık
+     turkuaz zemin ve koyu turkuaz metin. Burada 30: 25 pt dokunma için fazla
+     alçak, 36 (önceki değer) tasarımın yanında şişkin duruyordu. */
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
-    height: 34,
-    paddingHorizontal: 14,
-    borderRadius: shape.xs,
+    gap: 6,
+    height: 30,
+    paddingHorizontal: 11,
+    borderRadius: shape.full,
     borderWidth: 1,
     borderColor: colors.outlineVariant,
+    backgroundColor: colors.surfaceContainerLowest,
   },
-  chipSel: { backgroundColor: colors.secondaryContainer, borderColor: 'transparent' },
-  chipText: { fontSize: 13, fontWeight: '600', color: colors.onSurfaceVariant },
-  chipTextSel: { color: colors.onSecondaryContainer, fontWeight: '700' },
+  chipSel: { backgroundColor: colors.primaryContainer, borderColor: 'transparent' },
+  chipText: { fontSize: 11, fontWeight: '700', color: colors.onSurfaceVariant },
+  chipTextSel: { color: colors.primary },
   subChips: { gap: 8, paddingHorizontal: 18, paddingTop: 8, paddingBottom: 2 },
   subChip: {
-    height: 30,
-    paddingHorizontal: 12,
+    height: 28,
+    paddingHorizontal: 11,
     borderRadius: shape.full,
     justifyContent: 'center',
     backgroundColor: colors.surfaceContainerHigh,
   },
-  subChipSel: { backgroundColor: colors.onSurface },
-  subChipText: { fontSize: 12.5, fontWeight: '600', color: colors.onSurfaceVariant },
-  subChipTextSel: { color: colors.surface, fontWeight: '700' },
+  subChipSel: { backgroundColor: colors.primary },
+  subChipText: { fontSize: 11, fontWeight: '600', color: colors.onSurfaceVariant },
+  subChipTextSel: { color: colors.onPrimary, fontWeight: '700' },
   sec: {
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    marginTop: 18,
-    marginBottom: 12,
+    paddingHorizontal: 18,
+    marginTop: 16,
+    marginBottom: 10,
   },
-  secTitle: { fontSize: 16, fontWeight: '700', letterSpacing: -0.2, color: colors.onSurface },
-  secLink: { fontSize: 13, fontWeight: '700', color: colors.primary },
-  carousel: { gap: 14, paddingHorizontal: 18 },
+  secTitle: { fontSize: 17, fontWeight: '800', letterSpacing: -0.4, color: colors.onSurface },
+  secLink: { fontSize: 11.5, fontWeight: '800', color: colors.primary },
+  carousel: { gap: 10, paddingHorizontal: 18 },
   loading: { paddingVertical: 40, alignItems: 'center' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 11 },
-  cell: { width: '50%', paddingHorizontal: 7, marginBottom: 14 },
+  /* Kenar 18, kartlar arası 10 (ölçüldü) → 13 + 5 + 5 + 13. */
+  grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 13 },
+  cell: { width: '50%', paddingHorizontal: 5, marginBottom: 14 },
   fab: {
     position: 'absolute',
     right: 18,
