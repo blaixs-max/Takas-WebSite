@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { BosDurum } from '../components/BosDurum';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,7 +21,7 @@ import { BRAND } from '../lib/brand';
 import { colors, elevation, shape } from '../theme/tokens';
 
 const QUICK = [
-  { icon: 'add-a-photo', label: 'Puan kazan', href: '/add-listing' },
+  { icon: 'add-a-photo', label: 'Ürün ekle', href: '/add-listing' },
   { icon: 'shopping-cart', label: 'Sepetim', href: '/cart' },
   { icon: 'card-giftcard', label: 'Davet et', href: null },
 ] as const;
@@ -89,7 +90,7 @@ export default function WalletScreen() {
             <Text style={styles.balAmt}>{nf.format(balance.available)}</Text>
           )}
           <View style={styles.balSub}>
-            <SubStat label="Havuzda" value={nf.format(balance.held)} />
+            <SubStat label="Güvenli Havuz’da" value={nf.format(balance.held)} />
             <SubStat label="Bu ay kazanılan" value={`+${nf.format(balance.earnedThisMonth)}`} />
             {/* Skor yoksa em dash. Uydurma bir 96, uydurma bir 100 kadar yanlış. */}
             <SubStat label="Güven skoru" value={trustSkor === null ? '—' : String(trustSkor)} />
@@ -101,7 +102,7 @@ export default function WalletScreen() {
           {QUICK.map((q) => (
             <Pressable key={q.label} style={styles.quickBtn} onPress={() => q.href && router.push(q.href)}>
               <View style={styles.quickIc}>
-                <MaterialIcons name={q.icon} size={22} color={colors.onPrimaryContainer} />
+                <MaterialIcons name={q.icon} size={19} color={colors.primary} />
               </View>
               <Text style={styles.quickLabel}>{q.label}</Text>
             </Pressable>
@@ -121,10 +122,11 @@ export default function WalletScreen() {
             <ActivityIndicator color={colors.primary} />
           </View>
         ) : entries.length === 0 ? (
-          <View style={styles.empty}>
-            <MaterialIcons name="receipt-long" size={32} color={colors.onSurfaceVariant} />
-            <Text style={styles.emptyText}>Henüz hareket yok</Text>
-          </View>
+          <BosDurum
+            ikon="receipt-long"
+            baslik="Henüz cüzdan hareketin yok"
+            metin="İlk takasını tamamladığında hareketlerin burada görünür."
+          />
         ) : (
           entries.map((t, i) => (
             <View key={t.id}>
@@ -183,7 +185,7 @@ function SubStat({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
   appbar: { flexDirection: 'row', alignItems: 'center', height: 56, paddingHorizontal: 6 },
-  appTitle: { flex: 1, fontSize: 22, fontWeight: '700', paddingLeft: 10, color: colors.onSurface },
+  appTitle: { flex: 1, fontSize: 15, fontWeight: '800', paddingLeft: 10, color: colors.onSurface },
   demoChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -196,16 +198,16 @@ const styles = StyleSheet.create({
   },
   demoText: { fontSize: 11, fontWeight: '700', color: colors.onTertiaryContainer },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  balance: { borderRadius: shape.xl, padding: 22, marginBottom: 16, ...elevation.level2, overflow: 'hidden' },
+  balance: { borderRadius: shape.lg, padding: 18, marginBottom: 16, ...elevation.level2, overflow: 'hidden' },
   balTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   brandText: { color: '#fff', fontWeight: '800', fontSize: 13, letterSpacing: 0.3 },
-  balLabel: { color: 'rgba(255,255,255,0.78)', fontWeight: '500', fontSize: 13, marginTop: 16 },
-  balAmt: { color: '#fff', fontSize: 46, fontWeight: '900', letterSpacing: -1.5, marginTop: 2 },
+  balLabel: { color: 'rgba(255,255,255,0.82)', fontWeight: '500', fontSize: 11.5, marginTop: 14 },
+  balAmt: { color: '#fff', fontSize: 34, fontWeight: '800', letterSpacing: -1, marginTop: 2 },
   balSub: { flexDirection: 'row', gap: 10, marginTop: 18 },
   subStat: { flex: 1, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: shape.sm, paddingVertical: 10, paddingHorizontal: 12 },
-  subLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 11, fontWeight: '500' },
-  subVal: { color: '#fff', fontSize: 17, fontWeight: '800', marginTop: 3 },
+  subLabel: { color: 'rgba(255,255,255,0.82)', fontSize: 9.5, fontWeight: '600' },
+  subVal: { color: '#fff', fontSize: 14, fontWeight: '800', marginTop: 3 },
   quick: { flexDirection: 'row', gap: 10, marginBottom: 22 },
   quickBtn: {
     flex: 1,
@@ -215,7 +217,7 @@ const styles = StyleSheet.create({
     borderRadius: shape.md,
     borderWidth: 1,
     borderColor: colors.outlineVariant,
-    backgroundColor: colors.surfaceContainerLow,
+    backgroundColor: colors.surfaceContainerLowest,
   },
   quickIc: {
     width: 44,
@@ -225,13 +227,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  quickLabel: { fontWeight: '600', fontSize: 12, color: colors.onSurface },
+  quickLabel: { fontWeight: '800', fontSize: 11, color: colors.onSurface },
   sec: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12, marginTop: 2 },
   secTitle: { fontSize: 16, fontWeight: '700', color: colors.onSurface },
   secLink: { fontSize: 13, fontWeight: '700', color: colors.primary },
   center: { paddingVertical: 28, alignItems: 'center' },
-  empty: { paddingVertical: 32, alignItems: 'center', gap: 8 },
-  emptyText: { color: colors.onSurfaceVariant, fontSize: 13, fontWeight: '600' },
   litem: { flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 13 },
   lic: {
     width: 46,

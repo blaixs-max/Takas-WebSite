@@ -97,19 +97,19 @@ export default function PaymentScreen() {
     if (sonuc === 'success') {
       uyar(
         'Ödeme alındı',
-        'Satıcıya bildirildi. Ürün kargoya verilince Takaslarım ekranından takip edebilirsiniz.',
+        'Satıcıya bildirildi. Ürün kargoya verilince Takaslarım ekranından takip edebilirsin.',
         [{ text: 'Takaslarıma git', onPress: () => router.replace('/trades') }],
       );
       return;
     }
     if (sonuc === 'failure') {
-      uyar('Ödeme tamamlanmadı', 'Kart işlemi onaylanmadı. Tekrar deneyebilirsiniz.');
+      uyar('Ödeme tamamlanmadı', 'Kart işlemi onaylanmadı. Yeniden deneyebilirsin.');
       return;
     }
     if (sonuc === 'cancelled') {
       uyar(
         'Ödeme yarıda kaldı',
-        'Puanınız havuzda bekliyor. Ödemeyi tamamlamazsanız süre dolduğunda takas iptal edilir ve puanınız iade edilir.',
+        'Takas Puanın Güvenli Havuz’da bekliyor. Ödemeyi tamamlamazsan süre dolduğunda takas iptal edilir ve puanın iade edilir.',
       );
       return;
     }
@@ -117,7 +117,7 @@ export default function PaymentScreen() {
     // bilir, kullanıcıyı oraya gönderiyoruz.
     uyar(
       'Ödeme durumu doğrulanıyor',
-      'İşleminizin sonucu birkaç saniye içinde Takaslarım ekranına yansıyacak.',
+      'İşlemin birkaç saniye içinde Takaslarım ekranına yansıyacak.',
       [{ text: 'Takaslarıma git', onPress: () => router.replace('/trades') }],
     );
   }
@@ -143,7 +143,7 @@ export default function PaymentScreen() {
           <View style={styles.bilgi}>
             <MaterialIcons name="info-outline" size={18} color={colors.onTertiaryContainer} />
             <Text style={styles.bilgiText}>
-              Ürünün bedelini puanınızla ödediniz; o puan havuzda bekliyor. Buradan yalnızca
+              Ürünün bedelini Takas Puanınla ödedin; o puan Güvenli Havuz’da bekliyor. Buradan yalnızca
               kargo ve hizmet bedeli tahsil edilir.
             </Text>
           </View>
@@ -161,7 +161,7 @@ export default function PaymentScreen() {
                 <Satir etiket="Toplam" tutar={fiyat.totalTl} kalin />
               </>
             ) : (
-              <Text style={styles.hata}>Tutar alınamadı. Bağlantınızı kontrol edin.</Text>
+              <Text style={styles.hata}>Tutar alınamadı. Bağlantını kontrol edip yeniden dene.</Text>
             )}
           </View>
 
@@ -272,8 +272,8 @@ const styles = StyleSheet.create({
   appTitle: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '800',
     color: colors.onSurface,
   },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },

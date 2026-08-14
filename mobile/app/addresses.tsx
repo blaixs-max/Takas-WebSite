@@ -55,7 +55,7 @@ export default function Addresses() {
         {ADDRESSES.length === 0 && (
           <View style={styles.bos}>
             <MaterialIcons name="local-shipping" size={34} color={colors.onSurfaceVariant} />
-            <Text style={styles.bosBaslik}>Kayıtlı adresiniz yok</Text>
+            <Text style={styles.bosBaslik}>Kayıtlı adresin yok</Text>
             <Text style={styles.bosMetin}>
               Adres defteri henüz açılmadı. Kargo adresi, takas onaylandıktan sonra ödeme
               adımında soruluyor ve yalnızca o gönderi için kullanılıyor.

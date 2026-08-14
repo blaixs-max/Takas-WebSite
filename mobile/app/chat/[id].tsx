@@ -93,7 +93,7 @@ export default function Chat() {
       return;
     }
     uyar(
-      'Şikâyetiniz alındı',
+      'Bildirimin alındı',
       'Ekibimiz inceleyip size sonucu bildirecek. Mesaj kayıtta kalır — inceleme buna dayanır.',
     );
   }
@@ -130,7 +130,7 @@ export default function Chat() {
             )}
             {mesajlar.length === 0 && (
               <Text style={styles.bosMetin}>
-                Henüz mesaj yok. Ürünle ilgili sorunuzu yazabilirsiniz.
+                Henüz mesaj yok. Ürünle ilgili merak ettiğini sorabilirsin.
               </Text>
             )}
             {mesajlar.map((m) => (
@@ -188,7 +188,7 @@ export default function Chat() {
             onPress={(e) => e.stopPropagation()}
             accessibilityViewIsModal
           >
-            <Text style={styles.sheetBaslik}>Bu mesajı neden bildiriyorsunuz?</Text>
+            <Text style={styles.sheetBaslik}>Bu mesajı neden bildiriyorsun?</Text>
             <Text style={styles.sheetMetin} numberOfLines={3}>
               “{sikayetEdilen?.body}”
             </Text>
@@ -215,8 +215,8 @@ const styles = StyleSheet.create({
   appTitle: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '800',
     color: colors.onSurface,
   },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },

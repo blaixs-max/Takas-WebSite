@@ -43,7 +43,7 @@ export default function SignIn() {
        çıkıyor. Sonradan doldurulabilir bir alan bırakmak, çoğu kişide hiç
        doldurulmaması demek. */
     if (mode === 'up' && adSoyad.trim().length < 2) {
-      setError('Adınızı yazın — ilanlarınızda bu ad görünecek.');
+      setError('Adını yaz — ilanlarında bu ad görünecek.');
       return;
     }
     setBusy(true);
@@ -99,7 +99,7 @@ export default function SignIn() {
             {/* Ne kadarının yayınlandığını burada söylüyoruz: kullanıcı adını
                 yazarken bilsin. Site soyadı kısaltıyor ("Zeynep D."). */}
             <Text style={styles.adNotu}>
-              İlanlarınızda adınız ve soyadınızın baş harfi görünür — "Zeynep D." gibi.
+              İlanlarında adın ve soyadının baş harfi görünür — "Zeynep D." gibi.
             </Text>
           </>
         )}
@@ -169,7 +169,7 @@ export default function SignIn() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
   appbar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6 },
-  appTitle: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: colors.onSurface },
+  appTitle: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '800', color: colors.onSurface },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   logo: { alignSelf: 'flex-start', marginBottom: 18 },
   h2: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5, color: colors.onSurface },

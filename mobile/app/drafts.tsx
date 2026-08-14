@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { BosDurum } from '../components/BosDurum';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DraftListing, loadDrafts } from '../lib/listings';
@@ -60,7 +61,7 @@ export default function Drafts() {
         <Pressable onPress={() => router.back()} hitSlop={12}>
           <MaterialIcons name="arrow-back" size={24} color={colors.onSurface} />
         </Pressable>
-        <Text style={styles.headerTitle}>Yarım kalan ilanlar</Text>
+        <Text style={styles.headerTitle}>Taslak ilanlar</Text>
       </View>
 
       {yukleniyor ? (
@@ -83,10 +84,13 @@ export default function Drafts() {
           }
         >
           {liste.length === 0 ? (
-            <View style={styles.bos}>
-              <MaterialIcons name="inventory-2" size={40} color={colors.outline} />
-              <Text style={styles.bosText}>Yarım kalan ilanınız yok.</Text>
-            </View>
+            <BosDurum
+              ikon="inventory-2"
+              baslik="Taslak ilanın yok"
+              metin="Yarım bıraktığın ilanlar burada görünür."
+              cta="Yeni ilan oluştur"
+              onCta={() => router.replace('/add-listing')}
+            />
           ) : (
             liste.map((d) => (
               <Pressable key={d.id} style={styles.card} onPress={() => ac(d)}>
@@ -128,20 +132,18 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     backgroundColor: colors.surface,
   },
-  headerTitle: { fontSize: 20, fontWeight: '600', color: colors.onSurface },
+  headerTitle: { fontSize: 15, fontWeight: '800', color: colors.onSurface },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  body: { padding: 16, gap: 12 },
-  bos: { alignItems: 'center', gap: 12, paddingTop: 64 },
-  bosText: { color: colors.onSurfaceVariant, fontSize: 15 },
+  body: { padding: 18, gap: 10 },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    padding: 16,
+    padding: 14,
     borderRadius: shape.lg,
-    backgroundColor: colors.surfaceContainer,
+    backgroundColor: colors.surfaceContainerLowest,
     ...elevation.level1,
   },
-  title: { fontSize: 16, fontWeight: '600', color: colors.onSurface },
-  sub: { fontSize: 13, color: colors.onSurfaceVariant, marginTop: 2 },
+  title: { fontSize: 13, fontWeight: '800', color: colors.onSurface },
+  sub: { fontSize: 11, fontWeight: '500', color: colors.onSurfaceVariant, marginTop: 3 },
 });

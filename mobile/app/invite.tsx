@@ -60,8 +60,8 @@ export default function Invite() {
         {/* Liste boşken başlık da çizilmiyor. */}
         {INVITED.length === 0 ? (
           <Text style={styles.henuz}>
-            Henüz kimseyi davet etmediniz. Kodunuzu paylaşın; katılan arkadaşınız ilk takasını
-            yapınca ikinize de 100 puan yazılır.
+            Henüz tamamlanan davetin yok. Bağlantını paylaş; arkadaşın ilk takasını
+            tamamladığında ödülünüz cüzdanınıza eklenir.
           </Text>
         ) : (
         <>

@@ -75,8 +75,8 @@ export default function ListingPhotos() {
       uyar(
         'İzin gerekli',
         kaynak === 'kamera'
-          ? 'Fotoğraf çekmek için kamera izni vermelisiniz.'
-          : 'Galeriden seçmek için izin vermelisiniz.',
+          ? 'Fotoğraf çekmek için kamera izni vermen gerekiyor.'
+          : 'Galeriden seçmek için izin vermen gerekiyor.',
       );
       return;
     }
@@ -124,7 +124,7 @@ export default function ListingPhotos() {
       await tazele();
       return;
     }
-    uyar('İlan yayında', `${title ?? 'İlanınız'} rafa eklendi.`, [
+    uyar('İlan yayında', `${title ?? 'İlanın'} rafa eklendi.`, [
       { text: 'Tamam', onPress: () => router.replace('/') },
     ]);
   }
@@ -324,7 +324,7 @@ export default function ListingPhotos() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
   appbar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6 },
-  appTitle: { flex: 1, fontSize: 18, fontWeight: '700', paddingLeft: 8, color: colors.onSurface },
+  appTitle: { flex: 1, fontSize: 15, fontWeight: '800', paddingLeft: 8, color: colors.onSurface },
   sayac: { fontSize: 14, fontWeight: '700', color: colors.primary, paddingHorizontal: 16 },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   stepbar: { flexDirection: 'row', gap: 5, paddingHorizontal: 18, marginBottom: 4 },

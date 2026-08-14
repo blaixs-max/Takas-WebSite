@@ -704,13 +704,33 @@ hepsi 24 ekranın baskın renkleri sayılarak ölçüldü, göz kararı seçilme
 > sitenin logo SVG'sinde kontur olarak var, gövde metninde hiçbir yerde yok.
 > Bağlansaydı uygulama hem tasarımdan hem siteden ayrılırdı. Telefonda
 > platformun kendi grotesk'i (SF Pro / Roboto) zaten tasarımdaki yüz.
-- [ ] Ürün detayı · sepet · favoriler · profil
-- [ ] Ürün ekle · fotoğraflar · taslaklar
-- [ ] Takaslarım · cüzdan · mesajlar · sohbet · bildirimler
+- [x] **Ürün detayı** — hero oranı 1.54, değer bloğu ("Takas değeri" +
+      "420 Takas Puanı"), iki çip, sade satıcı satırı, Güvenli Havuz kartı,
+      alt barda iki konturlu daire + tek satırlık CTA.
+- [x] **Boş durumlar tek bileşende** (`components/BosDurum.tsx`) — sepet,
+      favoriler, mesajlar, bildirimler, takaslar, taslaklar, cüzdan. Altı ayrı
+      kopya vardı ve hiçbiri diğerine benzemiyordu.
+- [x] **Bağlantı hatası boş durumdan ayrıldı** — rehber 12/15/16 bunu açıkça
+      istiyor. Sunucuya ulaşılamıyorken "hiç mesajın yok" demek yanlış bilgi;
+      artık "Mesajlar yüklenemedi · Yeniden dene" çıkıyor.
+- [x] **Profil** — beyaz kartlar, turuncu avatar, 36 pt turkuaz ikon yuvaları,
+      "Bildirimler" satırı menüye eklendi (ekran vardı, menüde yoktu).
+- [x] **Cüzdan** — kart ve tipografi ölçeği, rehberdeki hareket örnekleri.
+- [x] **Ton senli** — rehberin bütün nihai metinleri senli; uygulamada kalan
+      otuz kadar sizli kalıp tek tek çevrildi (düz arama-değiştirme Türkçede
+      yanlış çekim üretir).
+- [ ] Ürün ekle · fotoğraflar
+- [ ] Sohbet · mesaj listesi satırları
 - [ ] Adresler · güvenlik · yardım · davet · profili düzenle · ödeme
 - [ ] Açılış · onboarding · giriş
-- [ ] Rehberdeki nihai metinlerin ekran ekran uygulanması
 - [ ] Dört fotoğrafın kırpılıp `mobile/assets/` altına alınması
+
+> **Rehberin iki açık yasağı uygulandı.** (1) "Kullanıcı adı yerine 'Üye'
+> yazılmaz" — profil başlığı ad yokken artık "Profilini tamamla". (2) Ürün
+> detayında "Piyasa karşılığı" ve TL aralığı gösterilmez; blok kaldırıldı.
+> Ayrıca cüzdanın örnek hareketlerinden "AI onaylı" ve "ürün eklendi +puan"
+> düştü: ilki marka terminolojisinin yasakladığı iddia, ikincisi rehber 14'ün
+> uygulama notunun yasakladığı hareket.
 
 > **"Haritada gör" arkasında harita ekranı yok.** Kullanıcı kararıyla duruyor
 > ve şimdilik dokunulunca ne olduğunu söylüyor — sessizce hiçbir şey yapmayan

@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { uyar } from '../components/Dialog';
 import { MaterialIcons } from '@expo/vector-icons';
+import { BosDurum } from '../components/BosDurum';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -58,7 +59,7 @@ const DURUM: Record<TradeStatus, DurumBilgi> = {
   },
   SHIPPED: {
     etiket: 'Kargoda',
-    aciklama: 'Ürün yolda. Elinize ulaşınca teslim onayı verin.',
+    aciklama: 'Ürün yolda. Eline ulaşınca teslim onayı ver.',
     ikon: 'local-shipping',
     ton: 'yolda',
   },
@@ -82,7 +83,7 @@ const DURUM: Record<TradeStatus, DurumBilgi> = {
   },
   REFUNDED: {
     etiket: 'İade edildi',
-    aciklama: 'Puan hesabınıza geri döndü.',
+    aciklama: 'Takas Puanın hesabına geri döndü.',
     ikon: 'undo',
     ton: 'dikkat',
   },
@@ -125,8 +126,8 @@ export default function TradesScreen() {
 
   async function onayla(t: TradeRow) {
     uyar(
-      'Teslim aldınız mı?',
-      `${t.points} puan satıcıya geçecek. Onayladıktan sonra itiraz edemezsiniz.`,
+      'Teslim aldın mı?',
+      `${t.points} Takas Puanı satıcıya geçecek. Onayladıktan sonra itiraz edemezsin.`,
       [
         { text: 'Vazgeç', style: 'cancel' },
         {
@@ -147,7 +148,7 @@ export default function TradesScreen() {
   async function iptalEt(t: TradeRow) {
     uyar(
       'Takası iptal et',
-      `${t.points} puanınız hesabınıza geri döner ve ilan yeniden vitrine çıkar. Satıcı onayı gerekmez.`,
+      `${t.points} Takas Puanın hesabına geri döner ve ilan yeniden vitrine çıkar. Satıcı onayı gerekmez.`,
       [
         { text: 'Vazgeç', style: 'cancel' },
         {
@@ -212,7 +213,7 @@ export default function TradesScreen() {
       uyar('Kanıt eklenemedi', s.message);
       return;
     }
-    uyar('Kanıt alındı', 'Talebiniz incelemeye alındı. Sonucu buradan takip edebilirsiniz.');
+    uyar('Kanıt alındı', 'Talebin incelemeye alındı. Sonucu buradan takip edebilirsin.');
     await getir();
   }
 
@@ -251,15 +252,24 @@ export default function TradesScreen() {
           }
         >
           {bos && (
-            <View style={styles.bos}>
-              <MaterialIcons name="swap-horiz" size={44} color={colors.outline} />
-              <Text style={styles.bosBaslik}>Henüz takasınız yok</Text>
-              <Text style={styles.bosMetin}>
-                {supabaseConfigured
-                  ? 'Beğendiğiniz bir ürünü takas ettiğinizde durumu burada takip edersiniz.'
-                  : 'Sunucu bağlantısı yok; takaslar görüntülenemiyor.'}
-              </Text>
-            </View>
+            /* Rehber 12: boş durum ile bağlantı hatası aynı anda gösterilmez. */
+            supabaseConfigured ? (
+              <BosDurum
+                ikon="swap-horiz"
+                baslik="Henüz takasın yok"
+                metin="Bir ürün seçip Takas Puanı ile takası başlattığında süreç burada görünür."
+                cta="Ürünleri keşfet"
+                onCta={() => router.replace('/(tabs)')}
+              />
+            ) : (
+              <BosDurum
+                ikon="cloud-off"
+                baslik="Takasların yüklenemedi"
+                metin="Bağlantını kontrol edip yeniden dene."
+                cta="Yeniden dene"
+                onCta={getir}
+              />
+            )
           )}
 
           {takaslar.map((t) => {
@@ -285,7 +295,7 @@ export default function TradesScreen() {
 
                 <Text style={styles.baslik}>{t.productTitle ?? 'İlan kaldırılmış'}</Text>
                 <Text style={styles.rol}>
-                  {t.benAliciyim ? 'Alıyorsunuz' : 'Satıyorsunuz'}
+                  {t.benAliciyim ? 'Alıyorsun' : 'Satıyorsun'}
                 </Text>
                 <Text style={styles.aciklama}>{d.aciklama}</Text>
 
@@ -406,9 +416,9 @@ export default function TradesScreen() {
             onPress={(e) => e.stopPropagation()}
             accessibilityViewIsModal
           >
-            <Text style={styles.sheetBaslik}>Neyi bildirmek istiyorsunuz?</Text>
+            <Text style={styles.sheetBaslik}>Neyi bildirmek istiyorsun?</Text>
             <Text style={styles.sheetMetin}>
-              İtiraz açınca 48 saatlik sayaç durur ve puanınız havuzda kalır. Ekibimiz
+              İtiraz açınca 48 saatlik sayaç durur ve Takas Puanın Güvenli Havuz’da kalır. Ekibimiz
               kanıtları inceleyip karar verir.
             </Text>
             <TextInput
@@ -441,18 +451,9 @@ export default function TradesScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
   appbar: { flexDirection: 'row', alignItems: 'center', height: 56, paddingHorizontal: 6 },
-  appTitle: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: colors.onSurface },
+  appTitle: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '800', color: colors.onSurface },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   orta: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  bos: { alignItems: 'center', gap: 8, paddingTop: 80, paddingHorizontal: 30 },
-  bosBaslik: { fontSize: 16, fontWeight: '700', color: colors.onSurface },
-  bosMetin: {
-    fontSize: 13,
-    color: colors.onSurfaceVariant,
-    fontWeight: '500',
-    textAlign: 'center',
-    lineHeight: 19,
-  },
   kart: {
     padding: 15,
     borderRadius: shape.md,

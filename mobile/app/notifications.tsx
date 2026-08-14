@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { BosDurum } from '../components/BosDurum';
 import { useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -93,15 +94,23 @@ export default function Notifications() {
           }
         >
           {liste.length === 0 && (
-            <View style={styles.bos}>
-              <MaterialIcons name="notifications-none" size={44} color={colors.outline} />
-              <Text style={styles.bosBaslik}>Bildiriminiz yok</Text>
-              <Text style={styles.bosMetin}>
-                {supabaseConfigured
-                  ? 'Takaslarınızda bir gelişme olduğunda burada göreceksiniz.'
-                  : 'Sunucu bağlantısı yok.'}
-              </Text>
-            </View>
+            /* Tasarımda bildirimlerin boş durumunda CTA yok: kullanıcı zaten
+               gitmesi gereken yerde, oraya "keşfet" koymak onu geri gönderir. */
+            supabaseConfigured ? (
+              <BosDurum
+                ikon="notifications-none"
+                baslik="Henüz bildirimin yok"
+                metin="Takas, mesaj ve ilan güncellemelerin burada görünür."
+              />
+            ) : (
+              <BosDurum
+                ikon="cloud-off"
+                baslik="Bildirimler yüklenemedi"
+                metin="Bağlantını kontrol edip yeniden dene."
+                cta="Yeniden dene"
+                onCta={getir}
+              />
+            )
           )}
 
           {liste.map((n) => {
@@ -142,8 +151,8 @@ const styles = StyleSheet.create({
   appTitle: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '800',
     color: colors.onSurface,
   },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
@@ -178,13 +187,4 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   nokta: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary },
-  bos: { alignItems: 'center', gap: 8, paddingTop: 80, paddingHorizontal: 30 },
-  bosBaslik: { fontSize: 16, fontWeight: '700', color: colors.onSurface },
-  bosMetin: {
-    fontSize: 13,
-    color: colors.onSurfaceVariant,
-    fontWeight: '500',
-    textAlign: 'center',
-    lineHeight: 19,
-  },
 });

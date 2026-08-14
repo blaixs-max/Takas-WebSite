@@ -63,11 +63,23 @@ function mapEntry(e: {
 export const DEMO_WALLET: WalletData = {
   source: 'demo',
   balance: { available: 1260, held: 360, earnedThisMonth: 540, trustScore: null },
+  /*
+   * Örnek hareketler rehber 14'ün "hareket örneği" satırlarından birebir.
+   * İki tanesi bilerek değişti:
+   *
+   * - "Renk ayırma oyunu **eklendi** · AI onaylı" idi. İkisi de yanlıştı.
+   *   Rehber 14'ün uygulama notu: "İlan yayınlamak tek başına Takas Puanı
+   *   kazandırmıyorsa 'ürün eklendi +puan' hareketi kullanılmaz" — ve
+   *   kazandırmıyor, puan takas tamamlanınca yazılıyor. "AI onaylı" ise
+   *   marka terminolojisinin açıkça yasakladığı iddia: kontrol
+   *   "Fotoğraf ve ilan kontrolü"dür, AI incelemesi iddia edilmez.
+   * - "Davet bonusu" → "Davet ödülü" (rehberin yazımı).
+   */
   entries: [
-    { id: 'd1', title: 'Renk ayırma oyunu eklendi', sub: '21 Haz · AI onaylı', subIcon: 'verified', value: '+260', tone: 'pos', icon: 'add-circle' },
-    { id: 'd2', title: 'Halka kulesi · havuzda', sub: 'Teslim onayı bekliyor', subIcon: 'schedule', value: '−340', tone: 'pool', icon: 'lock' },
-    { id: 'd3', title: 'Ahşap blok takası tamamlandı', sub: '18 Haz · güven +2', subIcon: 'trending-up', value: '+420', tone: 'pos', icon: 'swap-horiz' },
-    { id: 'd4', title: 'Davet bonusu', sub: '15 Haz · arkadaş katıldı', subIcon: 'group-add', value: '+100', tone: 'pos', icon: 'card-giftcard' },
+    { id: 'd1', title: 'Renk ayırma oyunu takası tamamlandı', sub: '21 Haz · Takas tamamlandı', subIcon: 'check-circle', value: '+260', tone: 'pos', icon: 'check-circle' },
+    { id: 'd2', title: 'Halka kulesi Takas Puanı Güvenli Havuz’da', sub: 'Teslim onayı bekleniyor', subIcon: 'schedule', value: '−340', tone: 'pool', icon: 'lock' },
+    { id: 'd3', title: 'Ahşap blok takası tamamlandı', sub: '18 Haz · Güven +2', subIcon: 'trending-up', value: '+420', tone: 'pos', icon: 'swap-horiz' },
+    { id: 'd4', title: 'Davet ödülü', sub: '15 Haz · Arkadaşın katıldı', subIcon: 'group-add', value: '+100', tone: 'pos', icon: 'card-giftcard' },
   ],
 };
 

@@ -99,7 +99,7 @@ export default function Security() {
               {onayliSayisi} / {dogrulamalar.length} doğrulama tamamlandı
             </Text>
             <Text style={styles.scoreSub}>
-              Doğrulamalar arttıkça güven skorunuza katkı sağlar.
+              Doğrulamalar arttıkça güven skoruna katkı sağlar.
             </Text>
           </View>
         </View>

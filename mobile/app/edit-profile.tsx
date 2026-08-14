@@ -55,7 +55,7 @@ export default function EditProfile() {
 
   async function kaydet() {
     if (!user) {
-      uyar('Giriş gerekli', 'Profilinizi düzenlemek için önce giriş yapın.');
+      uyar('Giriş gerekli', 'Profilini düzenlemek için önce giriş yap.');
       return;
     }
     setKaydediyor(true);
@@ -114,8 +114,8 @@ export default function EditProfile() {
           {/* Adın nereye gittiğini söylüyoruz: ilanlarda görünen ad bu ve
               kısaltılmış hâliyle pazarlama sitesine de çıkıyor. */}
           <Text style={styles.hint}>
-            İlanlarınızda görünen ad. Web sitesinde kısaltılır — “Emrah Atabek” yazarsanız
-            “Emrah A.” olarak görünür. Boş bırakılırsa e-posta adresinizden türetilir.
+            İlanlarında görünen ad. Web sitesinde kısaltılır — “Emrah Atabek” yazarsan
+            “Emrah A.” olarak görünür. Boş bırakılırsa e-posta adresinden türetilir.
           </Text>
 
           <Text style={styles.label}>KONUM</Text>
@@ -137,7 +137,7 @@ export default function EditProfile() {
               style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
               value={profil.bio}
               onChangeText={(t) => setProfil({ ...profil, bio: t })}
-              placeholder="Kendinizden kısaca bahsedin"
+              placeholder="Kendinden kısaca bahset"
               placeholderTextColor={colors.onSurfaceVariant}
               multiline
               maxLength={280}
@@ -158,7 +158,7 @@ export default function EditProfile() {
               </>
             )}
           </Pressable>
-          {!adTamam && <Text style={styles.uyari}>Kaydetmek için adınızı yazın.</Text>}
+          {!adTamam && <Text style={styles.uyari}>Kaydetmek için adını yaz.</Text>}
         </ScrollView>
       )}
     </View>

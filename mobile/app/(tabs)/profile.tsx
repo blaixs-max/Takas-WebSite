@@ -24,9 +24,14 @@ import { colors, elevation, shape } from '../../theme/tokens';
 
 const SETTINGS: { icon: keyof typeof MaterialIcons.glyphMap; label: string; href: Href }[] = [
   { icon: 'local-shipping', label: 'Adreslerim & kargo', href: '/addresses' },
+  /* Bildirimler bu listede yoktu: ekran vardı, ona giden tek yol anasayfanın
+     zil simgesiydi. Tasarımda ve rehber 08'in menüsünde burada duruyor. */
+  { icon: 'notifications-none', label: 'Bildirimler', href: '/notifications' },
   { icon: 'verified-user', label: 'Güvenlik & doğrulama', href: '/security' },
   { icon: 'card-giftcard', label: 'Davet et & kazan', href: '/invite' },
-  { icon: 'help', label: 'Yardım & güvenli havuz', href: '/help' },
+  /* Rehber 08: "Yardım & Güvenli Havuz" — Güvenli Havuz'un iki kelimesi de
+     büyük harfle başlar (marka terimi). */
+  { icon: 'help', label: 'Yardım & Güvenli Havuz', href: '/help' },
 ];
 
 /** Güven skoru halkası — SVG ile dairesel ilerleme (96%). */
@@ -124,14 +129,29 @@ export default function ProfileScreen() {
   );
 
   const email = user?.email ?? null;
-  const displayName = profil.fullName || 'Üye';
-  const initials = profil.fullName ? basHarfler(profil.fullName) : '—';
-  const memberLine = profil.city || email || 'Profilinizi tamamlayın';
+  /**
+   * Ad yoksa ne yazılacağı.
+   *
+   * Burada "Üye" yazıyordu ve rehber 08'in uygulama notu bunu **açıkça**
+   * yasaklıyor: "Kullanıcı adı yerine 'Üye' yazılmaz; isim yoksa eylem odaklı
+   * başlık gösterilir." Gerekçesi de sağlam — "Üye" kimseye bir şey söylemez
+   * ve profilin eksik olduğunu gizler; "Profilini tamamla" hem eksikliği
+   * söyler hem ne yapılacağını.
+   *
+   * Aynı kural karşı repodaki vitrin betiğinde tersine işliyor: orada ad
+   * güvenilir değilse "Üye" yazılıyor. Çelişki değil — orası **başkasının**
+   * adı ve yanlışını göstermektense hiç göstermemek doğru; burası kullanıcının
+   * kendi profili ve ona yapması gerekeni söylemek doğru.
+   */
+  const adVar = Boolean(profil.fullName);
+  const displayName = profil.fullName || 'Profilini tamamla';
+  const initials = adVar ? basHarfler(profil.fullName) : '—';
+  const memberLine = profil.city || (adVar ? email : null) || 'Konum ekle';
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.appbar}>
         <View style={styles.iconBtn} />
-        <Text style={styles.appTitle}>Profil</Text>
+        <Text style={styles.appTitle}>Hesabım</Text>
         <Pressable style={styles.iconBtn} onPress={() => router.push('/security')}>
           <MaterialIcons name="settings" size={24} color={colors.onSurface} />
         </Pressable>
@@ -191,30 +211,29 @@ export default function ProfileScreen() {
           <View style={styles.trust}>
             <TrustRing score={istatistik?.trustSkor ?? null} />
             <View style={{ flex: 1 }}>
-              <View style={styles.trustHead}>
-                <MaterialIcons name="workspace-premium" size={17} color={colors.gold} />
-                <Text style={styles.trustTitle}>
-                  {istatistik?.trustSkor == null
-                    ? 'Güven skoru henüz oluşmadı'
-                    : istatistik.trustSkor >= 85
-                      ? 'Yüksek güven skoru'
-                      : 'Güven skorunuz düştü'}
-                </Text>
-              </View>
+              {/* Başlığın yanındaki altın madalya kalktı: tasarımda yok ve
+                  skor zaten halkanın içinde yazıyor. */}
+              <Text style={styles.trustTitle}>
+                {istatistik?.trustSkor == null
+                  ? 'Güven skorun henüz oluşmadı'
+                  : istatistik.trustSkor >= 85
+                    ? 'Yüksek güven skoru'
+                    : 'Güven skorun düştü'}
+              </Text>
               {/* Skoru gerekçesiz göstermek, düzeltme imkânı vermemek demek. */}
               <Text style={styles.trustText}>
                 {istatistik?.trustSkor == null
-                  ? 'İlk takasınız tamamlandığında skorunuz hesaplanmaya başlar.'
+                  ? 'İlk takasın tamamlandığında güven skorun hesaplanmaya başlar.'
                   : trustGerekceleri(istatistik).length > 0
                     ? trustGerekceleri(istatistik).join(' · ')
-                    : 'Zamanında kargo ve düşük itiraz skorunuzu bu seviyede tutar.'}
+                    : 'Zamanında kargo ve düşük itiraz skorunu bu seviyede tutar.'}
               </Text>
             </View>
           </View>
 
           {/* İstatistikler */}
           <View style={styles.stats3}>
-            <Stat value={String(istatistik?.basariliTakas ?? 0)} label="Başarılı takas" />
+            <Stat value={String(istatistik?.basariliTakas ?? 0)} label="Tamamlanan takas" />
             <Stat value={binlik(istatistik?.availablePoints ?? 0)} label="Takas Puanı" />
             {/* Yıldız değerlendirmesi diye bir sistem yok; 4,9 yazmak uydurmaydı. */}
             <Stat value={String(istatistik?.yayindakiIlan ?? 0)} label="Yayındaki ilan" />
@@ -229,8 +248,8 @@ export default function ProfileScreen() {
             {yonetici && (
               <>
                 <Pressable style={styles.accRow} onPress={() => router.push('/admin')}>
-                  <View style={[styles.accIc, { backgroundColor: colors.tertiaryContainer }]}>
-                    <MaterialIcons name="shield" size={22} color={colors.onTertiaryContainer} />
+                  <View style={styles.accIc}>
+                    <MaterialIcons name="shield" size={19} color={colors.primary} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.accTitle}>Yönetim</Text>
@@ -247,11 +266,11 @@ export default function ProfileScreen() {
             {taslak > 0 && (
               <>
                 <Pressable style={styles.accRow} onPress={() => router.push('/drafts')}>
-                  <View style={[styles.accIc, { backgroundColor: colors.secondaryContainer }]}>
-                    <MaterialIcons name="inventory-2" size={22} color={colors.onSecondaryContainer} />
+                  <View style={styles.accIc}>
+                    <MaterialIcons name="inventory-2" size={19} color={colors.primary} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.accTitle}>Yarım kalan ilanlar</Text>
+                    <Text style={styles.accTitle}>Taslak ilanlar</Text>
                     <Text style={styles.accSub}>
                       {taslak} ilan yayına alınmayı bekliyor
                     </Text>
@@ -262,15 +281,15 @@ export default function ProfileScreen() {
               </>
             )}
             <Pressable style={styles.accRow} onPress={() => router.push('/wallet')}>
-              <View style={[styles.accIc, { backgroundColor: colors.primaryContainer }]}>
-                <MaterialIcons name="account-balance-wallet" size={22} color={colors.onPrimaryContainer} />
+              <View style={styles.accIc}>
+                <MaterialIcons name="account-balance-wallet" size={19} color={colors.primary} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.accTitle}>Cüzdanım</Text>
                 <Text style={styles.accSub}>
-                  {binlik(istatistik?.availablePoints ?? 0)} puan
+                  {binlik(istatistik?.availablePoints ?? 0)} Takas Puanı
                   {istatistik && istatistik.heldPoints > 0
-                    ? ` · ${binlik(istatistik.heldPoints)} havuzda`
+                    ? ` · ${binlik(istatistik.heldPoints)} Güvenli Havuz’da`
                     : ''}
                 </Text>
               </View>
@@ -278,15 +297,15 @@ export default function ProfileScreen() {
             </Pressable>
             <View style={styles.divider} />
             <Pressable style={styles.accRow} onPress={() => router.push('/trades')}>
-              <View style={[styles.accIc, { backgroundColor: colors.secondaryContainer }]}>
-                <MaterialIcons name="swap-horiz" size={22} color={colors.onSecondaryContainer} />
+              <View style={styles.accIc}>
+                <MaterialIcons name="swap-horiz" size={19} color={colors.primary} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.accTitle}>Takaslarım</Text>
                 <Text style={styles.accSub}>
                   {istatistik && istatistik.aktifTakas > 0
                     ? `${istatistik.aktifTakas} aktif takas · güvenli havuz`
-                    : 'Aktif takasınız yok'}
+                    : 'Aktif takasın yok'}
                 </Text>
               </View>
               {istatistik && istatistik.aktifTakas > 0 && (
@@ -298,13 +317,13 @@ export default function ProfileScreen() {
             </Pressable>
             <View style={styles.divider} />
             <Pressable style={styles.accRow} onPress={() => router.push('/messages')}>
-              <View style={[styles.accIc, { backgroundColor: colors.tertiaryContainer }]}>
-                <MaterialIcons name="chat-bubble-outline" size={20} color={colors.onTertiaryContainer} />
+              <View style={styles.accIc}>
+                <MaterialIcons name="chat-bubble-outline" size={19} color={colors.primary} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.accTitle}>Mesajlarım</Text>
                 <Text style={styles.accSub}>
-                  {okunmamis > 0 ? `${okunmamis} okunmamış mesaj` : 'Okunmamış mesaj yok'}
+                  {okunmamis > 0 ? `${okunmamis} okunmamış mesaj` : 'Okunmamış mesajın yok'}
                 </Text>
               </View>
               {okunmamis > 0 && (
@@ -330,7 +349,7 @@ export default function ProfileScreen() {
               <Pressable style={styles.ilanKutu} onPress={() => router.push('/(tabs)')}>
                 <MaterialIcons name="inventory-2" size={20} color={colors.onSurfaceVariant} />
                 <Text style={styles.ilanKutuText}>
-                  {istatistik?.yayindakiIlan} ilanınız yayında
+                  {istatistik?.yayindakiIlan} ilanın yayında
                 </Text>
                 <MaterialIcons name="chevron-right" size={20} color={colors.outline} />
               </Pressable>
@@ -342,7 +361,7 @@ export default function ProfileScreen() {
             <View key={s.label}>
               <Pressable style={styles.setrow} onPress={() => router.push(s.href)}>
                 <View style={styles.si}>
-                  <MaterialIcons name={s.icon} size={21} color={colors.onSurfaceVariant} />
+                  <MaterialIcons name={s.icon} size={19} color={colors.primary} />
                 </View>
                 <Text style={styles.st}>{s.label}</Text>
                 <MaterialIcons name="chevron-right" size={20} color={colors.outline} />
@@ -388,22 +407,26 @@ const styles = StyleSheet.create({
   ilanKutuText: { flex: 1, fontSize: 14, fontWeight: '600', color: colors.onSurface },
   root: { flex: 1, backgroundColor: colors.surface },
   appbar: { flexDirection: 'row', alignItems: 'center', height: 56, paddingHorizontal: 6 },
-  appTitle: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: colors.onSurface },
+  appTitle: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '800', color: colors.onSurface },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   head: { paddingHorizontal: 18, paddingTop: 6 },
-  cover: { borderRadius: shape.lg, paddingTop: 26, paddingBottom: 20, paddingHorizontal: 16 },
-  id: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  cover: { borderRadius: shape.lg, paddingVertical: 18, paddingHorizontal: 14 },
+  id: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  /* Zemin `tertiary` (#9E6300) idi — turuncunun koyu, kahverengiye çalan
+     türevi; kapak kartının üstünde çamur gibi duruyordu. Tasarımdaki daire
+     markanın turuncusu ve içindeki metin koyu: beyaz `#FFA726` üzerinde
+     okunmuyor (kontrast 2.0). */
   av: {
-    width: 72,
-    height: 72,
+    width: 56,
+    height: 56,
     borderRadius: shape.full,
-    backgroundColor: colors.tertiary,
+    backgroundColor: colors.tertiaryOn,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.9)',
+    borderColor: 'rgba(255,255,255,0.92)',
   },
-  avText: { fontSize: 26, fontWeight: '800', color: '#fff' },
+  avText: { fontSize: 18, fontWeight: '800', color: colors.onTertiaryContainer },
   avOk: {
     position: 'absolute',
     right: 0,
@@ -419,9 +442,9 @@ const styles = StyleSheet.create({
   },
   meta: { flex: 1 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  name: { fontSize: 20, fontWeight: '800', letterSpacing: -0.3, color: '#fff' },
-  locRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
-  loc: { color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: '500' },
+  name: { fontSize: 16, fontWeight: '800', letterSpacing: -0.3, color: '#fff' },
+  locRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  loc: { color: 'rgba(255,255,255,0.88)', fontSize: 11.5, fontWeight: '500' },
   yaptirim: {
     flexDirection: 'row',
     gap: 11,
@@ -439,41 +462,44 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: 3,
   },
+  /* Tasarımda güven kartı, istatistik kutuları ve menü kartı **beyaz**;
+     krem zeminden gölgeyle ayrılıyorlar. Hepsi `surfaceContainerLow` idi,
+     yani zeminden bir tık farklı — kart olduğu ancak dikkatle bakınca
+     anlaşılıyordu. */
   trust: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
-    backgroundColor: colors.surfaceContainerLow,
+    gap: 14,
+    backgroundColor: colors.surfaceContainerLowest,
     borderRadius: shape.md,
-    padding: 16,
-    marginVertical: 18,
+    padding: 14,
+    marginVertical: 14,
     ...elevation.level1,
   },
-  ringNum: { fontSize: 22, fontWeight: '900', letterSpacing: -0.5, color: colors.onSurface },
-  trustHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  trustTitle: { fontSize: 15, fontWeight: '700', color: colors.onSurface },
-  trustText: { fontSize: 12.5, color: colors.onSurfaceVariant, lineHeight: 18, fontWeight: '500', marginTop: 5 },
-  stats3: { flexDirection: 'row', gap: 10, marginBottom: 20 },
+  ringNum: { fontSize: 18, fontWeight: '800', letterSpacing: -0.5, color: colors.onSurface },
+  trustTitle: { fontSize: 13.5, fontWeight: '800', color: colors.onSurface },
+  trustText: { fontSize: 11.5, color: colors.onSurfaceVariant, lineHeight: 17, fontWeight: '500', marginTop: 4 },
+  stats3: { flexDirection: 'row', gap: 10, marginBottom: 18 },
   stat: {
     flex: 1,
-    backgroundColor: colors.surfaceContainerLow,
+    backgroundColor: colors.surfaceContainerLowest,
     borderRadius: shape.md,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 8,
     alignItems: 'center',
     ...elevation.level1,
   },
-  statValue: { fontSize: 22, fontWeight: '800', letterSpacing: -0.5, color: colors.onSurface },
-  statLabel: { fontSize: 11.5, color: colors.onSurfaceVariant, fontWeight: '600', marginTop: 2 },
-  account: { backgroundColor: colors.surfaceContainerLow, borderRadius: shape.md, marginTop: 12, marginBottom: 20, paddingHorizontal: 14, ...elevation.level1 },
-  accRow: { flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 13 },
-  accIc: { width: 44, height: 44, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center' },
-  accTitle: { fontSize: 14, fontWeight: '700', color: colors.onSurface },
-  accSub: { fontSize: 12, color: colors.onSurfaceVariant, fontWeight: '500', marginTop: 2 },
+  statValue: { fontSize: 17, fontWeight: '800', letterSpacing: -0.4, color: colors.onSurface },
+  statLabel: { fontSize: 9.5, color: colors.onSurfaceVariant, fontWeight: '700', marginTop: 3, textAlign: 'center' },
+  account: { backgroundColor: colors.surfaceContainerLowest, borderRadius: shape.md, marginTop: 10, marginBottom: 18, paddingHorizontal: 12, ...elevation.level1 },
+  accRow: { flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 11 },
+  accIc: { width: 36, height: 36, borderRadius: shape.sm, backgroundColor: colors.primaryContainer, alignItems: 'center', justifyContent: 'center' },
+  accTitle: { fontSize: 13, fontWeight: '800', color: colors.onSurface },
+  accSub: { fontSize: 11, color: colors.onSurfaceVariant, fontWeight: '500', marginTop: 2 },
   accBadge: { minWidth: 20, height: 20, paddingHorizontal: 6, borderRadius: shape.full, backgroundColor: colors.error, alignItems: 'center', justifyContent: 'center', marginRight: 4 },
   accBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
   sec: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 },
-  secTitle: { fontSize: 16, fontWeight: '700', color: colors.onSurface },
+  secTitle: { fontSize: 17, fontWeight: '800', color: colors.onSurface },
   secLink: { fontSize: 13, fontWeight: '700', color: colors.primary },
   miniGrid: { flexDirection: 'row', gap: 8, marginBottom: 20 },
   mini: { flex: 1, aspectRatio: 1, borderRadius: shape.sm, overflow: 'hidden', backgroundColor: colors.surfaceContainerHigh },
@@ -488,15 +514,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   miniPtsText: { fontSize: 10, fontWeight: '800', color: colors.onSurface },
-  setrow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 15 },
+  setrow: { flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 12 },
   si: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: shape.sm,
-    backgroundColor: colors.surfaceContainerHigh,
+    backgroundColor: colors.primaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  st: { flex: 1, fontSize: 14, fontWeight: '600', color: colors.onSurface },
+  st: { flex: 1, fontSize: 13, fontWeight: '800', color: colors.onSurface },
   divider: { height: 1, backgroundColor: colors.outlineVariant, opacity: 0.55 },
 });

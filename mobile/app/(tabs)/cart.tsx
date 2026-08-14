@@ -3,6 +3,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Diamond } from '../../components/brand/Diamond';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BosDurum } from '../../components/BosDurum';
 import { useCart } from '../../lib/cart';
 import { useProducts } from '../../hooks/useProducts';
 import { colors, elevation, shape } from '../../theme/tokens';
@@ -32,17 +33,13 @@ export default function CartScreen() {
       </View>
 
       {items.length === 0 ? (
-        <View style={styles.empty}>
-          <View style={styles.emptyIc}>
-            <MaterialIcons name="shopping-cart" size={36} color={colors.onSurfaceVariant} />
-          </View>
-          <Text style={styles.emptyTitle}>Sepetin boş</Text>
-          <Text style={styles.emptySub}>Beğendiğin ürünleri sepete ekle, hepsini birden takasa gönder.</Text>
-          <Pressable style={styles.browse} onPress={() => router.push('/')}>
-            <MaterialIcons name="storefront" size={20} color="#fff" />
-            <Text style={styles.browseText}>Rafa göz at</Text>
-          </Pressable>
-        </View>
+        <BosDurum
+          ikon="shopping-cart"
+          baslik="Takas sepetin boş"
+          metin="Beğendiğin ürünleri sepete ekle, hazır olduğunda takası başlat."
+          cta="Ürünleri keşfet"
+          onCta={() => router.push('/')}
+        />
       ) : (
         <>
           <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 200 }} showsVerticalScrollIndicator={false}>
@@ -102,15 +99,9 @@ export default function CartScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
   appbar: { flexDirection: 'row', alignItems: 'center', height: 56, paddingHorizontal: 18 },
-  appTitle: { flex: 1, fontSize: 22, fontWeight: '700', color: colors.onSurface },
+  appTitle: { flex: 1, fontSize: 15, fontWeight: '800', color: colors.onSurface },
   clearBtn: { paddingHorizontal: 8, paddingVertical: 6 },
   clearText: { color: colors.error, fontWeight: '700', fontSize: 13 },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, padding: 32, marginBottom: 60 },
-  emptyIc: { width: 80, height: 80, borderRadius: shape.full, backgroundColor: colors.surfaceContainerHigh, alignItems: 'center', justifyContent: 'center' },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: colors.onSurface, marginTop: 4 },
-  emptySub: { fontSize: 13, color: colors.onSurfaceVariant, fontWeight: '500', textAlign: 'center', lineHeight: 19 },
-  browse: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 48, paddingHorizontal: 22, borderRadius: shape.full, backgroundColor: colors.primary, marginTop: 10 },
-  browseText: { color: '#fff', fontWeight: '700', fontSize: 15 },
   hint: { fontSize: 12, color: colors.onSurfaceVariant, fontWeight: '500', lineHeight: 18, marginBottom: 14 },
   item: { flexDirection: 'row', gap: 12, padding: 10, borderRadius: shape.md, backgroundColor: colors.surfaceContainerLow, marginBottom: 12, ...elevation.level1 },
   img: { width: 76, height: 76, borderRadius: shape.sm },

@@ -101,7 +101,7 @@ export default function AddListing() {
         </Pressable>
         <Text style={styles.appTitle}>Ürün ekle</Text>
         <Pressable onPress={() => router.back()}>
-          <Text style={styles.draft}>Taslak</Text>
+          <Text style={styles.draft}>Taslaklar</Text>
         </Pressable>
       </View>
 
@@ -308,7 +308,7 @@ function Row({ label, value, last }: { label: string; value: string; last?: bool
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
   appbar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6 },
-  appTitle: { flex: 1, fontSize: 18, fontWeight: '700', paddingLeft: 8, color: colors.onSurface },
+  appTitle: { flex: 1, fontSize: 15, fontWeight: '800', paddingLeft: 8, color: colors.onSurface },
   draft: { color: colors.primary, fontWeight: '700', fontSize: 14, paddingHorizontal: 12 },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   stepbar: { flexDirection: 'row', gap: 6, marginBottom: 16 },

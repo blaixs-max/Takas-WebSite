@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { BosDurum } from '../components/BosDurum';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ConversationRow, loadConversations } from '../lib/messages';
@@ -64,15 +65,26 @@ export default function Messages() {
           }
         >
           {liste.length === 0 && (
-            <View style={styles.bos}>
-              <MaterialIcons name="forum" size={44} color={colors.outline} />
-              <Text style={styles.bosBaslik}>Henüz mesajınız yok</Text>
-              <Text style={styles.bosMetin}>
-                {supabaseConfigured
-                  ? 'Bir ilanı beğendiğinizde satıcıya soru sorabilirsiniz.'
-                  : 'Sunucu bağlantısı yok.'}
-              </Text>
-            </View>
+            /* Rehber 15'in uygulama notu: "Sunucu bağlantısı yok" boş
+               durumdan kaldırılır. Bağlantı yoksa bu bir boş kutu değil bir
+               hata — kullanıcıya "hiç mesajın yok" demek yanlış bilgi. */
+            supabaseConfigured ? (
+              <BosDurum
+                ikon="forum"
+                baslik="Henüz mesajın yok"
+                metin="Bir ürün hakkında mesaj gönderdiğinde sohbetlerin burada görünür."
+                cta="Ürünleri keşfet"
+                onCta={() => router.replace('/(tabs)')}
+              />
+            ) : (
+              <BosDurum
+                ikon="cloud-off"
+                baslik="Mesajlar yüklenemedi"
+                metin="Bağlantını kontrol edip yeniden dene."
+                cta="Yeniden dene"
+                onCta={getir}
+              />
+            )
           )}
 
           {liste.map((c) => (
@@ -122,8 +134,8 @@ const styles = StyleSheet.create({
   appTitle: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '800',
     color: colors.onSurface,
   },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
@@ -164,13 +176,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   rozetText: { color: '#fff', fontSize: 11, fontWeight: '800' },
-  bos: { alignItems: 'center', gap: 8, paddingTop: 80, paddingHorizontal: 30 },
-  bosBaslik: { fontSize: 16, fontWeight: '700', color: colors.onSurface },
-  bosMetin: {
-    fontSize: 13,
-    color: colors.onSurfaceVariant,
-    fontWeight: '500',
-    textAlign: 'center',
-    lineHeight: 19,
-  },
 });

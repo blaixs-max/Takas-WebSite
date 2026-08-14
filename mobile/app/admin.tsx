@@ -195,7 +195,7 @@ export default function AdminScreen() {
       <View style={[styles.root, styles.orta, { padding: 30 }]}>
         <MaterialIcons name="lock" size={44} color={colors.outline} />
         <Text style={styles.bosBaslik}>Bu alan yönetim içindir</Text>
-        <Text style={styles.bosMetin}>Hesabınızın yönetim yetkisi yok.</Text>
+        <Text style={styles.bosMetin}>Hesabının yönetim yetkisi yok.</Text>
         <Pressable style={styles.geriBtn} onPress={() => router.back()}>
           <Text style={styles.ikincilText}>Geri dön</Text>
         </Pressable>
@@ -548,7 +548,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
   orta: { alignItems: 'center', justifyContent: 'center', gap: 10 },
   appbar: { flexDirection: 'row', alignItems: 'center', height: 56, paddingHorizontal: 6 },
-  appTitle: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: colors.onSurface },
+  appTitle: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '800', color: colors.onSurface },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   sekmeler: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingBottom: 10 },
   sekme: {

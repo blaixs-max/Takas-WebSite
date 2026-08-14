@@ -95,7 +95,7 @@ export default function ProductDetail() {
 
     uyar(
       'Takası başlat',
-      `${product.points} puanınız güvenli havuza alınacak. Ürün elinize geçip onaylayana kadar satıcıya geçmez.`,
+      `${product.points} Takas Puanın Güvenli Havuz’a alınacak. Ürün eline geçip onaylayana kadar satıcıya geçmez.`,
       [
         { text: 'Vazgeç', style: 'cancel' },
         {
@@ -174,11 +174,11 @@ export default function ProductDetail() {
           <MaterialIcons name="arrow-back" size={24} color={colors.onSurface} />
         </Pressable>
         <Text style={styles.appTitle}>Ürün detayı</Text>
-        <Pressable style={styles.iconBtn} onPress={() => shareProduct(product)}>
-          <MaterialIcons name="share" size={24} color={colors.onSurface} />
+        <Pressable style={styles.iconBtn} onPress={() => shareProduct(product)} accessibilityLabel="İlanı paylaş">
+          <MaterialIcons name="share" size={22} color={colors.onSurface} />
         </Pressable>
-        <Pressable style={styles.iconBtn} onPress={() => toggle(product.id)}>
-          <MaterialIcons name={fav ? 'favorite' : 'favorite-border'} size={24} color={fav ? colors.tertiary : colors.onSurface} />
+        <Pressable style={styles.iconBtn} onPress={() => toggle(product.id)} accessibilityLabel="Favorilere ekle">
+          <MaterialIcons name={fav ? 'favorite' : 'favorite-border'} size={22} color={fav ? colors.tertiaryOn : colors.onSurface} />
         </Pressable>
       </View>
 
@@ -210,7 +210,7 @@ export default function ProductDetail() {
               <Pressable
                 key={i}
                 onPress={() => setBuyutulmus(true)}
-                style={{ width: heroW, aspectRatio: 4 / 3 }}
+                style={{ width: heroW, aspectRatio: 1.54 }}
               >
                 <Image source={g} style={{ width: heroW, height: '100%' }} resizeMode="cover" />
               </Pressable>
@@ -219,11 +219,10 @@ export default function ProductDetail() {
 
 
           <View style={styles.cond} pointerEvents="none">
-            <MaterialIcons name="verified" size={16} color={colors.primary} />
+            <MaterialIcons name="check-circle-outline" size={13} color={colors.primary} />
             <Text style={styles.condText}>{product.condition}</Text>
           </View>
           <View style={styles.count} pointerEvents="none">
-            <MaterialIcons name="photo-library" size={15} color="#fff" />
             <Text style={styles.countText}>
               {activeImg + 1}/{gallery.length}
             </Text>
@@ -261,18 +260,13 @@ export default function ProductDetail() {
         </View>
 
         <Text style={styles.title}>{product.title}</Text>
-        <View style={styles.ptsLine}>
-          <Text style={styles.pts}>{product.points}</Text>
-          <Text style={styles.ptsLabel}>Takas Puanı</Text>
-          {/* Değeri yoksa etiket de görünmez; boş bir "Piyasa karşılığı"
-              satırı kullanıcıya eksik bir şey olduğunu düşündürüyordu. */}
-          {product.marketValue ? (
-            <View style={styles.market}>
-              <Text style={styles.marketLabel}>Piyasa karşılığı</Text>
-              <Text style={styles.marketVal}>{product.marketValue}</Text>
-            </View>
-          ) : null}
-        </View>
+        {/* Değer bloğu: üstte etiket, altında tek satır değer (rehber 05).
+            "Piyasa karşılığı" ve TL aralığı **kaldırıldı** — rehberin aynı
+            bölümündeki uygulama notu açıkça gösterilmemesini söylüyor.
+            Kapalı devre bir puan ekonomisinde bir ürünün yanına TL yazmak,
+            puanı gizli bir kur üzerinden paraya çevirmeye davet ediyor. */}
+        <Text style={styles.ptsLabel}>Takas değeri</Text>
+        <Text style={styles.pts}>{product.points} Takas Puanı</Text>
 
         {/* Buradaki rozetler bir zamanlar sabitti ve ikisi de yalandı:
             "AI onaylı fotoğraf" — anahtar tanımlı değilken kareleri insan
@@ -281,7 +275,9 @@ export default function ProductDetail() {
             bakarken doğrulama ve bütünlük iddiasına güvenir. Kalanlar da
             değeri yoksa hiç görünmüyor: "0 km" bilgi değil, gürültü. */}
         <View style={styles.mchips}>
-          <Chip icon="verified" label="Kareler incelendi" />
+          {/* İlk çip dolu ve turkuaz: söylediği şey bir güvence, ikincisi
+              yalnızca bilgi. Tasarımda da ikisi farklı ağırlıkta. */}
+          <Chip icon="check-circle" label="Fotoğraf ve ilan kontrolü" vurgulu />
           <Chip
             icon="location-on"
             label={
@@ -303,52 +299,59 @@ export default function ProductDetail() {
             </View>
           </View>
           <View style={{ flex: 1 }}>
-            <View style={styles.sellerNameRow}>
-              <Text style={styles.sellerName}>{product.seller.name}</Text>
-              <MaterialIcons name="verified-user" size={15} color={colors.primary} />
-            </View>
-            <View style={styles.sellerSub}>
-              <MaterialIcons name="workspace-premium" size={15} color={colors.gold} />
-              <Text style={styles.sellerSubText}>
-                Güven skoru {product.seller.trust} · {product.seller.trades} başarılı takas
-              </Text>
-            </View>
+            {/* Satırda bir zamanlar üç ayrı doğrulama işareti vardı: avatarın
+                köşesindeki tik, adın yanındaki kalkan ve skorun önündeki altın
+                madalya. Üçü de aynı şeyi söylüyordu ve satır rozetten
+                okunmuyordu. Tik kaldı — kalkan ve madalya düştü. */}
+            <Text style={styles.sellerName}>{product.seller.name}</Text>
+            <Text style={styles.sellerSubText}>
+              Güven skoru {product.seller.trust} · {product.seller.trades} tamamlanan takas
+            </Text>
           </View>
-          <Pressable style={styles.iconBtn} onPress={() => router.push(`/chat/${product.seller.initials}`)}>
-            <MaterialIcons name="chat-bubble-outline" size={22} color={colors.onSurface} />
+          {/* Bu düğme `/chat/ZD` gibi bir yola gidiyordu: baş harfler sohbet
+              kimliği değil, yani her basışta var olmayan bir sohbet açılmaya
+              çalışılıyordu. Alt bardaki düğmeyle aynı işi yapıyor artık. */}
+          <Pressable style={styles.iconBtn} onPress={sohbetAc} accessibilityLabel="Mesaj gönder">
+            <MaterialIcons name="chat-bubble-outline" size={20} color={colors.onSurface} />
           </Pressable>
         </View>
 
         {/* Güvenli havuz */}
+        {/* Başlık ve açıklama rehber 05'ten birebir. Altındaki üç mini çip
+            ("Alıcı koruması · 3 gün kargo · 48 sa onay") kaldırıldı:
+            tasarımda yoklar ve ikisi süre taahhüdüydü — burada tek satır
+            olarak duran bir süre, koşulları okunmadan söz gibi okunuyor.
+            Yerleri Yardım & Güvenli Havuz ekranı. */}
         <View style={styles.pool}>
-          <View style={styles.poolHead}>
-            <MaterialIcons name="verified-user" size={22} color={colors.onPrimaryContainer} />
-            <Text style={styles.poolHeadText}>Güvenli havuz korumalı takas</Text>
-          </View>
-          <Text style={styles.poolText}>
-            Takas talebinde puanın güvenli havuzda bekler; ürün eline geçip onaylayana kadar satıcıya geçmez.
-          </Text>
-          <View style={styles.poolMini}>
-            <PoolMini icon="shield" label="Alıcı koruması" />
-            <PoolMini icon="local-shipping" label="3 gün kargo" />
-            <PoolMini icon="history-toggle-off" label="48 sa onay" />
+          <MaterialIcons
+            name="verified-user"
+            size={20}
+            color={colors.onPrimaryContainer}
+            style={styles.poolIcon}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.poolHeadText}>Güvenli Havuz ile korumalı takas</Text>
+            <Text style={styles.poolText}>
+              Takas Puanın, teslimat tamamlanana kadar Güvenli Havuz’da bekler.
+            </Text>
           </View>
         </View>
       </ScrollView>
 
       <View style={[styles.actionbar, { paddingBottom: insets.bottom + 14 }]}>
         {/* Satıcıya sormak, itiraza giden soruların çoğunu baştan çözer. */}
-        <Pressable style={styles.iconSquare} onPress={sohbetAc}>
-          <MaterialIcons name="chat-bubble-outline" size={22} color={colors.onSurface} />
+        <Pressable style={styles.iconSquare} onPress={sohbetAc} accessibilityLabel="Mesaj gönder">
+          <MaterialIcons name="chat-bubble-outline" size={20} color={colors.primary} />
         </Pressable>
         <Pressable
-          style={[styles.iconSquare, inSepet && { backgroundColor: colors.primaryContainer }]}
+          style={[styles.iconSquare, inSepet && styles.iconSquareOn]}
           onPress={() => toggleCart(product.id)}
+          accessibilityLabel="Sepete ekle"
         >
           <MaterialIcons
             name={inSepet ? 'shopping-cart' : 'add-shopping-cart'}
-            size={24}
-            color={inSepet ? colors.onPrimaryContainer : colors.onSurface}
+            size={20}
+            color={colors.primary}
           />
         </Pressable>
         <Pressable
@@ -359,10 +362,9 @@ export default function ProductDetail() {
           {takasEdiliyor ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <>
-              <MaterialIcons name="swap-horiz" size={20} color="#fff" />
-              <Text style={styles.ctaText}>Takas et · {product.points} puan</Text>
-            </>
+            /* Rehber 05: birincil CTA "420 Takas Puanı ile takas et". Simge
+               yok — cümle zaten ne olacağını söylüyor. */
+            <Text style={styles.ctaText}>{product.points} Takas Puanı ile takas et</Text>
           )}
         </Pressable>
       </View>
@@ -422,20 +424,19 @@ export default function ProductDetail() {
   );
 }
 
-function Chip({ icon, label }: { icon: keyof typeof MaterialIcons.glyphMap; label: string }) {
+function Chip({
+  icon,
+  label,
+  vurgulu,
+}: {
+  icon: keyof typeof MaterialIcons.glyphMap;
+  label: string;
+  vurgulu?: boolean;
+}) {
   return (
-    <View style={styles.mc}>
-      <MaterialIcons name={icon} size={16} color={colors.primary} />
-      <Text style={styles.mcText}>{label}</Text>
-    </View>
-  );
-}
-
-function PoolMini({ icon, label }: { icon: keyof typeof MaterialIcons.glyphMap; label: string }) {
-  return (
-    <View style={styles.pm}>
-      <MaterialIcons name={icon} size={16} color={colors.onPrimaryContainer} />
-      <Text style={styles.pmText}>{label}</Text>
+    <View style={[styles.mc, vurgulu ? styles.mcVurgu : styles.mcSade]}>
+      <MaterialIcons name={icon} size={13} color={colors.primary} />
+      <Text style={[styles.mcText, vurgulu && styles.mcTextVurgu]}>{label}</Text>
     </View>
   );
 }
@@ -444,9 +445,11 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
   center: { alignItems: 'center', justifyContent: 'center' },
   appbar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, backgroundColor: colors.surface },
-  appTitle: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: colors.onSurface },
+  appTitle: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '800', color: colors.onSurface },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  hero: { borderRadius: shape.xl, overflow: 'hidden', aspectRatio: 4 / 3, marginBottom: 14, ...elevation.level2 },
+  /* Ölçüldü (`09_05_Urun_Detayi.png`): hero 354×230 pt → oran 1.54.
+     Önceki 4/3 kareyi belirgin uzun gösteriyordu. */
+  hero: { borderRadius: shape.xl, overflow: 'hidden', aspectRatio: 1.54, marginBottom: 12, ...elevation.level2 },
   cond: {
     position: 'absolute',
     left: 14,
@@ -454,13 +457,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    height: 30,
-    paddingHorizontal: 12,
+    height: 25,
+    paddingHorizontal: 10,
     borderRadius: shape.full,
     backgroundColor: 'rgba(255,255,255,0.94)',
     ...elevation.level1,
   },
-  condText: { fontSize: 12, fontWeight: '700', color: colors.onSurface },
+  condText: { fontSize: 11, fontWeight: '700', color: colors.onSurface },
   count: {
     position: 'absolute',
     right: 14,
@@ -468,12 +471,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    height: 28,
-    paddingHorizontal: 10,
-    borderRadius: shape.full,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    height: 23,
+    paddingHorizontal: 9,
+    borderRadius: shape.sm,
+    backgroundColor: 'rgba(31,41,55,0.78)',
   },
-  countText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  countText: { color: '#fff', fontSize: 11, fontWeight: '700' },
   dots: { position: 'absolute', left: 0, right: 0, bottom: 12, flexDirection: 'row', gap: 6, justifyContent: 'center' },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.55)' },
   dotOn: { width: 18, borderRadius: shape.full, backgroundColor: '#fff' },
@@ -513,48 +516,46 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.55)',
   },
-  thumbs: { flexDirection: 'row', gap: 8, marginBottom: 18 },
-  thumb: { width: 60, height: 60, borderRadius: shape.sm, overflow: 'hidden', borderWidth: 2, borderColor: 'transparent' },
+  thumbs: { flexDirection: 'row', gap: 7, marginBottom: 14 },
+  thumb: { width: 52, height: 52, borderRadius: shape.sm, overflow: 'hidden', borderWidth: 2, borderColor: 'transparent' },
   thumbOn: { borderColor: colors.primary },
   thumbImg: { width: '100%', height: '100%' },
-  title: { fontSize: 24, fontWeight: '800', lineHeight: 28, letterSpacing: -0.4, color: colors.onSurface },
-  ptsLine: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginVertical: 10 },
-  pts: { fontSize: 36, fontWeight: '900', letterSpacing: -1, color: colors.primary },
-  ptsLabel: { color: colors.onSurfaceVariant, fontWeight: '700', fontSize: 14 },
-  market: { marginLeft: 'auto', alignItems: 'flex-end' },
-  marketLabel: { fontSize: 12, color: colors.onSurfaceVariant, fontWeight: '500' },
-  marketVal: { fontSize: 12, color: colors.onSurface, fontWeight: '700' },
-  mchips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  title: { fontSize: 18, fontWeight: '800', lineHeight: 23, letterSpacing: -0.3, color: colors.onSurface },
+  ptsLabel: { color: colors.onSurfaceVariant, fontWeight: '800', fontSize: 10.5, marginTop: 12 },
+  pts: { fontSize: 21, fontWeight: '800', letterSpacing: -0.4, color: colors.primary, marginTop: 3 },
+  mchips: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 14, marginBottom: 14 },
   mc: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    height: 32,
-    paddingHorizontal: 12,
-    borderRadius: shape.xs,
-    backgroundColor: colors.surfaceContainerHigh,
+    gap: 5,
+    height: 25,
+    paddingHorizontal: 10,
+    borderRadius: shape.full,
   },
-  mcText: { fontSize: 12, fontWeight: '600', color: colors.onSurfaceVariant },
-  desc: { color: colors.onSurfaceVariant, lineHeight: 22, fontSize: 14, fontWeight: '500', marginBottom: 16 },
+  mcVurgu: { backgroundColor: colors.primaryContainer },
+  mcSade: { backgroundColor: colors.surfaceContainerLowest, borderWidth: 1, borderColor: colors.outlineVariant },
+  mcText: { fontSize: 10.5, fontWeight: '700', color: colors.onSurfaceVariant },
+  mcTextVurgu: { color: colors.primary },
+  desc: { color: colors.onSurfaceVariant, lineHeight: 19, fontSize: 12.5, fontWeight: '500', marginBottom: 16 },
   seller: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    padding: 13,
+    gap: 11,
+    padding: 12,
     borderRadius: shape.md,
-    backgroundColor: colors.surfaceContainerLow,
+    backgroundColor: colors.surfaceContainerLowest,
     marginBottom: 14,
     ...elevation.level1,
   },
   sellerAv: {
-    width: 46,
-    height: 46,
+    width: 40,
+    height: 40,
     borderRadius: shape.full,
-    backgroundColor: colors.secondaryContainer,
+    backgroundColor: colors.primaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sellerAvText: { fontWeight: '800', fontSize: 16, color: colors.onSecondaryContainer },
+  sellerAvText: { fontWeight: '800', fontSize: 13, color: colors.primary },
   sellerOk: {
     position: 'absolute',
     right: -2,
@@ -566,54 +567,52 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: colors.surfaceContainerLow,
+    borderColor: colors.surfaceContainerLowest,
   },
-  sellerNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  sellerName: { fontWeight: '700', fontSize: 14, color: colors.onSurface },
-  sellerSub: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
-  sellerSubText: { color: colors.onSurfaceVariant, fontSize: 12, fontWeight: '500' },
-  pool: { backgroundColor: colors.primaryContainer, borderRadius: shape.md, padding: 15 },
-  poolHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 7 },
-  poolHeadText: { fontWeight: '700', fontSize: 14, color: colors.onPrimaryContainer },
-  poolText: { fontSize: 13, lineHeight: 19, fontWeight: '500', color: colors.onPrimaryContainer },
-  poolMini: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  pm: {
-    flex: 1,
+  sellerName: { fontWeight: '800', fontSize: 13, color: colors.onSurface },
+  sellerSubText: { color: colors.onSurfaceVariant, fontSize: 11, fontWeight: '500', marginTop: 3 },
+  pool: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    backgroundColor: 'rgba(255,255,255,0.55)',
-    borderRadius: shape.xs,
-    paddingVertical: 9,
-    paddingHorizontal: 10,
+    gap: 11,
+    backgroundColor: colors.primaryContainer,
+    borderRadius: shape.md,
+    padding: 14,
   },
-  pmText: { fontSize: 11, fontWeight: '700', color: colors.onPrimaryContainer },
+  poolIcon: { marginTop: 1 },
+  poolHeadText: { fontWeight: '800', fontSize: 13, color: colors.onPrimaryContainer },
+  poolText: { fontSize: 11.5, lineHeight: 17, fontWeight: '500', color: colors.onPrimaryContainer, marginTop: 4 },
+  /* Ölçüldü: kenar 18, iki daire 44, aralar 7, CTA kalanı doldurur, y 46.
+     Şeridin zemini `#FFF9EF` — sayfa zemininin bir ton açığı; önceki
+     `surfaceContainer` sayfadan koyuydu ve şerit alta yapışmış gri bir bant
+     gibi duruyordu (alt sekme şeridiyle aynı kusur). */
   actionbar: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 7,
     alignItems: 'center',
     paddingHorizontal: 18,
-    paddingTop: 14,
-    backgroundColor: colors.surfaceContainer,
+    paddingTop: 12,
+    backgroundColor: colors.surfaceContainerLow,
   },
   iconSquare: {
-    width: 54,
-    height: 54,
-    borderRadius: shape.md,
-    backgroundColor: colors.surfaceContainerHigh,
+    width: 44,
+    height: 44,
+    borderRadius: shape.full,
+    backgroundColor: colors.surfaceContainerLowest,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  iconSquareOn: { backgroundColor: colors.primaryContainer },
   cta: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    height: 54,
+    height: 46,
     borderRadius: shape.full,
     backgroundColor: colors.primary,
     ...elevation.level1,
   },
-  ctaText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  ctaText: { color: '#fff', fontWeight: '800', fontSize: 14 },
 });
