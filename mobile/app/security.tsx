@@ -1,5 +1,12 @@
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { uyar } from '../components/Dialog';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -60,13 +67,13 @@ export default function Security() {
 
   async function sifreSifirla() {
     if (!supabaseConfigured || !supabase || !eposta) {
-      Alert.alert('Yapılamadı', 'Bunun için oturum açmış olmanız gerekiyor.');
+      uyar('Yapılamadı', 'Bunun için oturum açmış olmanız gerekiyor.');
       return;
     }
     setGonderiliyor(true);
     const { error } = await supabase.auth.resetPasswordForEmail(eposta);
     setGonderiliyor(false);
-    Alert.alert(
+    uyar(
       error ? 'Gönderilemedi' : 'Bağlantı gönderildi',
       error ? error.message : `Şifre sıfırlama bağlantısı ${eposta} adresine gönderildi.`,
     );

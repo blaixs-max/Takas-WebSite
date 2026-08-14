@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Dimensions,
   Image,
   Modal,
@@ -14,6 +13,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { uyar } from '../../components/Dialog';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -68,7 +68,7 @@ export default function ProductDetail() {
   async function sohbetAc() {
     if (!product) return;
     if (!user) {
-      Alert.alert('Giriş gerekli', 'Satıcıya yazmak için önce giriş yapın.', [
+      uyar('Giriş gerekli', 'Satıcıya yazmak için önce giriş yapın.', [
         { text: 'Vazgeç', style: 'cancel' },
         { text: 'Giriş yap', onPress: () => router.push('/sign-in') },
       ]);
@@ -76,7 +76,7 @@ export default function ProductDetail() {
     }
     const s = await startConversation(product.id);
     if (!s.ok) {
-      Alert.alert('Sohbet açılamadı', s.message);
+      uyar('Sohbet açılamadı', s.message);
       return;
     }
     router.push(`/chat/${s.id}`);
@@ -85,14 +85,14 @@ export default function ProductDetail() {
   async function takasEt() {
     if (!product) return;
     if (!user) {
-      Alert.alert('Giriş gerekli', 'Takas için önce giriş yapın.', [
+      uyar('Giriş gerekli', 'Takas için önce giriş yapın.', [
         { text: 'Vazgeç', style: 'cancel' },
         { text: 'Giriş yap', onPress: () => router.push('/sign-in') },
       ]);
       return;
     }
 
-    Alert.alert(
+    uyar(
       'Takası başlat',
       `${product.points} puanınız güvenli havuza alınacak. Ürün elinize geçip onaylayana kadar satıcıya geçmez.`,
       [
@@ -104,7 +104,7 @@ export default function ProductDetail() {
             const sonuc = await startTrade(product.id);
             if (!sonuc.ok) {
               setTakasEdiliyor(false);
-              Alert.alert('Takas başlatılamadı', sonuc.message);
+              uyar('Takas başlatılamadı', sonuc.message);
               return;
             }
             // Kargo bedeli sunucuda hesaplanır; kullanıcıya ödeyeceği tutarı
@@ -116,7 +116,7 @@ export default function ProductDetail() {
               : '';
             // Doğrudan ödemeye götürüyoruz: ödeme penceresi dolarsa takas
             // kendiliğinden iptal olur, kullanıcıyı arada bırakmayalım.
-            Alert.alert(
+            uyar(
               'Takas açıldı',
               `${sonuc.points} puan havuzda.${satir}\n\nSon adım kargo ödemesi.`,
               [

@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from '../lib/auth';
 import { FavoritesProvider } from '../lib/favorites';
 import { CartProvider } from '../lib/cart';
 import { AcilisEkrani } from '../components/brand/AcilisEkrani';
+import { DialogHost } from '../components/Dialog';
 import { colors } from '../theme/tokens';
 
 /**
@@ -107,6 +108,9 @@ export default function RootLayout() {
         <FavoritesProvider>
           <CartProvider>
             <RootNavigator />
+            {/* Uyarı kutuları uygulamanın kendi katmanından çıksın diye
+                sağlayıcıların en içinde, gezinmenin üstünde duruyor. */}
+            <DialogHost />
           </CartProvider>
         </FavoritesProvider>
       </AuthProvider>

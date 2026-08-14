@@ -1,5 +1,14 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { uyar } from '../components/Dialog';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -46,7 +55,7 @@ export default function AddListing() {
 
   async function rafaEkle() {
     if (!user) {
-      Alert.alert('Giriş gerekli', 'İlan vermek için önce giriş yapın.', [
+      uyar('Giriş gerekli', 'İlan vermek için önce giriş yapın.', [
         { text: 'Vazgeç', style: 'cancel' },
         { text: 'Giriş yap', onPress: () => router.push('/sign-in') },
       ]);
@@ -68,7 +77,7 @@ export default function AddListing() {
     setSaving(false);
 
     if (!sonuc.ok) {
-      Alert.alert('İlan kaydedilemedi', sonuc.message);
+      uyar('İlan kaydedilemedi', sonuc.message);
       return;
     }
     // İlan taslak olarak açıldı. Yayına girmesi için kareler gerekiyor;

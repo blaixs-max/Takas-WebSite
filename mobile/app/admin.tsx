@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Modal,
   Pressable,
@@ -12,6 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { uyar } from '../components/Dialog';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -123,7 +123,7 @@ export default function AdminScreen() {
     const s = await moderatePhoto(photoId, uygun, neden);
     setIslemde(null);
     if (!s.ok) {
-      Alert.alert('İşlem tamamlanamadı', s.message);
+      uyar('İşlem tamamlanamadı', s.message);
       return;
     }
     await getir();
@@ -144,7 +144,7 @@ export default function AdminScreen() {
     );
     setIslemde(null);
     if (!s.ok) {
-      Alert.alert('Karar kaydedilemedi', s.message);
+      uyar('Karar kaydedilemedi', s.message);
       return;
     }
     kapat();
@@ -158,7 +158,7 @@ export default function AdminScreen() {
     const s = await resolveReport(hedef.id, hedef.ihlal, gerekce);
     setIslemde(null);
     if (!s.ok) {
-      Alert.alert('Karar kaydedilemedi', s.message);
+      uyar('Karar kaydedilemedi', s.message);
       return;
     }
     kapat();
@@ -168,12 +168,12 @@ export default function AdminScreen() {
   async function kanitlariGoster(disputeId: string) {
     const urls = await disputeEvidenceUrls(disputeId);
     if (urls.length === 0) {
-      Alert.alert('Kanıt yok', 'Bu talebe henüz kanıt yüklenmemiş.');
+      uyar('Kanıt yok', 'Bu talebe henüz kanıt yüklenmemiş.');
       return;
     }
     // Kanıtı ayrı bir görüntüleyicide değil, uyarı ile listeliyoruz: karar
     // ekranı basit kalsın, kareler tarayıcıda tam boy açılsın.
-    Alert.alert('Kanıtlar', `${urls.length} kare yüklenmiş. Karar için hepsine bakın.`);
+    uyar('Kanıtlar', `${urls.length} kare yüklenmiş. Karar için hepsine bakın.`);
   }
 
   function kapat() {

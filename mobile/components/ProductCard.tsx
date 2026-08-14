@@ -1,5 +1,6 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { Diamond } from './brand/Diamond';
 import { Link } from 'expo-router';
 import { Product } from '../data/products';
 import { useFavorites } from '../lib/favorites';
@@ -37,7 +38,7 @@ export function ProductCard({ product }: { product: Product }) {
           </View>
           <View style={styles.foot}>
             <View style={styles.pts}>
-              <MaterialIcons name="paid" size={16} color={colors.onPrimaryContainer} />
+              <Diamond size={14} color={colors.onPrimaryContainer} />
               <Text style={styles.ptsText}>{product.points}</Text>
             </View>
             <View style={styles.av}>

@@ -1,5 +1,6 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { Diamond } from './brand/Diamond';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link } from 'expo-router';
 import { Product } from '../data/products';
@@ -30,7 +31,7 @@ export function FeaturedCard({ product }: { product: Product }) {
             {product.title}
           </Text>
           <View style={styles.pts}>
-            <MaterialIcons name="paid" size={15} color={colors.onPrimaryContainer} />
+            <Diamond size={13} color={colors.onPrimaryContainer} />
             <Text style={styles.ptsText}>{product.points} puan</Text>
           </View>
         </View>

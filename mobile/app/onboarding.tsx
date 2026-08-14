@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { Diamond } from '../components/brand/Diamond';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -54,7 +55,7 @@ export default function Onboarding() {
           <Text style={styles.floatText}>Güvenli Havuz</Text>
         </View>
         <View style={[styles.float, styles.f2]}>
-          <MaterialIcons name="paid" size={18} color={colors.primary} />
+          <Diamond size={16} color={colors.primary} />
           <Text style={styles.floatText}>Takas Puanı</Text>
         </View>
       </View>

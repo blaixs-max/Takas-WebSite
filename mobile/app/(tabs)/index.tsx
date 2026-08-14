@@ -130,12 +130,17 @@ export default function ShelfScreen() {
               value={q}
               onChangeText={setQ}
             />
-            {q.length > 0 ? (
-              <Pressable onPress={() => setQ('')}>
+            {/* Burada bir mikrofon simgesi duruyordu ve `Pressable` bile
+                değildi — dokunmaya hiç cevap vermeyen, çizilmiş bir resim.
+                Arkasında sesli arama yok; uygulama konuşma tanıma paketi
+                taşımıyor. Basınca hiçbir şey yapmayan bir düğme, olmayan
+                düğmeden kötüdür: kullanıcı önce bozuk sanır, sonra o alandaki
+                her şeye güvenmeyi bırakır. Sesli arama gerçekten eklenirse
+                simge de onunla birlikte geri gelir. */}
+            {q.length > 0 && (
+              <Pressable onPress={() => setQ('')} hitSlop={8}>
                 <MaterialIcons name="close" size={22} color={colors.onSurfaceVariant} />
               </Pressable>
-            ) : (
-              <MaterialIcons name="mic" size={24} color={colors.onSurfaceVariant} />
             )}
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>{basHarf}</Text>

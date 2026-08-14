@@ -71,6 +71,43 @@ alınamayan sahte ilan olurlardı.
       - Ölü bağlantı kalktı: paylaşım metinleri `kidstrade.app` adresine
         gidiyordu, o alan adı bize ait değil.
 
+### Cihazda bulunan üç kusur daha (2026-08-14)
+- [x] **Puan `$` ile gösteriliyordu.** Dört yerde `MaterialIcons name="paid"` —
+      daire içinde dolar işareti. Eldenele kapalı devre: Takas Puanı para değil,
+      para birimine çevrilmiyor, çekilemiyor. Ürünün yanındaki `$` kullanıcıya
+      fiyat okuduğunu söylüyordu. Site en baştan beri kendi taşını kullanıyor;
+      uygulama geride kalmıştı. `components/brand/Diamond.tsx` sitedeki
+      `src/components/icons/Diamond.tsx` ile birebir aynı konturu taşıyor ve
+      **iki dosya bilerek aynı adı taşıyor** — parite arandığında ikisi birden
+      bulunsun diye. Değiştirilen yerler: ürün kartı, öne çıkan kart, sepet,
+      onboarding "Takas Puanı" hapı.
+
+      > Onboarding hapında site aslında `Coin` kullanıyor, `Diamond` değil.
+      > Orada da taş kondu: `Coin` konturlu bir marka ikonu ve uygulamanın
+      > tamamı `MaterialIcons`; tek bir yüzeye ikinci bir ikon seti sokmak,
+      > CLAUDE.md'nin sitede yasakladığı karışımın aynısı olurdu. Bir kavram,
+      > bir işaret.
+- [x] **Arama çubuğundaki mikrofon çalışmıyordu.** `Pressable` bile değildi —
+      dokunmaya hiç cevap vermeyen, çizilmiş bir resim. Arkasında sesli arama
+      yok, uygulama konuşma tanıma paketi taşımıyor. Kaldırıldı. Sesli arama
+      gerçekten istenirse `expo-speech-recognition` + mikrofon izni gerekiyor;
+      o iş yapılırsa simge de birlikte geri gelir.
+- [x] **Uyarı kutuları uygulamadan değil telefondan geliyordu.** 36 çağrı
+      `Alert.alert` kullanıyordu; o işletim sisteminin kendi kutusunu açar —
+      iOS'ta sistem grisi ve San Francisco, Android'de Material varsayılanı.
+      Hiçbiri uygulamanın kremini, turkuazını, yuvarlaklığını taşımıyordu ve
+      kutu "başka bir mesaj" gibi okunuyordu; haklı olarak, gerçekten başka bir
+      katmandan geliyordu. `components/Dialog.tsx` uygulama içi bir diyalog
+      açıyor. Çağrı biçimi bilerek `Alert.alert` ile aynı (başlık, gövde, düğme
+      dizisi), böylece 36 yerin değişimi `Alert.alert` → `uyar` oldu. Modül
+      düzeyinde bir işlev, kanca değil: `lib/` altından da çağrılabilsin ve 36
+      çağrı yerine kanca bağlantısı dolaştırmak gerekmesin diye. Android geri
+      tuşu iptal düğmesini işletiyor, perdeye dokunmak yalnızca iptal edilebilir
+      diyalogları kapatıyor (tek düğmeli bilgi kutusunu perdeyle geçmek, mesajı
+      okumadan geçmeyi kolaylaştırırdı) ve üst üste gelen istekler kuyruğa
+      giriyor — iki modal aynı anda açılınca Android ikincisini hiç
+      göstermiyor.
+
 ### Cihazda bulunan dört kusur (2026-08-14)
 - [x] **Bildirim rozeti okuduktan sonra da duruyordu.** İki ayrı sebep vardı ve
       ilki daha ağır: bildirimleri okundu işaretlemenin **tek** yolu başlıktaki

@@ -1,5 +1,6 @@
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { Diamond } from '../../components/brand/Diamond';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCart } from '../../lib/cart';
@@ -63,7 +64,7 @@ export default function CartScreen() {
                     </Text>
                   </View>
                   <View style={styles.pts}>
-                    <MaterialIcons name="paid" size={15} color={colors.onPrimaryContainer} />
+                    <Diamond size={13} color={colors.onPrimaryContainer} />
                     <Text style={styles.ptsText}>{p.points} puan</Text>
                   </View>
                 </View>

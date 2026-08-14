@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,6 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { uyar } from '../components/Dialog';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -55,7 +55,7 @@ export default function EditProfile() {
 
   async function kaydet() {
     if (!user) {
-      Alert.alert('Giriş gerekli', 'Profilinizi düzenlemek için önce giriş yapın.');
+      uyar('Giriş gerekli', 'Profilinizi düzenlemek için önce giriş yapın.');
       return;
     }
     setKaydediyor(true);
@@ -63,7 +63,7 @@ export default function EditProfile() {
     setKaydediyor(false);
 
     if (!sonuc.ok) {
-      Alert.alert('Kaydedilemedi', sonuc.message);
+      uyar('Kaydedilemedi', sonuc.message);
       return;
     }
     router.back();

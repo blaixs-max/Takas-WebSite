@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -9,6 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { uyar } from '../components/Dialog';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -72,7 +72,7 @@ export default function ListingPhotos() {
         ? await ImagePicker.requestCameraPermissionsAsync()
         : await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!izin.granted) {
-      Alert.alert(
+      uyar(
         'İzin gerekli',
         kaynak === 'kamera'
           ? 'Fotoğraf çekmek için kamera izni vermelisiniz.'
@@ -106,7 +106,7 @@ export default function ListingPhotos() {
         delete k[slot];
         return k;
       });
-      Alert.alert('Yüklenemedi', cikti.message);
+      uyar('Yüklenemedi', cikti.message);
       return;
     }
     await tazele();
@@ -120,11 +120,11 @@ export default function ListingPhotos() {
     const sonuc = await publishListing(id!, 'front');
     setYayinlaniyor(false);
     if (!sonuc.ok) {
-      Alert.alert('Yayına alınamadı', sonuc.message);
+      uyar('Yayına alınamadı', sonuc.message);
       await tazele();
       return;
     }
-    Alert.alert('İlan yayında', `${title ?? 'İlanınız'} rafa eklendi.`, [
+    uyar('İlan yayında', `${title ?? 'İlanınız'} rafa eklendi.`, [
       { text: 'Tamam', onPress: () => router.replace('/') },
     ]);
   }

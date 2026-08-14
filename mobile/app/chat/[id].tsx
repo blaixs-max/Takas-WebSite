@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -12,6 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { uyar } from '../../components/Dialog';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -89,10 +89,10 @@ export default function Chat() {
     setSikayetEdilen(null);
     const s = await reportMessage(hedef.id, neden);
     if (!s.ok) {
-      Alert.alert('Şikâyet gönderilemedi', s.message);
+      uyar('Şikâyet gönderilemedi', s.message);
       return;
     }
-    Alert.alert(
+    uyar(
       'Şikâyetiniz alındı',
       'Ekibimiz inceleyip size sonucu bildirecek. Mesaj kayıtta kalır — inceleme buna dayanır.',
     );

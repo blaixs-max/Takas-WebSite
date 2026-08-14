@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Pressable,
   RefreshControl,
@@ -11,6 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { uyar } from '../components/Dialog';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -124,7 +124,7 @@ export default function TradesScreen() {
   }, [getir]);
 
   async function onayla(t: TradeRow) {
-    Alert.alert(
+    uyar(
       'Teslim aldınız mı?',
       `${t.points} puan satıcıya geçecek. Onayladıktan sonra itiraz edemezsiniz.`,
       [
@@ -136,7 +136,7 @@ export default function TradesScreen() {
             setIslemde(t.id);
             const s = await confirmDelivery(t.id);
             setIslemde(null);
-            if (!s.ok) Alert.alert('Onaylanamadı', s.message);
+            if (!s.ok) uyar('Onaylanamadı', s.message);
             await getir();
           },
         },
@@ -145,7 +145,7 @@ export default function TradesScreen() {
   }
 
   async function iptalEt(t: TradeRow) {
-    Alert.alert(
+    uyar(
       'Takası iptal et',
       `${t.points} puanınız hesabınıza geri döner ve ilan yeniden vitrine çıkar. Satıcı onayı gerekmez.`,
       [
@@ -157,7 +157,7 @@ export default function TradesScreen() {
             setIslemde(t.id);
             const s = await cancelTrade(t.id);
             setIslemde(null);
-            if (!s.ok) Alert.alert('İptal edilemedi', s.message);
+            if (!s.ok) uyar('İptal edilemedi', s.message);
             await getir();
           },
         },
@@ -172,7 +172,7 @@ export default function TradesScreen() {
     const s = await openDispute(hedef.id, gerekce);
     setIslemde(null);
     if (!s.ok) {
-      Alert.alert('İtiraz açılamadı', s.message);
+      uyar('İtiraz açılamadı', s.message);
       return;
     }
     setItiraz(null);
@@ -182,7 +182,7 @@ export default function TradesScreen() {
     // Kanıt 24 saat içinde gelmezse sunucu talebi reddediyor. Kullanıcıyı
     // burada yakalamazsak itirazı sessizce düşer — hemen soruyoruz.
     if (s.kanitBekleniyor) {
-      Alert.alert(
+      uyar(
         'Şimdi bir fotoğraf ekleyin',
         'Sorunu gösteren bir kare olmadan talep değerlendirilemez. 24 saat içinde eklenmezse itiraz kapanır ve onay sayacı kaldığı yerden devam eder.',
         [
@@ -209,10 +209,10 @@ export default function TradesScreen() {
     const s = await uploadDisputeEvidence(disputeId, sonuc.assets[0].uri);
     setIslemde(null);
     if (!s.ok) {
-      Alert.alert('Kanıt eklenemedi', s.message);
+      uyar('Kanıt eklenemedi', s.message);
       return;
     }
-    Alert.alert('Kanıt alındı', 'Talebiniz incelemeye alındı. Sonucu buradan takip edebilirsiniz.');
+    uyar('Kanıt alındı', 'Talebiniz incelemeye alındı. Sonucu buradan takip edebilirsiniz.');
     await getir();
   }
 

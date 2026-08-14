@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -11,6 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { uyar } from '../components/Dialog';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -87,7 +87,7 @@ export default function PaymentScreen() {
     const baslangic = await initCargoPayment(trade, buyer);
     if (!baslangic.ok) {
       setOdeniyor(false);
-      Alert.alert('Ödeme başlatılamadı', baslangic.message);
+      uyar('Ödeme başlatılamadı', baslangic.message);
       return;
     }
 
@@ -95,7 +95,7 @@ export default function PaymentScreen() {
     setOdeniyor(false);
 
     if (sonuc === 'success') {
-      Alert.alert(
+      uyar(
         'Ödeme alındı',
         'Satıcıya bildirildi. Ürün kargoya verilince Takaslarım ekranından takip edebilirsiniz.',
         [{ text: 'Takaslarıma git', onPress: () => router.replace('/trades') }],
@@ -103,11 +103,11 @@ export default function PaymentScreen() {
       return;
     }
     if (sonuc === 'failure') {
-      Alert.alert('Ödeme tamamlanmadı', 'Kart işlemi onaylanmadı. Tekrar deneyebilirsiniz.');
+      uyar('Ödeme tamamlanmadı', 'Kart işlemi onaylanmadı. Tekrar deneyebilirsiniz.');
       return;
     }
     if (sonuc === 'cancelled') {
-      Alert.alert(
+      uyar(
         'Ödeme yarıda kaldı',
         'Puanınız havuzda bekliyor. Ödemeyi tamamlamazsanız süre dolduğunda takas iptal edilir ve puanınız iade edilir.',
       );
@@ -115,7 +115,7 @@ export default function PaymentScreen() {
     }
     // Sonucu okuyamadık: burada "başarılı" demek yanlış olur. Gerçeği sunucu
     // bilir, kullanıcıyı oraya gönderiyoruz.
-    Alert.alert(
+    uyar(
       'Ödeme durumu doğrulanıyor',
       'İşleminizin sonucu birkaç saniye içinde Takaslarım ekranına yansıyacak.',
       [{ text: 'Takaslarıma git', onPress: () => router.replace('/trades') }],
