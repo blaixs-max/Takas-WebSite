@@ -27,10 +27,21 @@ import { useAuth } from '../../lib/auth';
 import { colors, elevation, shape } from '../../theme/tokens';
 
 const { width: EKRAN_W, height: EKRAN_H } = Dimensions.get('window');
-/** Büyük karenin ölçüsü: ekran eksi ScrollView'ün 18'lik yan boşlukları, 4:3.
-    Yatay ScrollView içinde yüzde genişlik çözülmez; kesin sayı şart. */
-const HERO_W = EKRAN_W - 36;
-const HERO_H = Math.round((HERO_W * 3) / 4);
+/**
+ * Galerinin başlangıç genişliği: ekran eksi ScrollView'ün 18'lik yan
+ * boşlukları. Yatay ScrollView içinde yüzde genişlik çözülmez, kesin sayı
+ * şart — ama bu sayı yalnızca **ilk karenin** ölçüsü; gerçek değer
+ * `onLayout` ile ölçülüyor.
+ *
+ * Neden ölçmek gerekiyor: `pagingEnabled` ScrollView'ün *kendi* genişliğinin
+ * katlarına kilitler. Sayfalar buradan hesaplanan `EKRAN_W - 36` ile
+ * çizilirken kap üst öğeye göre esniyordu ve ikisi birebir tutmuyordu —
+ * `Dimensions.get('window').width` çoğu Android cihazda kesirli
+ * (ör. 411.4285…), düzen motoru ise fiziksel piksele yuvarlıyor. Sayfa başına
+ * bir-iki piksellik fark beşinci karede birikip görünür hâle geliyordu: kare
+ * ortalanmıyor, solunda bir öncekinden şerit kalıyordu.
+ */
+const VARSAYILAN_HERO_W = EKRAN_W - 36;
 
 export default function ProductDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -41,6 +52,9 @@ export default function ProductDetail() {
   const { inCart, toggle: toggleCart } = useCart();
   const { user } = useAuth();
   const [activeImg, setActiveImg] = useState(0);
+  /* Kabın gerçek genişliği. Ölçülene kadar tahminle çiziliyor; ilk düzen
+     karesinden sonra ikisi birebir aynı oluyor ve kayma sıfırlanıyor. */
+  const [heroW, setHeroW] = useState(VARSAYILAN_HERO_W);
   const [buyutulmus, setBuyutulmus] = useState(false);
   const heroRef = useRef<ScrollView>(null);
   const [takasEdiliyor, setTakasEdiliyor] = useState(false);
@@ -140,14 +154,14 @@ export default function ProductDetail() {
 
   /** Kaydırma bittiğinde hangi karede olduğumuzu sayfa genişliğinden buluruz. */
   function kaydirmaBitti(e: NativeSyntheticEvent<NativeScrollEvent>) {
-    const i = Math.round(e.nativeEvent.contentOffset.x / HERO_W);
+    const i = Math.round(e.nativeEvent.contentOffset.x / heroW);
     if (i !== activeImg && i >= 0 && i < gallery.length) setActiveImg(i);
   }
 
   /** Küçük resim ya da nokta seçildiğinde büyük kareyi oraya taşır. */
   function kareyeGit(i: number) {
     setActiveImg(i);
-    heroRef.current?.scrollTo({ x: i * HERO_W, animated: true });
+    heroRef.current?.scrollTo({ x: i * heroW, animated: true });
   }
 
   return (
@@ -169,7 +183,18 @@ export default function ProductDetail() {
 
       <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: 110 }} showsVerticalScrollIndicator={false}>
         {/* Galeri */}
-        <View style={styles.hero}>
+        <View
+          style={styles.hero}
+          onLayout={(e) => {
+            const w = e.nativeEvent.layout.width;
+            if (w <= 0 || w === heroW) return;
+            setHeroW(w);
+            /* Genişlik değişince eski kaydırma konumu artık başka bir kareyi
+               gösterir (katlanabilir ekran, tablette bölünmüş görünüm).
+               Duran kareye animasyonsuz geri oturuyoruz. */
+            heroRef.current?.scrollTo({ x: activeImg * w, animated: false });
+          }}
+        >
           {/* Kaydırılabilir şerit. Önceden tek bir Image vardı: kare yalnızca
               küçük resimden değişiyordu, parmakla kaydırmak hiçbir şey
               yapmıyordu. */}
@@ -181,8 +206,12 @@ export default function ProductDetail() {
             onMomentumScrollEnd={kaydirmaBitti}
           >
             {gallery.map((g, i) => (
-              <Pressable key={i} onPress={() => setBuyutulmus(true)} style={styles.heroSayfa}>
-                <Image source={g} style={styles.heroImg} resizeMode="cover" />
+              <Pressable
+                key={i}
+                onPress={() => setBuyutulmus(true)}
+                style={{ width: heroW, aspectRatio: 4 / 3 }}
+              >
+                <Image source={g} style={{ width: heroW, height: '100%' }} resizeMode="cover" />
               </Pressable>
             ))}
           </ScrollView>
@@ -421,8 +450,6 @@ const styles = StyleSheet.create({
   appTitle: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: colors.onSurface },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   hero: { borderRadius: shape.xl, overflow: 'hidden', aspectRatio: 4 / 3, marginBottom: 14, ...elevation.level2 },
-  heroSayfa: { width: HERO_W, height: HERO_H },
-  heroImg: { width: HERO_W, height: HERO_H },
   cond: {
     position: 'absolute',
     left: 14,

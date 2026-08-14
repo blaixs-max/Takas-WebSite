@@ -37,22 +37,28 @@ export default function Notifications() {
   const [yukleniyor, setYukleniyor] = useState(true);
   const [yenileniyor, setYenileniyor] = useState(false);
 
+  /**
+   * Listeyi getirir ve **görüleni okundu sayar.**
+   *
+   * Okundu işaretlemenin tek yolu başlıktaki küçük `done-all` simgesiydi.
+   * Kimse onu bulmuyordu: kullanıcı bildirimleri açıp okuyor, geri dönüyor ve
+   * kırmızı rozet duruyordu. Rozet yanlış değildi — sunucuda gerçekten
+   * okunmamışlardı — ama kullanıcının yaptığı şey okumaktı. Listeyi açmak
+   * artık okumak sayılıyor.
+   *
+   * Yerel liste bilerek yeniden çekilmiyor: bu ziyarette hangilerinin yeni
+   * olduğu vurgulu kalsın diye. Bir sonraki açılışta okunmuş görünürler.
+   */
   const getir = useCallback(async () => {
-    setListe(await loadNotifications());
+    const yeni = await loadNotifications();
+    setListe(yeni);
     setYukleniyor(false);
+    if (yeni.some((n) => !n.okundu)) markAllRead().catch(() => {});
   }, []);
 
   useEffect(() => {
     getir();
   }, [getir]);
-
-  const okunmamis = liste.filter((n) => !n.okundu).length;
-
-  async function hepsiniOkundu() {
-    if (okunmamis === 0) return;
-    await markAllRead();
-    await getir();
-  }
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -61,13 +67,9 @@ export default function Notifications() {
           <MaterialIcons name="arrow-back" size={24} color={colors.onSurface} />
         </Pressable>
         <Text style={styles.appTitle}>Bildirimler</Text>
-        <Pressable style={styles.iconBtn} onPress={hepsiniOkundu} disabled={okunmamis === 0}>
-          <MaterialIcons
-            name="done-all"
-            size={22}
-            color={okunmamis === 0 ? colors.outline : colors.primary}
-          />
-        </Pressable>
+        {/* "Tümünü okundu işaretle" düğmesi kalktı: açmak zaten okundu
+            sayıyor, düğme hiçbir şey yapmayan bir düğme olurdu. */}
+        <View style={styles.iconBtn} />
       </View>
 
       {yukleniyor ? (

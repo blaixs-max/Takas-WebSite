@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { ProductCard } from '../../components/ProductCard';
 import { FeaturedCard } from '../../components/FeaturedCard';
 import { ALL_CATEGORIES, CATEGORY_TREE, subsOf } from '../../data/categories';
@@ -29,19 +29,31 @@ export default function ShelfScreen() {
     setActive(ad);
     setActiveSub(ALL_CATEGORIES);
   };
-  // Rozet sabit '3' yazıyordu; gerçek sayı olmadan bir bildirim rozeti
-  // kullanıcıya yalan söyler ve tıklanmayı bırakır.
+  /**
+   * Bildirim rozeti.
+   *
+   * Sayı bir zamanlar sabit '3' idi; gerçek sayı olmadan bir rozet kullanıcıya
+   * yalan söyler ve tıklanmayı bırakır. Gerçek sayıya bağlandıktan sonra ikinci
+   * bir kusur kaldı: `useEffect(..., [])` yalnızca ekran **ilk kurulduğunda**
+   * koşuyordu. Sekme ekranları arka planda canlı kalıyor, dolayısıyla
+   * bildirimleri okuyup geri dönmek onu hiç yeniden çalıştırmıyordu — rozet
+   * ekranda okunmuş bildirimleri saymaya devam ediyordu.
+   *
+   * `useFocusEffect` ekrana her dönüşte tazeliyor.
+   */
   const [okunmamis, setOkunmamis] = useState(0);
 
-  useEffect(() => {
-    let iptal = false;
-    unreadCount().then((n) => {
-      if (!iptal) setOkunmamis(n);
-    });
-    return () => {
-      iptal = true;
-    };
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let iptal = false;
+      unreadCount().then((n) => {
+        if (!iptal) setOkunmamis(n);
+      });
+      return () => {
+        iptal = true;
+      };
+    }, []),
+  );
   const [q, setQ] = useState('');
 
   /* Selamlama gerçek addan geliyor. Sabit "Merhaba, Emrah" yazıyordu — her

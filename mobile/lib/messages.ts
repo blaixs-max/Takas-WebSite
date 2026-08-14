@@ -37,6 +37,23 @@ export async function loadConversations(): Promise<ConversationRow[]> {
   }));
 }
 
+/**
+ * Okunmamış **mesaj** sayısı — sohbetlerin toplamı.
+ *
+ * Profildeki "Mesajlarım" satırı bu sayıyı değil, bildirim sayacını
+ * (`unreadCount`, `lib/notifications.ts`) gösteriyordu. İkisi ayrı şeyler:
+ * ilan yayına alındığında bildirim düşer, mesaj düşmez. Sonuç, gelen kutusu
+ * bomboşken "1 okunmamış mesaj" yazmasıydı; kullanıcı satıra basıyor ve
+ * hiçbir şey bulamıyordu.
+ *
+ * Sunucuda ayrı bir sayaç yok — `my_conversations`'ın satır başına döndürdüğü
+ * `okunmamis` değerlerinin toplamı.
+ */
+export async function unreadMessageCount(): Promise<number> {
+  const sohbetler = await loadConversations();
+  return sohbetler.reduce((toplam, s) => toplam + s.okunmamis, 0);
+}
+
 export interface MessageRow {
   id: string;
   body: string;

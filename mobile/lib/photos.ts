@@ -1,5 +1,6 @@
 import { File } from 'expo-file-system';
 import { PhotoSlot } from '../data/photoSlots';
+import { imzaliBaglantilar } from './admin';
 import { supabase, supabaseConfigured } from './supabase';
 
 export type UploadResult = { ok: true; photoId: string } | { ok: false; message: string };
@@ -74,21 +75,35 @@ export interface PhotoRow {
   storagePath: string;
   moderationStatus: 'pending' | 'approved' | 'rejected';
   moderationReason: string | null;
+  /**
+   * Kareyi göstermek için kısa ömürlü bağlantı.
+   *
+   * `listing-photos` kovası özeldir; depo yolu tek başına gösterilemez.
+   * Bağlantı üretilemezse `null` — çekim ekranı o durumda kareyi "yüklendi"
+   * ama önizlemesiz gösteriyor, sahte bir "çekilmedi" değil.
+   */
+  url: string | null;
 }
 
-/** İlanın karelerini durumlarıyla getirir. */
+/** İlanın karelerini durumlarıyla ve gösterilebilir bağlantılarıyla getirir. */
 export async function loadPhotos(productId: string): Promise<PhotoRow[]> {
   if (!supabaseConfigured || !supabase) return [];
   const { data } = await supabase
     .from('product_photos')
     .select('id, slot, storage_path, moderation_status, moderation_reason')
     .eq('product_id', productId);
-  return (data ?? []).map((r) => ({
+  if (!data) return [];
+
+  const yollar = data.map((r) => r.storage_path as string).filter(Boolean);
+  const baglantilar = await imzaliBaglantilar('listing-photos', yollar);
+
+  return data.map((r) => ({
     id: r.id as string,
     slot: r.slot as PhotoSlot,
     storagePath: r.storage_path as string,
     moderationStatus: r.moderation_status as PhotoRow['moderationStatus'],
     moderationReason: (r.moderation_reason as string) ?? null,
+    url: baglantilar[r.storage_path as string] ?? null,
   }));
 }
 

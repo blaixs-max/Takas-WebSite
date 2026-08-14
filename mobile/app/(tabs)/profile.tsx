@@ -1,13 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle } from 'react-native-svg';
-import { useRouter, type Href } from 'expo-router';
+import { useFocusEffect, useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../lib/auth';
 import { BOS_PROFIL, Profile, basHarfler, loadProfile } from '../../lib/profile';
-import { unreadCount } from '../../lib/notifications';
+import { unreadMessageCount } from '../../lib/messages';
 import { amIAdmin } from '../../lib/admin';
 import { loadDrafts } from '../../lib/listings';
 import {
@@ -97,17 +97,31 @@ export default function ProfileScreen() {
     };
   }, [user]);
 
-  /* Rozet sabit "2" yazıyordu; Mesajlarım ekranı boşken bile. */
+  /**
+   * "Mesajlarım" satırındaki okunmamış sayısı.
+   *
+   * Rozet önce sabit "2" yazıyordu — Mesajlarım ekranı boşken bile. Gerçek
+   * sayıya bağlandı, ama **yanlış** sayaca: `unreadCount()` bildirimleri
+   * sayıyor, mesajları değil. İlan yayına alındığında bildirim düşüyor, mesaj
+   * düşmüyor; satır "1 okunmamış mesaj" diyordu ve gelen kutusu boştu.
+   * Sayı artık sohbetlerin okunmamış toplamından geliyor.
+   *
+   * `useFocusEffect`: ekrana her dönüşte tazeleniyor. `useEffect` yalnızca
+   * ekran ilk kurulduğunda koşuyordu ve sekme ekranları arka planda canlı
+   * kaldığı için mesajları okuyup dönmek sayıyı düşürmüyordu.
+   */
   const [okunmamis, setOkunmamis] = useState(0);
-  useEffect(() => {
-    let iptal = false;
-    unreadCount().then((n) => {
-      if (!iptal) setOkunmamis(n);
-    });
-    return () => {
-      iptal = true;
-    };
-  }, [user]);
+  useFocusEffect(
+    useCallback(() => {
+      let iptal = false;
+      unreadMessageCount().then((n) => {
+        if (!iptal) setOkunmamis(n);
+      });
+      return () => {
+        iptal = true;
+      };
+    }, [user]),
+  );
 
   const email = user?.email ?? null;
   const displayName = profil.fullName || 'Üye';

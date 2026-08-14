@@ -71,6 +71,43 @@ alınamayan sahte ilan olurlardı.
       - Ölü bağlantı kalktı: paylaşım metinleri `kidstrade.app` adresine
         gidiyordu, o alan adı bize ait değil.
 
+### Cihazda bulunan dört kusur (2026-08-14)
+- [x] **Bildirim rozeti okuduktan sonra da duruyordu.** İki ayrı sebep vardı ve
+      ilki daha ağır: bildirimleri okundu işaretlemenin **tek** yolu başlıktaki
+      küçük `done-all` simgesiydi. Listeyi açmak hiçbir şeyi okundu saymıyordu,
+      yani rozet aslında doğruyu söylüyordu — kullanıcının yaptığı şey okumaktı
+      ama sistem için okunmamışlardı. Artık listeyi açmak okundu sayılıyor;
+      yerel liste bilerek yeniden çekilmiyor ki o ziyarette hangilerinin yeni
+      olduğu vurgulu kalsın. Düğme kalktı. İkinci sebep: rozeti besleyen
+      `useEffect(..., [])` yalnızca ekran ilk kurulduğunda koşuyordu ve sekme
+      ekranları arka planda canlı kaldığı için geri dönmek onu hiç yeniden
+      çalıştırmıyordu → `useFocusEffect`.
+- [x] **"1 okunmamış mesaj" derken gelen kutusu boştu.** Profildeki satır
+      mesajları değil **bildirimleri** sayıyordu (`unreadCount`). İlan yayına
+      alınınca bildirim düşüyor, mesaj düşmüyor; sayı 1 oluyor ve Mesajlarım
+      bomboş açılıyordu. Yeni `unreadMessageCount()` sohbetlerin okunmamış
+      toplamını döndürüyor.
+- [x] **Ürün galerisinde kare ortalanmıyordu**, solunda bir öncekinden şerit
+      kalıyordu. `pagingEnabled` ScrollView'ün *kendi* genişliğinin katlarına
+      kilitler; sayfalar ise JS'te `Dimensions.get('window').width - 36` ile
+      çiziliyordu. Bu değer çoğu Android cihazda kesirli (ör. 411.4285…), düzen
+      motoru fiziksel piksele yuvarlıyor ve sayfa başına birkaç piksellik fark
+      beşinci karede birikip görünür hâle geliyordu. Genişlik artık `onLayout`
+      ile ölçülüyor; sayfa genişliği kabın ölçülen genişliğinin ta kendisi,
+      ikisi tanımı gereği ayrışamıyor. Tarayıcıda doğrulandı: içerik/kap =
+      **4.000**, kalansız.
+- [x] **İncelemeden geçen kare "henüz çekilmedi" görünüyordu.** Önizleme
+      yalnızca `yerel[slot]`e — o oturumda seçiciyle çekilen dosyaya — bakıyordu.
+      Ekrana geri dönünce `yerel` boş olduğu için yüklenmiş, hatta onaylanmış
+      bir kare bile boş kutu olarak çiziliyordu; durum çipi "İncelemeden geçti"
+      derken hemen üstünde "Bu kare henüz çekilmedi" yazıyordu. `loadPhotos`
+      artık imzalı bağlantı da döndürüyor (`listing-photos` özel kova, depo yolu
+      tek başına gösterilemez) ve önizleme yerel dosya yoksa sunucudaki kareyi
+      çiziyor. Ayrıca kare bitmişse çekim düğmeleri sönükleşiyor ve birincisi
+      "Yeniden çek" oluyor — yapılacak iş artık çekmek değil, yayına almak.
+      Yetenek kaybolmuyor, yalnızca vurgu düşüyor; reddedilen karede düğmeler
+      dolu kalıyor. "İnceleme durumunu yenile" de yalnızca beklerken görünüyor.
+
 ### Açılış ekranı ve simgeler (2026-08-14)
 - [x] **Simge ve açılış görselleri marka amblemine geçti.** Öncesinde tek
       harflik işaretti; marka paketi sayfası elimize geçince ana amblem

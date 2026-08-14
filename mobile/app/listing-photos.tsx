@@ -130,6 +130,10 @@ export default function ListingPhotos() {
   }
 
   const durum = kareler[slot];
+  /* Gösterilecek kare: bu oturumda çekilen dosya, yoksa sunucudaki. */
+  const onizlemeUri = yerel[slot] ?? durum?.url ?? null;
+  /* Bu kare bitti mi — reddedilen bitmiş sayılmaz, yeniden çekilmeli. */
+  const slotBitti = Boolean(durum) && durum.moderationStatus !== 'rejected';
 
   return (
     <View style={styles.root}>
@@ -173,10 +177,23 @@ export default function ListingPhotos() {
           </View>
         </View>
 
-        {/* Önizleme */}
+        {/* Önizleme.
+
+            Buraya yalnızca `yerel[slot]` — yani o oturumda seçiciyle çekilen
+            dosya — çiziliyordu. Ekrana geri dönünce `yerel` boş olduğu için
+            çoktan yüklenmiş, hatta incelemeden geçmiş bir kare bile "Bu kare
+            henüz çekilmedi" diye görünüyordu: durum çipi "İncelemeden geçti"
+            derken hemen üstünde boş bir kutu duruyordu. Artık yerel dosya
+            yoksa sunucudaki kare gösteriliyor. */}
         <View style={styles.onizleme}>
-          {yerel[slot] ? (
-            <Image source={{ uri: yerel[slot] }} style={styles.onizlemeImg} />
+          {onizlemeUri ? (
+            <Image source={{ uri: onizlemeUri }} style={styles.onizlemeImg} />
+          ) : durum ? (
+            /* Kare var ama bağlantı üretilemedi — "çekilmedi" demek yanlış olur. */
+            <View style={styles.onizlemeBos}>
+              <MaterialIcons name="image-not-supported" size={40} color={colors.outline} />
+              <Text style={styles.onizlemeBosText}>Kare yüklendi, önizleme açılamadı</Text>
+            </View>
           ) : (
             <View style={styles.onizlemeBos}>
               <MaterialIcons name="add-a-photo" size={40} color={colors.outline} />
@@ -226,21 +243,57 @@ export default function ListingPhotos() {
           </View>
         )}
 
+        {/* Kare bitmişse çekim düğmeleri geri çekiliyor.
+
+            İki dolu turkuaz düğme ekranın ortasında dururken, kare çoktan
+            onaylanmış olsa bile yapılacak iş buymuş gibi okunuyordu. Bitmiş
+            karede ikisi de sönükleşiyor ve birincisi "Yeniden çek" oluyor;
+            asıl eylem alttaki "İlanı yayına al". Yetenek kaybolmuyor —
+            galeriden seçme duruyor, yalnızca vurgusu düşüyor. Reddedilen kare
+            bunun dışında: orada gerçekten yeniden çekmek gerekiyor, düğmeler
+            dolu kalıyor. */}
         <View style={styles.cekButonlar}>
-          <Pressable style={styles.cekBtn} onPress={() => cek('kamera')}>
-            <MaterialIcons name="photo-camera" size={20} color="#fff" />
-            <Text style={styles.cekBtnText}>Çek</Text>
+          <Pressable
+            style={[styles.cekBtn, slotBitti && styles.cekBtnSessiz]}
+            onPress={() => cek('kamera')}
+          >
+            <MaterialIcons
+              name={slotBitti ? 'refresh' : 'photo-camera'}
+              size={20}
+              color={slotBitti ? colors.onSurfaceVariant : '#fff'}
+            />
+            <Text style={[styles.cekBtnText, slotBitti && styles.cekBtnTextSessiz]}>
+              {slotBitti ? 'Yeniden çek' : 'Çek'}
+            </Text>
           </Pressable>
-          <Pressable style={[styles.cekBtn, styles.cekBtnIkincil]} onPress={() => cek('galeri')}>
-            <MaterialIcons name="photo-library" size={20} color={colors.primary} />
-            <Text style={[styles.cekBtnText, { color: colors.primary }]}>Galeriden seç</Text>
+          <Pressable
+            style={[styles.cekBtn, styles.cekBtnIkincil, slotBitti && styles.cekBtnSessiz]}
+            onPress={() => cek('galeri')}
+          >
+            <MaterialIcons
+              name="photo-library"
+              size={20}
+              color={slotBitti ? colors.onSurfaceVariant : colors.primary}
+            />
+            <Text
+              style={[
+                styles.cekBtnText,
+                { color: colors.primary },
+                slotBitti && styles.cekBtnTextSessiz,
+              ]}
+            >
+              Galeriden seç
+            </Text>
           </Pressable>
         </View>
 
-        <Pressable style={styles.tazele} onPress={tazele}>
-          <MaterialIcons name="refresh" size={16} color={colors.onSurfaceVariant} />
-          <Text style={styles.tazeleText}>İnceleme durumunu yenile</Text>
-        </Pressable>
+        {/* Elle tazeleme yalnızca beklerken anlamlı. */}
+        {durum?.moderationStatus === 'pending' && (
+          <Pressable style={styles.tazele} onPress={tazele}>
+            <MaterialIcons name="refresh" size={16} color={colors.onSurfaceVariant} />
+            <Text style={styles.tazeleText}>İnceleme durumunu yenile</Text>
+          </Pressable>
+        )}
       </ScrollView>
 
       <View style={[styles.actionbar, { paddingBottom: insets.bottom + 14 }]}>
@@ -341,6 +394,14 @@ const styles = StyleSheet.create({
   durumOk: { backgroundColor: colors.primaryContainer },
   durumRed: { backgroundColor: colors.errorContainer },
   durumText: { flex: 1, fontSize: 13, fontWeight: '600', color: colors.onSurface },
+  /* Kare bitmişken iki düğme de sönükleşiyor: yapılacak iş artık çekmek
+     değil, yayına almak. Yetenek duruyor, vurgu gidiyor. */
+  cekBtnSessiz: {
+    backgroundColor: colors.surfaceContainerLow,
+    borderWidth: 1.5,
+    borderColor: colors.outlineVariant,
+  },
+  cekBtnTextSessiz: { color: colors.onSurfaceVariant, fontWeight: '600' },
   cekButonlar: { flexDirection: 'row', gap: 10 },
   cekBtn: {
     flex: 1,
