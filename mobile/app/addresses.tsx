@@ -4,10 +4,18 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, elevation, shape } from '../theme/tokens';
 
-const ADDRESSES = [
-  { id: 1, label: 'Ev', name: 'Emrah Atabek', line: 'Caferağa Mah. Moda Cad. No:12 D:4, Kadıköy / İstanbul', phone: '0532 *** ** 41', default: true },
-  { id: 2, label: 'İş', name: 'Emrah Atabek', line: 'Levent Mah. Büyükdere Cad. No:185, Şişli / İstanbul', phone: '0532 *** ** 41', default: false },
-];
+/**
+ * Adres defteri henüz yok — ve bu bir eksiklik değil, bekleyen bir karar.
+ *
+ * Ana Doküman fatura bilgisinin ve T.C. kimlik numarasının saklanmadığını
+ * söylüyor; adres saklamaya geçmek bir KVKK kararıdır, kod kararı değil.
+ * Karar verilmeden tablo açılmıyor.
+ *
+ * Burada iki sahte adres duruyordu ("Emrah Atabek · Caferağa Mah. Moda Cad.
+ * No:12 D:4"). Gerçek görünümlü sokak bilgisi, maskeli telefon — kullanıcı
+ * kayıtlı adresi olduğunu sanıyordu. Artık ekran ne olduğunu söylüyor.
+ */
+const ADDRESSES: { id: number; label: string; name: string; line: string; phone: string; default: boolean }[] = [];
 
 export default function Addresses() {
   const insets = useSafeAreaInsets();
@@ -44,10 +52,16 @@ export default function Addresses() {
           </View>
         ))}
 
-        <Pressable style={styles.addBtn}>
-          <MaterialIcons name="add-location-alt" size={20} color={colors.primary} />
-          <Text style={styles.addText}>Yeni adres ekle</Text>
-        </Pressable>
+        {ADDRESSES.length === 0 && (
+          <View style={styles.bos}>
+            <MaterialIcons name="local-shipping" size={34} color={colors.onSurfaceVariant} />
+            <Text style={styles.bosBaslik}>Kayıtlı adresiniz yok</Text>
+            <Text style={styles.bosMetin}>
+              Adres defteri henüz açılmadı. Kargo adresi, takas onaylandıktan sonra ödeme
+              adımında soruluyor ve yalnızca o gönderi için kullanılıyor.
+            </Text>
+          </View>
+        )}
 
         <View style={styles.note}>
           <MaterialIcons name="local-shipping" size={18} color={colors.primary} />
@@ -61,6 +75,16 @@ export default function Addresses() {
 }
 
 const styles = StyleSheet.create({
+  bos: { alignItems: 'center', gap: 10, paddingVertical: 48, paddingHorizontal: 12 },
+  bosBaslik: { fontSize: 16, fontWeight: '700', color: colors.onSurface },
+  bosMetin: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.onSurfaceVariant,
+    fontWeight: '500',
+    textAlign: 'center',
+    maxWidth: 280,
+  },
   root: { flex: 1, backgroundColor: colors.surface },
   appbar: { flexDirection: 'row', alignItems: 'center', height: 56, paddingHorizontal: 6 },
   title: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: colors.onSurface },

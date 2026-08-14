@@ -102,6 +102,40 @@ alınamayan sahte ilan olurlardı.
 - [x] **Boş "Öne çıkan takaslar" bölümü** rozetli ilan yoksa hiç çizilmiyor
       (sitede de aynı kusur vardı, aynı turda kapandı).
 
+### Ekran denetimi — uydurma veri temizliği (2026-08-14)
+
+Yirmi iki ekranın hepsi telefon kadrajında yakalanıp tek tek incelendi.
+Onu kusurluydu; hepsi kapandı. Ortak kusur şuydu: **maket verisi gerçek
+veriymiş gibi duruyordu.**
+
+- [x] **Güvenlik ekranı olmayan bir doğrulamayı onaylı gösteriyordu.**
+      “T.C. Kimlik doğrulaması · Onaylandı” yazıyordu — böyle bir doğrulama
+      hiç yapılmadı ve Ana Doküman T.C. kimlik numarasının saklanmadığını
+      söylüyor. Satır tamamen kaldırıldı: saklamayacağımız bir veriyi
+      doğrulama listesinde tutmak, ileride saklayacağımızı ima eder.
+      Gömülü `blaixs@gmail.com` ve `0532 *** ** 41` yerine oturumun kendi
+      e-postası ve gerçek doğrulanma durumu. Hiçbir şeye bağlı olmayan
+      “iki adımlı doğrulama” ve “biyometrik giriş” anahtarları silindi;
+      “şifre değiştir” artık gerçekten sıfırlama bağlantısı gönderiyor.
+- [x] **Güven skoru iki ekranda çelişiyordu.** Cüzdan “96”, Hesabım “henüz
+      oluşmadı” diyordu. Kök sebep `lib/wallet.ts` içindeydi: canlı yolda
+      bile `trustScore: 96` sabit yazılıydı. Artık `profile_stats`ten geliyor
+      ve null olabiliyor.
+- [x] **Hesabım kendi içinde çelişiyordu.** “Yayındaki ilan 0” derken üç sabit
+      ürün fotoğrafı gösteriyordu; “Mesajlarım · 2 okunmamış” rozeti varken
+      Mesajlarım ekranı boştu. İkisi de gerçek sayıya bağlandı.
+- [x] **Adreslerim iki sahte adres gösteriyordu** (gerçek görünümlü sokak
+      bilgisi, maskeli telefon). Dürüst boş durumla değişti; defterin açılması
+      hâlâ bekleyen bir KVKK kararı ve ekran artık bunu söylüyor.
+- [x] **Davet ekranında sahte davet listesi vardı.** Kimse davet edilmemişken
+      “Ayşe K. · Katıldı +100 puan” yazıyordu.
+- [x] **Giriş ekranı eski dairesel logo işaretini taşıyordu** — marka
+      revizyonunda atlanmıştı.
+
+Yöntem not: ekranlara ulaşmak için anahtarsız bir web derlemesi alındı;
+`supabaseConfigured` false olunca oturum kapısı uygulanmıyor. Metro önbelleği
+eski anahtarları yeniden kullandığı için `--clear` şart.
+
 ### Güvenlik (P0 — 2026-08-07)
 - [x] **Defter değişmezliği** — `wallet_entries` üzerinde UPDATE/DELETE trigger ile
       engellendi; `service_role` dahil hiçbir rol geçemez

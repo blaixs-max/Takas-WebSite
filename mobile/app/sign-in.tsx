@@ -14,6 +14,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../lib/auth';
+import { Mark } from '../components/brand/Mark';
 import { colors, elevation, shape } from '../theme/tokens';
 
 export default function SignIn() {
@@ -59,7 +60,7 @@ export default function SignIn() {
 
       <ScrollView contentContainerStyle={{ padding: 24 }} keyboardShouldPersistTaps="handled">
         <View style={styles.logo}>
-          <MaterialIcons name="change-circle" size={30} color="#fff" />
+          <Mark size={30} color="#fff" />
         </View>
         <Text style={styles.h2}>{mode === 'in' ? 'Tekrar hoş geldin' : 'Aramıza katıl'}</Text>
         <Text style={styles.sub}>Takas Puanı'nı yönetmek için hesabına eriş.</Text>

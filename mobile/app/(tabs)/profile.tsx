@@ -7,6 +7,7 @@ import { useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../lib/auth';
 import { BOS_PROFIL, Profile, basHarfler, loadProfile } from '../../lib/profile';
+import { unreadCount } from '../../lib/notifications';
 import { amIAdmin } from '../../lib/admin';
 import { loadDrafts } from '../../lib/listings';
 import {
@@ -20,11 +21,6 @@ import {
 } from '../../lib/profile';
 import { colors, elevation, shape } from '../../theme/tokens';
 
-const LISTINGS = [
-  { img: require('../../assets/products/product-wooden-blocks.jpg'), pts: 420 },
-  { img: require('../../assets/products/product-color-sorter.jpg'), pts: 260 },
-  { img: require('../../assets/products/product-rings-close.jpg'), pts: 300 },
-];
 
 const SETTINGS: { icon: keyof typeof MaterialIcons.glyphMap; label: string; href: Href }[] = [
   { icon: 'local-shipping', label: 'Adreslerim & kargo', href: '/addresses' },
@@ -95,6 +91,18 @@ export default function ProfileScreen() {
     let iptal = false;
     loadProfile().then((pr) => {
       if (!iptal) setProfil(pr);
+    });
+    return () => {
+      iptal = true;
+    };
+  }, [user]);
+
+  /* Rozet sabit "2" yazıyordu; Mesajlarım ekranı boşken bile. */
+  const [okunmamis, setOkunmamis] = useState(0);
+  useEffect(() => {
+    let iptal = false;
+    unreadCount().then((n) => {
+      if (!iptal) setOkunmamis(n);
     });
     return () => {
       iptal = true;
@@ -281,30 +289,38 @@ export default function ProfileScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.accTitle}>Mesajlarım</Text>
-                <Text style={styles.accSub}>2 okunmamış mesaj</Text>
+                <Text style={styles.accSub}>
+                  {okunmamis > 0 ? `${okunmamis} okunmamış mesaj` : 'Okunmamış mesaj yok'}
+                </Text>
               </View>
-              <View style={styles.accBadge}>
-                <Text style={styles.accBadgeText}>2</Text>
-              </View>
+              {okunmamis > 0 && (
+                <View style={styles.accBadge}>
+                  <Text style={styles.accBadgeText}>{okunmamis}</Text>
+                </View>
+              )}
               <MaterialIcons name="chevron-right" size={22} color={colors.outline} />
             </Pressable>
           </View>
 
-          {/* İlanlar */}
-          <View style={styles.sec}>
-            <Text style={styles.secTitle}>İlanlarım</Text>
-            <Text style={styles.secLink}>Tümü</Text>
-          </View>
-          <View style={styles.miniGrid}>
-            {LISTINGS.map((l, i) => (
-              <View key={i} style={styles.mini}>
-                <Image source={l.img} style={{ width: '100%', height: '100%' }} />
-                <View style={styles.miniPts}>
-                  <Text style={styles.miniPtsText}>{l.pts}</Text>
-                </View>
+          {/* İlanlar
+              Burada üç sabit ürün fotoğrafı duruyordu; hemen üstteki sayaç
+              "Yayındaki ilan 0" derken. Ekran kendi kendisiyle çelişiyordu.
+              Şerit ancak gerçekten yayında ilan varsa açılıyor. */}
+          {(istatistik?.yayindakiIlan ?? 0) > 0 && (
+            <>
+              <View style={styles.sec}>
+                <Text style={styles.secTitle}>İlanlarım</Text>
+                <Text style={styles.secLink}>Tümü</Text>
               </View>
-            ))}
-          </View>
+              <Pressable style={styles.ilanKutu} onPress={() => router.push('/(tabs)')}>
+                <MaterialIcons name="inventory-2" size={20} color={colors.onSurfaceVariant} />
+                <Text style={styles.ilanKutuText}>
+                  {istatistik?.yayindakiIlan} ilanınız yayında
+                </Text>
+                <MaterialIcons name="chevron-right" size={20} color={colors.outline} />
+              </Pressable>
+            </>
+          )}
 
           {/* Ayarlar */}
           {SETTINGS.map((s) => (
@@ -345,6 +361,16 @@ function Stat({ value, label }: { value: string; label: string }) {
 }
 
 const styles = StyleSheet.create({
+  ilanKutu: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    height: 56,
+    borderRadius: shape.md,
+    backgroundColor: colors.surfaceContainerLow,
+  },
+  ilanKutuText: { flex: 1, fontSize: 14, fontWeight: '600', color: colors.onSurface },
   root: { flex: 1, backgroundColor: colors.surface },
   appbar: { flexDirection: 'row', alignItems: 'center', height: 56, paddingHorizontal: 6 },
   appTitle: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: colors.onSurface },

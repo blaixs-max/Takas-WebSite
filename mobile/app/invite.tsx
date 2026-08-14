@@ -6,10 +6,13 @@ import { colors, elevation, shape } from '../theme/tokens';
 import { inviteShareText } from '../lib/brand';
 
 const CODE = 'ELDEN-EMRAH';
-const INVITED = [
-  { name: 'Ayşe K.', status: 'Katıldı · +100 puan', done: true },
-  { name: 'Mehmet T.', status: 'Davet gönderildi', done: false },
-];
+/**
+ * Davet listesi henüz gerçek değil: davetleri saklayan bir tablo yok, bu yüzden
+ * kimin katıldığı da bilinmiyor. Eskiden burada iki sahte satır vardı
+ * ("Ayşe K. · Katıldı +100 puan"). Kullanıcıya kazanmadığı bir puanı
+ * kazanmış gibi göstermek, boş bir liste göstermekten kötü.
+ */
+const INVITED: { name: string; status: string; done: boolean }[] = [];
 
 export default function Invite() {
   const insets = useSafeAreaInsets();
@@ -54,6 +57,14 @@ export default function Invite() {
           <Text style={styles.shareText}>Davet bağlantısını paylaş</Text>
         </Pressable>
 
+        {/* Liste boşken başlık da çizilmiyor. */}
+        {INVITED.length === 0 ? (
+          <Text style={styles.henuz}>
+            Henüz kimseyi davet etmediniz. Kodunuzu paylaşın; katılan arkadaşınız ilk takasını
+            yapınca ikinize de 100 puan yazılır.
+          </Text>
+        ) : (
+        <>
         <Text style={styles.section}>Davet ettiklerin</Text>
         <View style={styles.group}>
           {INVITED.map((f, i) => (
@@ -76,12 +87,23 @@ export default function Invite() {
             </View>
           ))}
         </View>
+        </>
+        )}
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  henuz: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.onSurfaceVariant,
+    fontWeight: '500',
+    marginTop: 22,
+    textAlign: 'center',
+    paddingHorizontal: 8,
+  },
   root: { flex: 1, backgroundColor: colors.surface },
   appbar: { flexDirection: 'row', alignItems: 'center', height: 56, paddingHorizontal: 6 },
   title: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: colors.onSurface },

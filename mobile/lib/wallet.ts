@@ -8,7 +8,13 @@ export interface WalletBalance {
   available: number;
   held: number;
   earnedThisMonth: number;
-  trustScore: number;
+  /**
+   * Güven skoru cüzdanın alanı değil, profil metriği — ve yeterli işlemi
+   * olmayan kullanıcıda **yoktur**. Burada sabit 96 yazılıydı: canlı yolda
+   * bile. Sonuç, Cüzdan'ın "96" derken Hesabım'ın "henüz oluşmadı" demesiydi.
+   * Artık `profile_stats`ten geliyor ve null olabiliyor.
+   */
+  trustScore: number | null;
 }
 
 export interface WalletTx {
@@ -56,7 +62,7 @@ function mapEntry(e: {
 /** Anahtar/oturum yokken gösterilen örnek veri (ekran her zaman dolu görünür). */
 export const DEMO_WALLET: WalletData = {
   source: 'demo',
-  balance: { available: 1260, held: 360, earnedThisMonth: 540, trustScore: 96 },
+  balance: { available: 1260, held: 360, earnedThisMonth: 540, trustScore: null },
   entries: [
     { id: 'd1', title: 'Renk ayırma oyunu eklendi', sub: '21 Haz · AI onaylı', subIcon: 'verified', value: '+260', tone: 'pos', icon: 'add-circle' },
     { id: 'd2', title: 'Halka kulesi · havuzda', sub: 'Teslim onayı bekliyor', subIcon: 'schedule', value: '−340', tone: 'pool', icon: 'lock' },
@@ -104,7 +110,7 @@ export async function loadWallet(): Promise<WalletData> {
       available: w.available_points,
       held: w.held_points,
       earnedThisMonth,
-      trustScore: 96, // güven skoru ayrı profil metriği (defterde değil)
+      trustScore: null, // profil metriği; ekran `profile_stats`ten okuyor
     },
     entries: entries.map(mapEntry),
   };

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -12,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useWallet } from '../hooks/useWallet';
+import { loadProfileStats } from '../lib/profile';
 import { WalletTx } from '../lib/wallet';
 import { Mark } from '../components/brand/Mark';
 import { BRAND } from '../lib/brand';
@@ -29,6 +31,16 @@ const nf = {
 };
 
 export default function WalletScreen() {
+  const [trustSkor, setTrustSkor] = useState<number | null>(null);
+  useEffect(() => {
+    let iptal = false;
+    loadProfileStats().then((st) => {
+      if (!iptal) setTrustSkor(st?.trustSkor ?? null);
+    });
+    return () => {
+      iptal = true;
+    };
+  }, []);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { data, loading, refreshing, refresh } = useWallet();
@@ -82,7 +94,8 @@ export default function WalletScreen() {
           <View style={styles.balSub}>
             <SubStat label="Havuzda" value={nf.format(balance.held)} />
             <SubStat label="Bu ay kazanılan" value={`+${nf.format(balance.earnedThisMonth)}`} />
-            <SubStat label="Güven skoru" value={String(balance.trustScore)} />
+            {/* Skor yoksa em dash. Uydurma bir 96, uydurma bir 100 kadar yanlış. */}
+            <SubStat label="Güven skoru" value={trustSkor === null ? '—' : String(trustSkor)} />
           </View>
         </LinearGradient>
 
