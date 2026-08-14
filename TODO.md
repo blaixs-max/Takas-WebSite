@@ -613,7 +613,30 @@ değiştirilemez.
 - [ ] Bildirimler → **push** (Expo Notifications). Kuyruk hazır ve doluyor ama
       kullanıcı uygulamayı açmadan hiçbirini görmüyor; sayaçların işe yaraması
       için push şart. Cihaz jetonu tablosu + EAS kimlik bilgileri gerekiyor
-- [ ] Favori/Sepet → oturum açıkken Supabase'e senkron (cihaz + bulut)
+- [x] **Favori/Sepet buluta senkron** (2026-08-14) — ikisi de yalnızca
+      `AsyncStorage`daydı: telefon değişince ya da uygulama silinince liste
+      kayboluyordu, aynı hesaba başka cihazdan girildiğinde favoriler boş
+      görünüyordu.
+
+      `favorites` ve `cart_items` tabloları, RLS açık, üçer politika
+      (`select`/`insert`/`delete`). `insert` politikasının **`with check`**
+      yanı ayrı yazıldı: yalnızca `using` yazmak, kullanıcının başkasının
+      adına satır eklemesine izin verirdi ve bu, yalnızca okumaya bakan bir
+      testten kaçardı. Test tam olarak onu sınıyor.
+
+      Miktar sütunu yok — sepet bir küme. Her ilan tek ve benzersiz bir ikinci
+      el ürün; çokluk sütunu olmayan bir yeteneği şema düzeyinde vaat ederdi.
+
+      **Birleştirme kuralı "bulut kazanır" değil, birleşim.** Kullanıcı oturum
+      açmadan önce favorilediği şey onun niyetidir ve giriş yapmak onu
+      silmemeli. İlk turdan sonra her değişiklik iki tarafa birden yazılıyor,
+      yani ikinci bir birleştirme gerekmiyor ve silinen bir şey dirilmiyor.
+
+      Bulut yazımları bilerek beklenmiyor ve hataları yutuluyor: ağ yokken
+      kalbe basmak çalışmaya devam etmeli, liste zaten cihazda kayıtlı.
+
+      Doğrulandı: **18/18 test geçiyor** (yeni `favoriler_sepet_test` dahil),
+      göç canlıya uygulandı — RLS açık, `anon` okuyamıyor.
 - [ ] **MERDİVENİ AÇ (kurucu kararı)** — mekanizma kurulu ama **kapalı**:
       `update sanction_settings set active = true;`
       Kapalı bırakmam bilinçli: eşikler (uyarı 70, kısıt 40) birer başlangıç
