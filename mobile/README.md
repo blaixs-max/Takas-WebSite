@@ -1,4 +1,4 @@
-# KIDS TRADE — Mobil Uygulama (Expo + React Native)
+# ELDENELE — Mobil Uygulama (Expo + React Native)
 
 Puanlı çocuk ürünü takas pazaryerinin **native mobil uygulaması**. Tek kod tabanından
 **hem iOS hem Android** için derlenir ve **EAS** ile doğrudan App Store + Google Play'e
@@ -8,7 +8,7 @@ gönderilir. Material Design 3 tema, file-based routing (Expo Router) ile kurulm
 > En kritik avantaj: **iOS derlemesi için Mac gerekmez** — EAS Build bulutta `.ipa` üretir.
 
 ## Teknoloji
-- **Expo SDK 52** + **React Native 0.76**
+- **Expo SDK 54** + **React Native 0.81**
 - **Expo Router** (dosya tabanlı navigasyon, `app/` klasörü)
 - **TypeScript** (strict)
 - **@expo/vector-icons** (Material Icons) · **react-native-svg** · **expo-linear-gradient**
@@ -21,7 +21,7 @@ Ortadaki "Ürün Ekle" yükseltilmiş primary buton, `/add-listing` modalını a
 
 | Yol | Ekran |
 |-----|-------|
-| `app/(tabs)/index.tsx` | Anasayfa — arama + 14 kategori + öne çıkanlar + ızgara |
+| `app/(tabs)/index.tsx` | Anasayfa — arama + dokuz ana kategori (62 alt) + öne çıkanlar + ızgara |
 | `app/(tabs)/cart.tsx` | Sepetim — alma sepeti, toplam puan, "Takas et" |
 | `app/(tabs)/favorites.tsx` | Favoriler (kalp deposu) |
 | `app/(tabs)/profile.tsx` | Hesabım — güven skoru, Cüzdanım/Takaslarım/Mesajlarım, ayarlar |
@@ -51,16 +51,28 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 > `service_role` anahtarı **asla** mobilde olmaz; yalnızca backend'de.
 
 OAuth'un gerçek çalışması için Supabase dashboard'da Google/Apple provider'ları
-etkinleştirilmeli ve redirect URL'e `kidstrade://auth-callback` eklenmelidir.
+etkinleştirilmeli ve redirect URL'e `eldenele://auth-callback` eklenmelidir.
+> Bu **henüz yapılmadı** — `TODO.md`'de açık madde.
 E-posta/şifre ise ekstra config gerektirmez.
 
 ## Yerel geliştirme
 ```bash
 cd mobile
 npm install
-npx expo start         # QR kodu Expo Go ile telefonda aç
+cp .env.example .env   # değerler eas.json'daki development profilinde
+npx expo start -c      # QR kodu Expo Go ile telefonda aç
 # veya: npm run ios / npm run android (simülatör/emülatör)
 ```
+
+`-c` Metro önbelleğini temizler. Varlık ya da ortam değişkeni değiştiyse
+**gerekli**: Metro eskisini önbellekten servis ediyor ve değişiklik
+görünmüyor — bir kez bu yüzden 22 ekran görüntüsü yanlış çekildi.
+
+Telefon ve bilgisayar aynı ağda olmalı; olmuyorsa `npx expo start --tunnel`.
+
+> Expo Go'nun yükleme ekranı `app.json`'daki **simge + ad**'ı gösterir,
+> `splash.png`'yi değil. Açılış görsellerini değiştirdiysen hangi katmanın
+> neyi çizdiği `assets/README.md` içinde.
 
 ---
 
@@ -75,8 +87,8 @@ eas build:configure
 ```
 
 `app.json` içindeki kimlikler hazır:
-- iOS bundle id: `com.kidstrade.app`
-- Android package: `com.kidstrade.app`
+- iOS bundle id: `com.eldenele.app`
+- Android package: `com.eldenele.app`
 
 ### 1. Derleme (build)
 ```bash
@@ -125,7 +137,9 @@ eas submit --platform android --profile production --latest
 - `assets/app/` içindeki simge ve açılış görselleri artık placeholder değil:
   marka paketindeki ana amblemden üretiliyor. Kaynak, çözünürlük sınırı ve
   açılışın birbirine karışan üç ayrı katmanı **`assets/README.md`** içinde.
-- Ürün verisi şimdilik `data/products.ts` içinde statiktir; canlıya geçişte
-  `products` tablosuna bağlanır (cüzdan + auth zaten Supabase'e bağlı).
+- Ürün verisi **canlı**: `lib/products.ts` ve `lib/listings.ts` `products`
+  tablosundan ACTIVE ilanları okuyor. `data/products.ts` artık kaynak değil,
+  yalnızca yedek — Supabase yapılandırılmamışsa ya da sorgu boş dönerse
+  `DEMO_PRODUCTS` gösteriliyor ve ekranda "Demo" rozeti çıkıyor.
 - `metro.config.js`, `supabase-js`'in opsiyonel `@opentelemetry/api` importunu boş
   modüle yönlendirir (web + native build için gerekli).
