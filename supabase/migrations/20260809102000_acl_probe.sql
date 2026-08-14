@@ -1,0 +1,13 @@
+-- Tanı adımı — şema değişikliği değil.
+--
+-- Bir önceki göç `alter default privileges ... revoke execute ... from public`
+-- yazdı. Bunun gerçekten işe yarayıp yaramadığını anlamanın tek yolu yeni bir
+-- fonksiyon oluşturup `proacl`ına bakmaktı: PUBLIC yetkisiyle mi doğuyor?
+--
+-- Cevap "evet"ti. Bir sonraki göç (`rpc_grants_final`) bu yüzden açık
+-- `revoke`a geçti ve bu deneme fonksiyonunu düşürdü.
+--
+-- Dosya repoda **bilerek** duruyor: canlı veri tabanı bu üç göçü sırayla
+-- uyguladı ve repodan sıfır kurulan bir veri tabanının aynı geçmişi
+-- yürümesi gerekiyor. Atlanırsa iki taraf ayrışır.
+create or replace function public.kt_probe3() returns integer language sql as $$ select 1 $$;

@@ -25,7 +25,15 @@ select status from products where id = :'p_id';
 
 \echo ''
 \echo '=== 2) Beş zorunlu kare — hasarsız, set değil ==='
+-- `required_slots` iç bir yardımcıdır: `publish_listing` onu kendi içinde
+-- çağırıyor, uygulama ise zorunlu kareleri istemcide hesaplıyor
+-- (`data/photoSlots.ts`). Bu yüzden `rpc_grants` onu `authenticated`dan geri
+-- aldı ve test o rolde çağırdığı için düşüyordu. Kural doğru; test yanlış
+-- roldeydi. Çağrılar yetkili rolde yapılıyor, ilan oluşturma ve yayına alma
+-- adımları `authenticated` olarak kalıyor.
+reset role;
 select array_to_string(required_slots(:'p_id'), ', ') as zorunlu;
+set session role authenticated;
 \echo 'BEKLENEN: front, back, left, right, label'
 
 \echo ''
@@ -100,14 +108,18 @@ select id from create_listing('Hasarlı ürün', 'Oyun & Oyuncak', 'İyi durumda
 -- kimliği RLS'e tabi olmayan geçici bir tabloya koyuyoruz.
 create temp table if not exists t_ids (ad text primary key, deger text);
 insert into t_ids values ('hasarli', :'h_id') on conflict (ad) do update set deger = excluded.deger;
+reset role;
 select array_to_string(required_slots(:'h_id'), ', ') as zorunlu;
+set session role authenticated;
 \echo 'BEKLENEN: front, back, left, right, label, damage'
 
 \echo ''
 \echo '=== 9) Set beyanı yedinci kareyi zorunlu yapar ==='
 select id from create_listing('Set ürün', 'Oyun & Oyuncak', 'İyi durumda', 'S', 150,
                               'Kadıköy', null, false, true, p_sub_category => 'Yapı & inşa') \gset k_
+reset role;
 select array_to_string(required_slots(:'k_id'), ', ') as zorunlu;
+set session role authenticated;
 \echo 'BEKLENEN: front, back, left, right, label, parts'
 
 \echo ''

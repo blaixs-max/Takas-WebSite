@@ -28,6 +28,8 @@ export default function SignIn() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  /* Ad yalnızca kayıtta sorulur; girişte hesabın kendi adı zaten var. */
+  const [adSoyad, setAdSoyad] = useState('');
 
   async function submit() {
     setError(null);
@@ -36,8 +38,19 @@ export default function SignIn() {
       setError('Geçerli e-posta ve en az 6 karakter şifre girin.');
       return;
     }
+    /* Ad boş geçilemiyor: boş kalırsa sunucu satıcı adını e-postanın `@`
+       öncesinden türetiyor ve o ad açık webde indekslenen bir sayfaya
+       çıkıyor. Sonradan doldurulabilir bir alan bırakmak, çoğu kişide hiç
+       doldurulmaması demek. */
+    if (mode === 'up' && adSoyad.trim().length < 2) {
+      setError('Adınızı yazın — ilanlarınızda bu ad görünecek.');
+      return;
+    }
     setBusy(true);
-    const res = mode === 'in' ? await signInWithEmail(email, password) : await signUpWithEmail(email, password);
+    const res =
+      mode === 'in'
+        ? await signInWithEmail(email, password)
+        : await signUpWithEmail(email, password, adSoyad);
     setBusy(false);
     if (res.error) {
       setError(res.error);
@@ -68,6 +81,28 @@ export default function SignIn() {
         </View>
         <Text style={styles.h2}>{mode === 'in' ? 'Tekrar hoş geldin' : 'Aramıza katıl'}</Text>
         <Text style={styles.sub}>Takas Puanı'nı yönetmek için hesabına eriş.</Text>
+
+        {mode === 'up' && (
+          <>
+            <Text style={styles.label}>AD SOYAD</Text>
+            <View style={styles.field}>
+              <MaterialIcons name="person-outline" size={20} color={colors.onSurfaceVariant} />
+              <TextInput
+                style={styles.input}
+                placeholder="Örn. Emrah Atabek"
+                placeholderTextColor={colors.onSurfaceVariant}
+                autoCapitalize="words"
+                value={adSoyad}
+                onChangeText={setAdSoyad}
+              />
+            </View>
+            {/* Ne kadarının yayınlandığını burada söylüyoruz: kullanıcı adını
+                yazarken bilsin. Site soyadı kısaltıyor ("Zeynep D."). */}
+            <Text style={styles.adNotu}>
+              İlanlarınızda adınız ve soyadınızın baş harfi görünür — "Zeynep D." gibi.
+            </Text>
+          </>
+        )}
 
         <Text style={styles.label}>E-POSTA</Text>
         <View style={styles.field}>
@@ -139,6 +174,14 @@ const styles = StyleSheet.create({
   logo: { alignSelf: 'flex-start', marginBottom: 18 },
   h2: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5, color: colors.onSurface },
   sub: { fontSize: 14, color: colors.onSurfaceVariant, fontWeight: '500', marginTop: 6, marginBottom: 22 },
+  adNotu: {
+    fontSize: 11.5,
+    lineHeight: 16,
+    color: colors.onSurfaceVariant,
+    fontWeight: '500',
+    marginTop: -4,
+    marginBottom: 4,
+  },
   label: { fontSize: 12, fontWeight: '700', color: colors.onSurfaceVariant, letterSpacing: 0.4, marginBottom: 8, marginTop: 14 },
   field: {
     flexDirection: 'row',

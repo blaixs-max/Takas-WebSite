@@ -107,11 +107,28 @@ select skor, odenmemis_borc from user_trust(:'s');
 \echo 'BEKLENEN: 70, 0 borç'
 
 \echo ''
-\echo '=== 8) CEZA KIRILIMI BAŞKASINA GÖSTERİLMEZ ==='
+\echo '=== 8) BAŞKASININ SKORU HİÇ SORGULANAMAZ ==='
+-- Bu bölüm eskiden "kırılım gösterilmez, özet skor görünür" diyordu ve
+-- `seller_trust_score(:'s')` çağırıp 70 bekliyordu. `rpc_grants` o yetkiyi
+-- `authenticated`dan geri aldı: elinde anon/oturum anahtarı olan herkesin
+-- istediği kullanıcının güven skorunu sorgulayabilmesi başlı başına bir
+-- sızıntıydı. Yani güvenlik duruşu değişti ve testin eski beklentisi artık
+-- **yanlış olanı** doğruluyordu.
+--
+-- Doğru beklenti bu: çağrı reddedilir. Skor kullanıcıya kendi `profile_stats()`
+-- çağrısıyla ulaşıyor (aşağıdaki 9. bölüm) ve ilan kartındaki skoru sunucu
+-- `products.seller_trust` sütununa yazıyor.
 set session role authenticated;
 select set_config('test.uid', :'b', false);
-select seller_trust_score(:'s') as satici_skoru;
-\echo 'BEKLENEN: 70 — yalnızca özet skor, kırılım yok'
+do $$
+begin
+  perform seller_trust_score('22222222-2222-2222-2222-222222222222');
+  raise exception 'BEKLENMEDİK: başkasının güven skoru sorgulanabildi';
+exception
+  when insufficient_privilege then
+    raise notice 'BEKLENEN: yetki reddedildi';
+end
+$$;
 
 \echo ''
 \echo '=== 9) Profil istatistikleri gerçek sayıları veriyor ==='

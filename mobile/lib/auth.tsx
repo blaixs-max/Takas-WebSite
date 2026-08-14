@@ -17,7 +17,11 @@ interface AuthState {
   /** Supabase yapılandırılmamışsa (anahtar yok) demo/serbest mod. */
   configured: boolean;
   signInWithEmail: (email: string, password: string) => Promise<{ error?: string }>;
-  signUpWithEmail: (email: string, password: string) => Promise<{ error?: string }>;
+  signUpWithEmail: (
+    email: string,
+    password: string,
+    fullName: string,
+  ) => Promise<{ error?: string }>;
   signInWithOAuth: (provider: OAuthProvider) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
 }
@@ -61,9 +65,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return error ? { error: error.message } : {};
       },
 
-      async signUpWithEmail(email, password) {
+      /**
+        * Kayıt — **ad zorunlu.**
+        *
+        * Eskiden yalnızca e-posta ve şifre alıyordu, `raw_user_meta_data` boş
+        * kalıyordu. `create_listing` satıcı adını oradan okuyor ve boşsa
+        * `split_part(email, '@', 1)`e düşüyor; ilk gerçek ilan vitrine
+        * **`emrahatabek`** diye çıktı. Site açık web ve indeksleniyor, yani
+        * kişinin e-postasının yarısı yayınlanmış oluyordu.
+        *
+        * Site tarafına "e-postadan türeyen adı yayınlama" kuralı konuldu ve o
+        * kural bugün "Üye" yazıyor — doğru, ama bir yama. Kök sebep buydu:
+        * kullanıcıya adı hiç sorulmuyordu.
+        *
+        * Anahtar `full_name`; `create_listing`, `publish_listing` ve
+        * `lib/profile.ts` üçü de bu anahtarı okuyor.
+        */
+      async signUpWithEmail(email, password, fullName) {
         if (!supabase) return { error: 'Supabase yapılandırılmadı' };
-        const { error } = await supabase.auth.signUp({ email, password });
+        const ad = fullName.trim();
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { full_name: ad } },
+        });
         return error ? { error: error.message } : {};
       },
 

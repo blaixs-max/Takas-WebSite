@@ -442,11 +442,11 @@ eski anahtarları yeniden kullandığı için `--clear` şart.
 
 ### Hâlâ maket olan ekranlar
 
-- [ ] **`addresses.tsx`** sabit iki adres gösteriyor ("Emrah Atabek", Moda Cad.,
-      Levent). Adres tablosu bilerek açılmadı: Ana Doküman fatura bilgisi ve
-      T.C. kimlik numarasının saklanmamasını söylüyor ve adres saklamaya geçmek
-      bir KVKK kararı. Karar verilmeden tablo açılmaz — ama ekranın maket
-      olduğu da kullanıcıya belli değil.
+- [x] **`addresses.tsx` artık maket değil** (2026-08-14 denetimi). Bu madde
+      "sabit iki adres gösteriyor" diyordu; sahte adresler ekran denetimi
+      turunda kaldırılmıştı, madde güncellenmemiş. Ekran şimdi boş durumda
+      "Kayıtlı adresiniz yok" diyor ve adres defterinin neden açılmadığını
+      anlatıyor. Tablonun açılması hâlâ bir KVKK kararı — o aşağıda.
 
 ## ⏳ Sıradaki (öncelik sırası)
 
@@ -478,18 +478,39 @@ değiştirilemez.
       kategori, yanlış ana/alt çifti, doğrudan kategori UPDATE'i. Deneme hiç
       satır yazmadı.
 
-      > **Şema kayması:** canlıda repoda bulunmayan üç göç var —
-      > `rpc_grants_public_default`, `acl_probe`, `rpc_grants_final`
-      > (hepsi 2026-08-09). Panelden uygulanıp commit edilmemişler. Repodan
-      > sıfır kurulan bir veri tabanı canlıyla birebir aynı olmaz; bu üçü
-      > dosyaya dökülmeli.
-- [ ] **Dört test paketi yetkiye takılıyor** (mevcut kusur, 2026-08-13'te
-      ölçüldü) — `listing_insert`, `points_ledger`, `product_photos`, `trust`
-      paketleri `authenticated` rolüyle `quote_trade_price`, `earn_points`,
-      `required_slots`, `seller_trust_score` çağırıyor; `20260809100000_rpc_grants`
-      bu yetkileri bilerek geri aldı, testler güncellenmedi. `origin/main`'de de
-      aynı dört paket aynı satırlarda düşüyor — bu kategori işiyle ilgili değil.
-      Çözüm: ilgili adımları `service_role` altında koşturmak.
+      > **Şema kayması kapandı** (2026-08-14). Canlıda repoda bulunmayan üç
+      > göç vardı — `rpc_grants_public_default`, `acl_probe`,
+      > `rpc_grants_final`. Üçünün de gerçek SQL'i canlıdan okundu ve dosyaya
+      > döküldü. `acl_probe` bir tanı adımıydı (yeni bir fonksiyonun PUBLIC
+      > yetkisiyle doğup doğmadığına bakmak için); sonraki göç onu düşürüyor,
+      > ama repo canlının geçmişini birebir yürüyebilsin diye o da yazıldı.
+      >
+      > Aynı turda repo **sıfırdan kurulabilir** hâle geldi: `vitrin_tazele`
+      > düz `create extension pg_net` yazıyordu ve sade PostgreSQL'de o satır
+      > göçü sert biçimde durduruyordu — yani dosyadan sonraki her göç ve
+      > bütün yerel testler de duruyordu. Uzantı yoksa göç devam ediyor,
+      > `vitrin_tazele()` kendini kapatıyor. Canlıda davranış aynı.
+      >
+      > Doğrulandı: 29 göç sırayla uygulandı, 9 ana + 62 alt kategori,
+      > `anon`ın çağırabildiği fonksiyon **0**, `authenticated` 31 (hepsi
+      > kasıtlı; `vitrin_tazele` listede yok).
+- [x] **Dört test paketi düzeltildi** (2026-08-14) — **17/17 geçiyor.** Teşhis
+      kısmen yanlıştı: dördü de "yetkiye takılıyor" diye yazılmıştı, biri
+      değildi.
+      - `points_ledger` — yetkiyle ilgisi yoktu. `ledger_hardening`
+        `p_idempotency_key`i **zorunlu** yaptı, test hâlâ iki argümanlı eski
+        imzayı çağırıyordu. Ayrıca var olmayan `expensive` kimliğine takas
+        açıyordu; `products` yabancı anahtarı eklenince satır hiç yazılamaz
+        oldu. Test artık kendi ilanını kuruyor.
+      - `listing_insert` — `quote_trade_price` yerine uygulamanın gerçekten
+        çağırdığı `my_trade_quote`. Aynı beş sütun, doğru yol.
+      - `product_photos` — `required_slots` iç bir yardımcı (uygulama kareleri
+        istemcide hesaplıyor); üç çağrı yetkili role alındı, ilan oluşturma ve
+        yayına alma `authenticated` kaldı.
+      - `trust` — 8. bölüm "başkasının özet skoru görünür, kırılım görünmez"
+        diyordu ve 70 bekliyordu. `rpc_grants` o yetkiyi geri aldı: herkesin
+        istediği kullanıcının skorunu sorgulayabilmesi sızıntıydı. Test artık
+        **reddedilmeyi** doğruluyor — yani yeni güvenlik duruşunu.
 - [x] **İlk yönetici eklendi** — bu madde "`auth.users` henüz **boş**" diyordu;
       2026-08-14 ölçümünde `auth.users` 3, `admins` 1 satır. Artık geçersiz.
 - [ ] **Hiç profil yok** (2026-08-14 ölçümü) — `profiles` **0 satır**.
@@ -531,9 +552,12 @@ değiştirilemez.
       Yeni politika tablo kuralını yansıtıyor, bir sıkı şartla: yalnızca
       ONAYLANMIŞ kare açılır. Canlıda iki yönden doğrulandı — alıcı yayındaki
       ilanın 5 karesini görüyor, ilan taslağa çekilince 0
-- [ ] **Kayıt akışında ad alanı yok** — `signUp` yalnızca e-posta ve şifre
-      alıyor, `raw_user_meta_data` boş kalıyor. Satıcı adı e-postanın `@`
-      öncesine düşüyor (`blaixs` gibi). Vitrinde çirkin duruyor
+- [x] **Kayıt akışına ad alanı eklendi** (2026-08-14) — `signUp` yalnızca
+      e-posta ve şifre alıyordu, `raw_user_meta_data` boş kalıyordu ve satıcı
+      adı e-postanın `@` öncesine düşüyordu. Sitedeki "Üye" yaması bunun
+      sonucuydu; kök sebep kullanıcıya adın hiç sorulmamasıydı. Alan zorunlu
+      (sonradan doldurulabilir bırakmak, çoğu kişide hiç doldurulmaması
+      demek) ve altında ne kadarının yayınlandığı yazıyor: "Zeynep D." gibi.
 - [x] **Ürün detayı galerisi gerçekten galeri oldu** — büyük kare tek bir
       `Image`'dı: parmakla kaydırmak hiçbir şey yapmıyordu, alttaki noktalar
       düğme gibi duruyor ama basılamıyordu. Artık sayfalı kaydırma, basılabilir
@@ -551,9 +575,11 @@ değiştirilemez.
       gerekiyor
 - [ ] **Kare akışının kalan uçları** — kamera bu ortamda test edilemiyor.
       Expo Go'da yedi karenin çekimi, yeniden çekim ve yayın kapısı elden geçirilmeli
-- [ ] **İnsan moderasyon kuyruğu** — `pending` kalan kareler için yönetim yüzeyi.
-      Şu an anahtar yoksa ya da model yanıt vermezse ilan sessizce bekliyor,
-      kimse bakmıyor. En azından bir liste ve onayla/reddet aksiyonu gerekiyor
+- [x] **İnsan moderasyon kuyruğu zaten var** (2026-08-14 denetimi) —
+      `app/admin.tsx` içinde "Kareler" sekmesi, `loadPhotoQueue()` +
+      `moderatePhoto()`. Canlıda kullanıldı: ilk gerçek ilanın kareleri
+      buradan onaylandı. Madde yazıldığı gün doğruydu, sonra yapıldı ve
+      güncellenmemiş.
 - [ ] **`AI_VISION_API_KEY` ayarlanması** — anahtar girilene kadar hiçbir kare
       otomatik onaylanmaz (tasarım gereği güvenli taraf), yani yayın akışı durur
 - [ ] **iyzico sandbox ucundan uca test** — ödeme akışı yazıldı ama gerçek bir

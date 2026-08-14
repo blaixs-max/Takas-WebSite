@@ -45,8 +45,12 @@ select available_points from earn_points(:'b', 1000, 'test:alici-bakiye');
 set session role authenticated;
 select set_config('test.uid', :'b', false);
 select id from create_trade(:'l_id', :'b') \gset t_
+-- `authenticated` rolüyle `quote_trade_price` çağrılıyordu; `rpc_grants`
+-- o yetkiyi bilerek geri aldı (kargo maliyetini ve komisyonu da döndürüyor).
+-- Uygulamanın çağırdığı işlev `my_trade_quote` ve aynı beş sütunu veriyor —
+-- test artık gerçekten kullanılan yolu ölçüyor.
 select size_class, shipping_tl, service_fee_tl, transaction_fee_tl, total_tl
-  from quote_trade_price(:'t_id');
+  from my_trade_quote(:'t_id');
 \echo 'BEKLENEN: M kademesi, kargo 78.00, hizmet 17.90, işlem payı 22.80, toplam 118.70'
 
 \echo ''

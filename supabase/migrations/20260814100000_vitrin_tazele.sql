@@ -34,7 +34,21 @@
 -- çağrı olsaydı Vercel yavaşladığında ilan yayına alma da yavaşlardı —
 -- pazarlama sitesinin derleme kuyruğu, satıcının ilan vermesini bekletmemeli.
 
-create extension if not exists pg_net with schema extensions;
+-- `pg_net` Supabase'e özgü; sade bir PostgreSQL kurulumunda yok ve düz
+-- `create extension` orada göçü sert biçimde durdurur. Bu dosya durunca
+-- ondan sonraki her göç ve bütün yerel test paketleri de duruyordu — yani
+-- repo kendi kendini kuramıyordu.
+--
+-- Uzantı yoksa göç devam ediyor, `vitrin_tazele()` de aşağıda kendini
+-- kapatıyor. Canlıda davranış değişmiyor: orada uzantı var, koşul geçiyor.
+do $$
+begin
+  create extension if not exists pg_net with schema extensions;
+exception
+  when others then
+    raise notice 'pg_net yok — vitrin tazeleme bu veri tabanında devre dışı.';
+end
+$$;
 
 -- ============================ 1) Ayar tablosu ============================
 --
@@ -98,6 +112,12 @@ begin
     if gecen < 60 then
       return format('atlandı: %s saniye önce tetiklendi', round(gecen));
     end if;
+  end if;
+
+  -- Uzantı yoksa (yerel kurulum) sessizce çıkıyoruz. İstisna fırlatmak,
+  -- ilan yayına alan tetikleyiciyi de düşürürdü.
+  if not exists (select 1 from pg_extension where extname = 'pg_net') then
+    return 'pg_net kurulu değil — tazeleme atlandı';
   end if;
 
   perform net.http_post(
