@@ -869,6 +869,24 @@ RLS kapalı tablo 0, `authenticated` yazma yetkisi yalnızca gerçekten yazdığ
 - [x] **Puan ekonomisi.** `earn_points`, `release_points`, `refund_points`,
       `grant_campaign_points`, `hold_points` — beşi de `SECURITY DEFINER` ve
       yalnızca `service_role`da; `anon` ve `authenticated` için ikisi de false.
+- [ ] **Göç sürüm numaraları repo ile sunucuda uyuşmuyor.** 31 göçün
+      **hepsinde** ad aynı ve sıra aynı, ama numaralar farklı: repo elle
+      seçilmiş yuvarlak damgalar kullanıyor (`20260814110000_profiller`),
+      `supabase_migrations.schema_migrations` ise gerçek uygulama anını
+      kaydetmiş (`20260814090949_profiller`). Bugüne kadar sorun çıkarmadı
+      çünkü göçler panelden/MCP'den uygulandı.
+
+      **Tehlike `supabase db push` çalıştırıldığı gün ortaya çıkar:** CLI yerel
+      dosya sürümlerini tablodakilerle karşılaştırıyor, hiçbiri eşleşmediği
+      için 31 göçü baştan uygulamaya kalkar. Çoğu `if not exists` / `create or
+      replace` ile yazıldığı için bir kısmı sessizce geçer, bir kısmı patlar —
+      yarı uygulanmış bir şema en kötü sonuç.
+
+      Bu turda bir dosyayı sunucudaki numaraya hizalamayı denedim, sonra geri
+      aldım: tek dosyayı eşlemek, dosya adlarının sunucuyu izlediği gibi
+      **yanlış bir izlenim** yaratıyor ve diğer 30'u düzeltmiyor. Doğrusu ya
+      hepsini `supabase migration repair` ile hizalamak ya da "bu depoda göçler
+      `db push` ile uygulanmaz" kuralını yazmak. **Karar gerekiyor.**
 - [ ] **Edge Function kod incelemesi — ikinci geçişe kaldı.**
       `iyzico-callback` gövdeye güvenmemeli (RETRIEVE ile doğrulama),
       `send-sms` hook sırrı, JWT muafiyetleri tek tek gerekçelendirilmeli.
