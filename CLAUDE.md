@@ -52,8 +52,19 @@ değildir, uygulama paketine zaten gömülür. `service_role` anahtarı repoda
 **Göçler ve testler yerelde koşturulabilir: `supabase/tests/kosu.sh`.**
 Temiz bir veri tabanı kurar, `00_yerel_kurulum.sql` ile Supabase'e özgü şeyleri
 (auth/storage/cron şemaları, üç rol, `auth.uid()`, **varsayılan yetkiler**)
-taklit eder, bütün göçleri uygular, sonra test paketini koşar. Bugün: 37 göç,
-18 test, sıfır hata.
+taklit eder, bütün göçleri uygular, sonra test paketini koşar. Bugün: 38 göç,
+19 test, sıfır hata.
+
+**Betik "hata yok" derken sözdizimini kastediyor, iddiaları değil.** Sayaç
+psql'in hata verip vermediğine bakıyor; `BEKLENEN` satırları göz kararı
+okunur. Yeni test yazınca çıktısına bir kez bakın — `engelleme_test.sql`
+ilk turunda sessizce yanlış bir şey ölçüyordu ve paket yine "temiz" dedi.
+
+**`bileşik_satır IS NOT NULL` "bütün alanlar dolu" demektir.** Postgres'te
+`send_message(...) is not null` mesaj gitse bile `f` verir, çünkü dönen
+satırdaki `read_at` başlangıçta null. Bir çağrının başarısını satır sayısıyla
+doğrulayın, satırın kendisiyle değil — bu bir tur boyunca testi yanlış yere
+baktırdı.
 
 **Bunu çalıştırmak zorunlu, çünkü göçler canlıya panelden/MCP'den uygulanıyor
 — yani dosyaların kendisi hiç çalıştırılmıyor.** 2026-08-16'da tam olarak bu
@@ -244,6 +255,22 @@ Bu ayrım her zaman geçerlidir.
   Engelleme sohbeti **gizlemiyor** (geçmiş bir kanıt, itirazda gerekir) ve
   **takası durdurmuyor** (durdursaydı süreç ortada kilitlenirdi).
   Hangi tarafın engellediği kullanıcıya söylenmiyor.
+- **Engel kaldırılabilir olmalı — `my_blocks()` bunun için var.** Engelleme
+  bir tur boyunca tek yönlü bir kapıydı: sohbetten engelleyebiliyordun ama
+  kimi engellediğini görebileceğin bir yer yoktu, dolayısıyla geri
+  alamıyordun. Öfkeyle ya da yanlışlıkla basılan düğme kalıcı bir sonuç
+  doğuruyordu. `app/engellenenler.tsx` listeyi çiziyor, giriş güvenlik
+  ekranında (mesajların altında değil — kullanıcı bunu bir güvenlik ayarı
+  olarak arıyor ve sohbetin içinde saklı kalsaydı engeli kaldırmak için önce
+  o kişinin sohbetini bulman gerekirdi).
+
+  **Liste ad değil bağlam gösteriyor:** "Suluk ilanının satıcısı". Uygulama
+  karşı tarafın adını zaten vermiyor — `my_conversations` alıcıya satıcının
+  adını veriyor ama satıcıya alıcı için düz "Alıcı" yazıyor — ve `profiles`
+  üzerindeki SELECT ilkesi "yalnızca kendi profilin". İsim basmak, başka
+  hiçbir ekranda verilmeyen bir veriyi tek bir yerde vermek olurdu.
+  `blocked_id` dönüyor çünkü `unblock_user` onu istiyor; kullanıcı o kişiyi
+  zaten kendisi engelledi.
 - **Yönetici yetkisi `admins` tablosundadır, JWT'de değil.** Rol iddiası oturum
   yenilenene kadar geçerli olmaz; yetkisi alınan biri elindeki token'la karar
   vermeye devam edemez. Kontrol her zaman sunucudaki `is_admin()` ile yapılır —

@@ -232,3 +232,49 @@ export async function blockConversationPeer(
   if (error) return { ok: false, message: 'Engellenemedi. Tekrar deneyin.' };
   return { ok: true };
 }
+
+export interface BlockRow {
+  /** `unblockUser` bunu istiyor. Kullanıcı zaten bu kişiyi kendisi engelledi. */
+  id: string;
+  /** "Suluk ilanının satıcısı". Ortak sohbet bulunamazsa null. */
+  baglam: string | null;
+  engellendiAt: string | null;
+}
+
+/**
+ * Engellediklerinin listesi.
+ *
+ * **Ad göstermiyor, bağlam gösteriyor** — ve bu bir eksiklik değil,
+ * uygulamanın geri kalanıyla tutarlılık: `my_conversations` alıcıya satıcının
+ * adını veriyor ama satıcıya alıcı için düz "Alıcı" yazıyor, `profiles`
+ * üzerinde de yalnızca kendi profilini okuyabiliyorsun. Burada isim basmak,
+ * uygulamanın başka hiçbir yerinde vermediği bir veriyi tek bir ekranda
+ * vermek olurdu. Kullanıcının hatırlaması için gereken şey zaten kimlik
+ * değil: o kişiyle hangi ilanda karşılaştığı.
+ */
+export async function loadBlocks(): Promise<BlockRow[]> {
+  if (!supabaseConfigured || !supabase) return [];
+  const { data, error } = await supabase.rpc('my_blocks');
+  if (error || !data) return [];
+  return (data as Record<string, unknown>[]).map((b) => ({
+    id: b.blocked_id as string,
+    baglam: (b.baglam as string) ?? null,
+    engellendiAt: (b.engellendi_at as string) ?? null,
+  }));
+}
+
+/**
+ * Engeli kaldırır.
+ *
+ * Sunucu yalnızca çağıranın kendi satırını siliyor; başkasının engelini
+ * kaldırabilmek engellemeyi tamamen anlamsız kılardı — engellenen kişi kendi
+ * engelini kaldırıp yazmaya devam ederdi.
+ */
+export async function unblockUser(
+  userId: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (!supabaseConfigured || !supabase) return { ok: false, message: 'Sunucu bağlantısı yok.' };
+  const { error } = await supabase.rpc('unblock_user', { p_user_id: userId });
+  if (error) return { ok: false, message: 'Engel kaldırılamadı. Tekrar deneyin.' };
+  return { ok: true };
+}

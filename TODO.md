@@ -931,9 +931,12 @@ RLS kapalı tablo 0, `authenticated` yazma yetkisi yalnızca gerçekten yazdığ
       kalmıyordu. Kullanıcı parasını ödeyip eşleşmeyen bir ekrana iniyordu.
       Ekran yazıldı; `status`'ü kanıt saymıyor, yalnızca cümle kurup
       Takaslarım'a gönderiyor.
-- [ ] **`+not-found` ekranı yok.** Eşleşmeyen her derin bağlantı Expo'nun
-      geliştirici ekranını gösteriyor. `auth-callback` ve `payment-result`
-      yazıldı ama üçüncü bir eşleşmeyen adres yine boşluğa düşer.
+- [x] **`+not-found` ekranı yazıldı** (2026-08-16). Eşleşmeyen derin bağlantı
+      Expo'nun İngilizce geliştirici ekranını ("Unmatched Route" + dosya yolu)
+      gösteriyordu. Artık Türkçe, `BosDurum` ölçüleriyle ve "Ana sayfaya dön"
+      ile. Dönüş `replace`: kırık adres geçmişte kalsaydı geri tuşu kullanıcıyı
+      tekrar buraya getirirdi. Kaldırılmış ilan buraya düşmüyor —
+      `product/[id]` eşleşiyor ve kendi "bulunamadı" durumunu çiziyor.
 - [ ] **Oturum saklama — ikinci geçişe kaldı.** Jeton `AsyncStorage`'da, yani
       **şifresiz**. Root'lu/jailbreak'li cihazda okunabilir. Karar gerektiriyor:
       `expo-secure-store`'a taşımak native modül demek değil (Expo Go'da var).
@@ -1139,9 +1142,22 @@ bile değildi. Dördü ölçülerek doğrulandı (kodda arandı, yok).
       sohbetten türetiliyor: karşı tarafın kimliği istemciye hiç verilmiyor.
       Sohbet gizlenmiyor (kanıt), takas durdurulmuyor (kilitlenirdi), hangi
       tarafın engellediği söylenmiyor.
-- [ ] **Engellenenler listesi ekranı yok.** Engel kurulabiliyor ama kullanıcı
-      kimleri engellediğini göremiyor ve kaldıramıyor. `unblock_user` hazır,
-      `user_blocks` kendi satırlarını okumaya açık — eksik olan tek şey ekran.
+- [x] **Engellenenler listesi yazıldı** (2026-08-16). Engelleme bir tur boyunca
+      tek yönlü bir kapıydı — açan var, kapatan yok — ve yanlışlıkla basılan
+      düğme kalıcı bir sonuç doğuruyordu. `my_blocks()` + `app/engellenenler.tsx`,
+      girişi güvenlik ekranında (mesajların altında değil: kullanıcı bunu bir
+      güvenlik ayarı olarak arıyor, ayrıca sohbetin içinde saklı kalsaydı
+      engeli kaldırmak için önce o kişinin sohbetini bulman gerekirdi).
+
+      Liste **ad değil bağlam** gösteriyor — "Suluk ilanının satıcısı".
+      `my_conversations` satıcıya alıcı için düz "Alıcı" yazıyor ve `profiles`
+      yalnızca kendi profiline açık; isim basmak başka hiçbir ekranda
+      verilmeyen bir veriyi tek bir yerde vermek olurdu.
+
+      `engelleme_test.sql` altı iddiayı sabitliyor; en kritiği ikisi:
+      engel iki yönde de kesiyor (tek yönlü olsaydı susturma aracı olurdu) ve
+      başkasının engeli kaldırılamıyor (kaldırılabilseydi engellenen kişi kendi
+      engelini silip yazmaya devam ederdi).
 - [x] **Gizlilik politikası yazıldı ve yayına girdi** (2026-08-16) —
       `/gizlilik/`, site deposunda `public/gizlilik/index.html`. Tek dosya,
       derleme yok, React'ten bağımsız: uygulamanın sürümü değişince mağazadaki

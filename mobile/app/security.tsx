@@ -188,6 +188,26 @@ export default function Security() {
           </Pressable>
         </View>
 
+        {/* Engellediklerim burada, mesajların altında değil: engelleme bir
+            mesajlaşma özelliği değil bir güvenlik aracı ve kullanıcı onu
+            aradığında güvenlik ekranına bakar. Engelleme sohbetten yapılıyor
+            ama geri alınacak yerin sabit olması gerekiyordu — sohbetin içinde
+            saklı kalsaydı, engeli kaldırmak için önce engellediğin kişinin
+            sohbetini bulman gerekirdi. */}
+        <Text style={styles.section}>Gizlilik</Text>
+        <View style={styles.group}>
+          <Pressable style={styles.row} onPress={() => router.push('/engellenenler')}>
+            <View style={styles.ic}>
+              <MaterialIcons name="block" size={20} color={colors.onSurfaceVariant} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowTitle}>Engellediklerim</Text>
+              <Text style={styles.rowSub}>Engellediğin kişileri gör, engeli kaldır</Text>
+            </View>
+            <MaterialIcons name="chevron-right" size={20} color={colors.outline} />
+          </Pressable>
+        </View>
+
         <Text style={styles.notice}>
           Telefon, IBAN ve kimlik doğrulaması henüz toplanmıyor. Fatura bilgisi ve T.C. kimlik
           numarası saklanmıyor; ödeme sırasında sorulur ve yalnızca o işlemde iletilir.

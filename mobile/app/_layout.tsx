@@ -109,6 +109,8 @@ function RootNavigator() {
       <Stack.Screen name="help" options={{ presentation: 'card' }} />
       <Stack.Screen name="invite" options={{ presentation: 'card' }} />
       <Stack.Screen name="chat/[id]" options={{ presentation: 'card' }} />
+      <Stack.Screen name="engellenenler" options={{ presentation: 'card' }} />
+      <Stack.Screen name="+not-found" options={{ presentation: 'card' }} />
     </Stack>
   );
 }
