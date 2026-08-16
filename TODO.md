@@ -455,6 +455,23 @@ eski anahtarları yeniden kullandığı için `--clear` şart.
 Şema `kidstrade` → **`eldenele`** oldu. Kodda dört yerdeydi, hepsi
 `lib/brand.ts`e taşındı; ama iki ayar repoda değil, panelde:
 
+- [x] **Giriş ekranına "Şifremi unuttum" eklendi** (2026-08-14). Sıfırlama
+      zaten vardı ama `Güvenlik & doğrulama` ekranındaydı ve oraya girmek için
+      **oturum açmış olmak** gerekiyordu — yani tam da şifresini unutan kişinin
+      ulaşamadığı yerdeydi. Cevap hesabın var olup olmadığını söylemiyor;
+      aksi hâlde ekran bir hesap sayacına dönerdi.
+- [ ] **E-posta gerçekten gidiyor mu — DOĞRULANMADI.** Kod doğru ama teslimat
+      proje ayarına bağlı ve panelden bakılmalı:
+      · **SMTP** — Supabase'in yerleşik gönderimi yalnızca geliştirme içindir
+        ve saatte birkaç postayla sınırlıdır. Yayın öncesi kendi SMTP'miz
+        (Resend/Postmark/SES) tanımlanmalı, yoksa kullanıcıların çoğu
+        sıfırlama postasını hiç almaz.
+      · **Redirect URL** — aşağıdaki maddeyle aynı: `eldenele://auth-callback`
+        izin listesinde değilse posta gelse bile bağlantı uygulamaya dönmez.
+      · **`app/auth-callback` ekranı YOK.** `_layout.tsx` onu `AUTH_ROUTES`
+        içinde sayıyor ama dosya yok. OAuth akışı tarayıcı oturumunu kendi
+        yakaladığı için şimdilik patlamıyor; **şifre sıfırlama bağlantısı ise
+        doğrudan o rotaya düşer** — ekran yazılmalı.
 - [ ] **Supabase Auth → Redirect URLs.** İzin listesine `eldenele://auth-callback`
       eklenmeli. Eklenmezse Google/Apple ile giriş tarayıcıdan geri dönemez;
       kullanıcı açık bir sekmeyle kalır, hata da görmez.

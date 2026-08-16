@@ -20,7 +20,7 @@ import { colors, elevation, shape } from '../theme/tokens';
 export default function SignIn() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { signInWithEmail, signUpWithEmail } = useAuth();
+  const { signInWithEmail, signUpWithEmail, sifreSifirlamaGonder } = useAuth();
 
   const [mode, setMode] = useState<'in' | 'up'>('in');
   const [email, setEmail] = useState('');
@@ -30,6 +30,37 @@ export default function SignIn() {
   const [info, setInfo] = useState<string | null>(null);
   /* Ad yalnızca kayıtta sorulur; girişte hesabın kendi adı zaten var. */
   const [adSoyad, setAdSoyad] = useState('');
+
+  /**
+   * Şifremi unuttum.
+   *
+   * Şifre alanına bakmıyor — unutan kişinin yazacak bir şeyi yok. Yalnızca
+   * e-posta gerekiyor.
+   *
+   * Cevap **hesabın var olup olmadığını söylemiyor**: kayıtlı olmayan bir
+   * adres girildiğinde de aynı "gönderildi" cümlesi çıkıyor. Aksi hâlde bu
+   * ekran bir hesap sayacına dönerdi — birileri adres deneyerek hangi
+   * e-postaların sistemde kayıtlı olduğunu öğrenebilirdi. Supabase de aynı
+   * nedenle hata döndürmüyor.
+   */
+  async function sifremiUnuttum() {
+    setError(null);
+    setInfo(null);
+    if (!email.includes('@')) {
+      setError('Önce e-posta adresini yaz.');
+      return;
+    }
+    setBusy(true);
+    const res = await sifreSifirlamaGonder(email);
+    setBusy(false);
+    if (res.error) {
+      setError(res.error);
+      return;
+    }
+    setInfo(
+      `${email.trim()} adresine bir sıfırlama bağlantısı gönderildi. Gelen kutunda yoksa spam klasörüne bak.`,
+    );
+  }
 
   async function submit() {
     setError(null);
@@ -155,6 +186,12 @@ export default function SignIn() {
           )}
         </Pressable>
 
+        {mode === 'in' && (
+          <Pressable onPress={sifremiUnuttum} disabled={busy} style={styles.unuttum} hitSlop={8}>
+            <Text style={styles.unuttumText}>Şifremi unuttum</Text>
+          </Pressable>
+        )}
+
         <Pressable onPress={() => setMode(mode === 'in' ? 'up' : 'in')} style={styles.toggle}>
           <Text style={styles.toggleText}>
             {mode === 'in' ? 'Hesabın yok mu? ' : 'Zaten hesabın var mı? '}
@@ -167,6 +204,8 @@ export default function SignIn() {
 }
 
 const styles = StyleSheet.create({
+  unuttum: { alignSelf: 'center', paddingVertical: 12, paddingHorizontal: 8 },
+  unuttumText: { fontSize: 13, fontWeight: '700', color: colors.primary },
   root: { flex: 1, backgroundColor: colors.surface },
   appbar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6 },
   appTitle: { flex: 1, textAlign: 'center', fontSize: 16, fontWeight: '800', color: colors.onSurface },

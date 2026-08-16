@@ -23,6 +23,8 @@ interface AuthState {
     fullName: string,
   ) => Promise<{ error?: string }>;
   signInWithOAuth: (provider: OAuthProvider) => Promise<{ error?: string }>;
+  /** Şifre sıfırlama bağlantısı gönderir. Oturum gerektirmez. */
+  sifreSifirlamaGonder: (email: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
 }
 
@@ -109,6 +111,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!code) return { error: 'Yetkilendirme kodu alınamadı' };
         const { error: exErr } = await supabase.auth.exchangeCodeForSession(code);
         return exErr ? { error: exErr.message } : {};
+      },
+
+      /**
+       * Şifre sıfırlama bağlantısı.
+       *
+       * `Güvenlik & doğrulama` ekranında zaten bir sıfırlama vardı ama oraya
+       * girmek için **oturum açmış olmak** gerekiyordu — yani tam da şifresini
+       * unutan kişinin ulaşamadığı yerdeydi. Bu yüzden giriş ekranına taşındı.
+       *
+       * `redirectTo` bilerek veriliyor: verilmezse Supabase bağlantıyı projenin
+       * Site URL'ine yollar, o da varsayılanda `localhost:3000`'dir. Mobil
+       * kullanıcı e-postadaki bağlantıya bastığında hiçbir yere gitmez.
+       * Uygulamanın derin bağlantısı `eldenele://auth-callback`.
+       */
+      async sifreSifirlamaGonder(email) {
+        if (!supabase) return { error: 'Supabase yapılandırılmadı' };
+        const redirectTo = makeRedirectUri({ scheme: APP_SCHEME, path: AUTH_REDIRECT_PATH });
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+        return error ? { error: error.message } : {};
       },
 
       async signOut() {
