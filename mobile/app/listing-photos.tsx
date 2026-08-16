@@ -13,7 +13,13 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { PhotoSlot, SLOT_INFO, gerekliSlotlar } from '../data/photoSlots';
+import {
+  PhotoSlot,
+  SLOT_INFO,
+  atlanabilir,
+  gosterilecekSlotlar,
+  zorunluSlotlar,
+} from '../data/photoSlots';
 import { PhotoRow, loadPhotos, publishListing, uploadPhoto } from '../lib/photos';
 import { colors, elevation, shape } from '../theme/tokens';
 
@@ -35,7 +41,12 @@ export default function ListingPhotos() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const slotlar = gerekliSlotlar(hasDamage === '1', isSet === '1');
+  /* Gösterilen liste opsiyonel kareyi de içeriyor, zorunluluk sayacı
+     içermiyor. İkisini ayırmasaydık ya etiket akıştan tamamen düşerdi
+     (varsa çekmek istiyoruz) ya da "5/5 tamamlanmadı" diye yayını
+     kilitlerdi. */
+  const slotlar = gosterilecekSlotlar(hasDamage === '1', isSet === '1');
+  const zorunlu = zorunluSlotlar(hasDamage === '1', isSet === '1');
   const [aktif, setAktif] = useState(0);
   const [kareler, setKareler] = useState<Record<string, PhotoRow>>({});
   const [yerel, setYerel] = useState<Record<string, string>>({});
@@ -63,8 +74,8 @@ export default function ListingPhotos() {
   const tamam = (s: PhotoSlot) =>
     kareler[s] ? kareler[s].moderationStatus !== 'rejected' : Boolean(yerel[s]);
 
-  const cekilen = slotlar.filter(tamam).length;
-  const hepsiVar = cekilen === slotlar.length;
+  const cekilen = zorunlu.filter(tamam).length;
+  const hepsiVar = cekilen === zorunlu.length;
 
   /**
    * Kare **yalnızca kamerayla** çekilir; galeriden seçmek kaldırıldı.
@@ -172,7 +183,7 @@ export default function ListingPhotos() {
         </Pressable>
         <Text style={styles.appTitle}>Fotoğraflar</Text>
         <Text style={styles.sayac}>
-          {cekilen}/{slotlar.length}
+          {cekilen}/{zorunlu.length}
         </Text>
       </View>
 
@@ -203,8 +214,28 @@ export default function ListingPhotos() {
             </Text>
             <Text style={styles.rehberYonerge}>{bilgi.yonerge}</Text>
             <Text style={styles.rehberNeden}>{bilgi.neden}</Text>
+            {atlanabilir(slot) && <Text style={styles.rehberOpsiyonel}>Bu kare zorunlu değil</Text>}
           </View>
         </View>
+
+        {/* Opsiyonel karede açık bir çıkış.
+
+            Rozet tek başına yetmiyordu: "zorunlu değil" yazsa da kullanıcı
+            akışta bir sonraki adıma nasıl geçeceğini bilmiyor ve çekmek
+            zorunda hissediyor. Atlamak bir eylemse düğmesi olmalı.
+
+            Son karedeyse düğme yayına götürüyor — "atla" deyip aynı ekranda
+            kalmak, atlamanın işe yaramadığı izlenimi verirdi. */}
+        {atlanabilir(slot) && !tamam(slot) && (
+          <Pressable
+            style={styles.atla}
+            onPress={() => setAktif((i) => Math.min(i + 1, slotlar.length - 1))}
+            accessibilityRole="button"
+          >
+            <Text style={styles.atlaText}>Etiketim yok, atla</Text>
+            <MaterialIcons name="arrow-forward" size={18} color={colors.primary} />
+          </Pressable>
+        )}
 
         {/* Önizleme.
 
@@ -332,7 +363,7 @@ export default function ListingPhotos() {
         </Pressable>
         {!hepsiVar && (
           <Text style={styles.ctaHint}>
-            {slotlar.length - cekilen} fotoğraf daha ekle
+            {zorunlu.length - cekilen} fotoğraf daha ekle
           </Text>
         )}
       </View>
@@ -341,6 +372,26 @@ export default function ListingPhotos() {
 }
 
 const styles = StyleSheet.create({
+  rehberOpsiyonel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.onSurfaceVariant,
+    marginTop: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  atla: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    marginTop: 12,
+    borderRadius: shape.full,
+    borderWidth: 1,
+    borderColor: colors.outline,
+  },
+  atlaText: { fontSize: 14, fontWeight: '800', color: colors.primary },
   root: { flex: 1, backgroundColor: colors.surface },
   appbar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6 },
   appTitle: { flex: 1, fontSize: 15, fontWeight: '800', paddingLeft: 8, color: colors.onSurface },

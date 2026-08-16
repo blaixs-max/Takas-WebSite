@@ -664,7 +664,30 @@ değiştirilemez.
       (`7 * * * *`) ve `kt-expire-stale-disputes` (`22 * * * *`), ikisi de aktif
 
 ## 🔜 Sonra
-- [ ] Ürün Ekle: dinamik puan önerisi (kareler ve kategoriden değerleme)
+- [ ] **Ürün Ekle: yapay zekâ değerlemesi** (2026-08-16 kararı). Karar verildi:
+      model kareleri okuyup ürünü tanıyacak, **Google Search grounding** ile
+      sıfır fiyatını bulacak, beyan edilen durum/hasar ve karelerdeki görünüme
+      göre indirip puanı belirleyecek.
+
+      Bu bir "öneri" değil, aşağıdaki **puan enflasyonu** maddesinin çözümü:
+      bugün fiyatı satıcı yazıyor ve hiçbir denetim yok. Model uydurmasın diye
+      değil — asıl uyduran bugün zaten var.
+
+      Kurulum kararları: fiyatı model bulur, **puana çeviren formül kodda**
+      kalır (deterministik, denetlenebilir, modeli yeniden çalıştırmadan
+      değişebilir). Ürün bulunamazsa model **tahmin etmez**, "bulunamadı" der
+      ve ilan insan kuyruğuna düşer. Her değerin kaynağı ve güven derecesi
+      kaydedilir.
+
+      **Açık tek soru: puan ↔ ₺ oranı.** Dokümanlarda yazılı değil ve bu bir
+      iş kararı — kod tarafında yapılandırılabilir bir sabit olarak duracak.
+- [x] **Etiket karesi opsiyonel oldu** (2026-08-16). İlk gerçek ilanda düşen
+      tek ret oydu: "marka/model/CE yazısı okunmuyor". Model doğru
+      çalışıyordu, kural yanlıştı — ikinci el üründe etiket çoğu zaman yok
+      (sökülmüş, solmuş, hiç olmamış) ve olmayan bir şeyi zorunlu tutmak
+      dürüst satıcıyı kapıda durdurur. Etiketin varlık sebebi değerlemeydi;
+      o iş yukarıdaki maddeye geçti. `required_slots()` ve `photoSlots.ts`
+      birlikte güncellendi, çekim ekranına "Etiketim yok, atla" düğmesi geldi.
 - [x] **Kapakta hasar beyanı rozeti** (2026-08-14) — `products.has_damage`
       `product_photos` göçünden beri vardı ve yedinci kareyi zorunlu yapıyordu,
       ama `COLS`ta hiç seçilmiyordu: arayüz sütunu göremiyordu bile. Alıcı
