@@ -325,7 +325,7 @@ Bu ayrım her zaman geçerlidir.
   |---|---|---|
   | `AI_VISION_API_KEY` | — | Yoksa hiçbir kare onaylanmaz, insan kuyruğu |
   | `AI_VISION_BASE_URL` | `…/v1beta` | Vertex'e ya da başkasına geçiş tek satır |
-  | `AI_VISION_MODEL` | `gemini-2.5-flash` | Ana karar |
+  | `AI_VISION_MODEL` | `gemini-3.7-flash` | Ana karar |
   | `AI_VISION_MODEL_STRICT` | boş | İkinci görüş; boşsa mekanizma kapalı |
   | `AI_VISION_SAATLIK_LIMIT` | 60 | Kullanıcı başına çağrı |
 

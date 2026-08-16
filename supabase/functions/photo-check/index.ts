@@ -77,7 +77,25 @@ const AI_KEY = Deno.env.get('AI_VISION_API_KEY') ?? '';
    uç yazılır ve üstüne bir OAuth katmanı gelir. */
 const AI_BASE =
   Deno.env.get('AI_VISION_BASE_URL') ?? 'https://generativelanguage.googleapis.com/v1beta';
-const AI_MODEL = Deno.env.get('AI_VISION_MODEL') ?? 'gemini-2.5-flash';
+/**
+ * Ana karar modeli.
+ *
+ * Varsayılan bilerek **karar verdiğimiz modelin kendisi**, bir alt basamak
+ * değil: sır girilmezse ya da adı yanlış yazılırsa güvenlik kararını veren
+ * model sessizce zayıflamamalı. Varsayılan `gemini-2.5-flash` kalsaydı, eksik
+ * bir sır hiçbir hata üretmeden çocuk yüzü kontrolünü eski modele düşürürdü.
+ *
+ * Neden 3.7 Flash (2026-08-16): tanımı "multimodal reasoning" diyor ve
+ * bizim zorlandığımız yer tam orası — beş kareyi birlikte görüp aynı fiziksel
+ * ürünü tanımak. Flash-Lite sınıfı "simple data processing" için, bizim iş
+ * onun tersi. Pro sınıfı yapardı ama satıcı elinde telefonla bekliyor.
+ * `gemini-2.5-flash` yarı fiyatına yakın ama ayakta kalan en eski Flash;
+ * yeni bir entegrasyonu en erken emekli olacak modele bağlamak yanlış olurdu.
+ *
+ * **Fiyat 1 Ocak 2027'de ikiye katlanıyor** ($0.75/$3.75 → $1.50/$7.50).
+ * Aralık'ta yeniden bakılacak.
+ */
+const AI_MODEL = Deno.env.get('AI_VISION_MODEL') ?? 'gemini-3.7-flash';
 
 /**
  * İkinci görüş modeli. Boşsa mekanizma kapalı.

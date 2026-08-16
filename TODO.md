@@ -630,7 +630,7 @@ değiştirilemez.
       | Env | Değer |
       |---|---|
       | `AI_VISION_API_KEY` | ücretli projenin anahtarı |
-      | `AI_VISION_MODEL` | `gemini-2.5-flash` (AI Studio listesinden doğrula) |
+      | `AI_VISION_MODEL` | `gemini-3.7-flash` |
       | `AI_VISION_MODEL_STRICT` | boş bırak — önce Flash'ı ölç |
       | `AI_VISION_SAATLIK_LIMIT` | 60 (varsayılan, dokunma) |
 
