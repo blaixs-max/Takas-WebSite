@@ -32,8 +32,16 @@ async function hmacSha256Hex(key: string, data: string): Promise<string> {
     .join('');
 }
 
+/**
+ * IYZWSv2 nonce'u.
+ *
+ * `Date.now() + Math.random()` iş görüyordu — bu bir sır değil, isteği
+ * benzersizleştiren bir damga. Yine de `crypto.randomUUID()` aynı işi
+ * çarpışmasız yapıyor ve zaten elimizde; nonce'un tahmin edilememesi imza
+ * şemasının varsaydığı şeylerden biri.
+ */
 function randomKey(): string {
-  return Date.now().toString() + Math.random().toString(36).slice(2, 12);
+  return crypto.randomUUID().replace(/-/g, '');
 }
 
 /** IYZWSv2 Authorization header'ı ve x-iyzi-rnd üretir. */

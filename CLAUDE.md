@@ -176,6 +176,17 @@ Bu ayrım her zaman geçerlidir.
   politikasında `with check` verilmemişse `using` ifadesini yeni satıra da
   uygular. Aranacak şey eksik `with check` değil, `using`'den **daha gevşek**
   olanı. (Bu doküman bir tur boyunca tersini yazdı.)
+- **Yapılandırma eksikse hizmet kapanır, açılmaz.** `send-sms`'in imza
+  doğrulaması "sır yoksa geç" diyordu ve o uç `verify_jwt = false` ile
+  yayındaydı — NetGSM anahtarları girildiği gün açık bir SMS rölesi olurdu.
+  Kural: bir güvenlik kontrolünün yapılandırması eksikse **reddet**. Aynı
+  kural moderasyonda zaten uygulanıyor (anahtar yoksa kare `pending` kalır,
+  onaylanmaz); ikisi aynı kuralın iki yüzü.
+- **Ödemede "başarılı mı" yetmez, "ne kadar" da sorulur.** `iyzico-callback`
+  yalnızca `paymentStatus`'e bakıyordu; `paidPrice` artık
+  `cargo_payments.amount` ile karşılaştırılıyor. Ayrıca takas **`trade_id`**
+  ile anahtarlanır — `conversation_id` iyzico'ya bakan referanstır ve bugün
+  aynı değeri taşıması bir tesadüftür, sözleşme değil.
 - **Hesap silme geri alınamaz ve üç durumda reddedilir.** `delete_own_account`
   açık takas, rezerve ilan ya da ödenmemiş borç varsa hata veriyor — hesap
   silerek yükümlülükten kurtulmak ya da karşı tarafı ortada bırakmak mümkün

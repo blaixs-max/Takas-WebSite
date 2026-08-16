@@ -18,8 +18,29 @@ const NETGSM_HEADER = Deno.env.get('NETGSM_HEADER') ?? ''; // onaylı başlık (
 const HOOK_SECRET = Deno.env.get('SEND_SMS_HOOK_SECRET') ?? ''; // "v1,whsec_..."
 
 /* ----- standard webhooks imza doğrulama ----- */
+
+/** Sabit süreli karşılaştırma: eşleşen ön ek uzunluğu zamanlamadan okunmasın. */
+function esitMi(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let fark = 0;
+  for (let i = 0; i < a.length; i++) fark |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return fark === 0;
+}
+
 async function verifySignature(headers: Headers, body: string): Promise<boolean> {
-  if (!HOOK_SECRET) return true; // dev: secret yoksa atla
+  /* SIR YOKSA REDDET.
+     Burada `return true` yazıyordu, yorumu da "dev: secret yoksa atla" idi.
+     Sonucu şuydu: bu uç `verify_jwt = false` ile yayında duruyor ve hook sırrı
+     tanımlanmadığı sürece **imzasız her isteği kabul ediyordu.** NetGSM kimlik
+     bilgileri girildiği gün, onaylı gönderici başlığımızla istediği numaraya
+     istediği metni yollayabilen açık bir SMS rölesi olurdu — hem kontör hem
+     marka gider. Bugün patlamamasının tek sebebi NetGSM'in de
+     yapılandırılmamış olması; yani bizi koruyan şey bir kontrol değil, bir
+     tesadüf. Yapılandırma eksikse doğru davranış hizmeti kapatmaktır. */
+  if (!HOOK_SECRET) {
+    console.error('[send-sms] SEND_SMS_HOOK_SECRET tanımlı değil — istek reddedildi');
+    return false;
+  }
   const id = headers.get('webhook-id');
   const ts = headers.get('webhook-timestamp');
   const sigHeader = headers.get('webhook-signature');
@@ -32,12 +53,17 @@ async function verifySignature(headers: Headers, body: string): Promise<boolean>
   const mac = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(signed));
   const expected = btoa(String.fromCharCode(...new Uint8Array(mac)));
   // header: "v1,<sig> v1,<sig2> ..."
-  return sigHeader.split(' ').some((p) => p.split(',')[1] === expected);
+  return sigHeader.split(' ').some((p) => esitMi(p.split(',')[1] ?? '', expected));
 }
 
 /* ----- NetGSM OTP gönderimi ----- */
 async function sendOtp(phone: string, message: string): Promise<{ ok: boolean; raw: string }> {
-  const no = phone.replace(/^\+/, ''); // E.164 "+9055..." -> "9055..."
+  /* Rakam dışındaki her şey atılıyor. Numara Supabase'in hook gövdesinden
+     geliyor ve E.164 doğrulamasından geçmiş oluyor, yani bugün temiz — ama
+     buradan çıkan şey doğrudan XML gövdesine giriyor ve `<no>` etiketini
+     kapatabilecek bir karakterin hiç ulaşmaması, ulaşmadığına güvenmekten
+     iyi. */
+  const no = phone.replace(/\D/g, ''); // E.164 "+9055..." -> "9055..."
   const xml =
     `<?xml version="1.0" encoding="UTF-8"?>` +
     `<mainbody><header>` +
@@ -81,7 +107,11 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: 'NetGSM yapılandırılmadı' }), { status: 500 });
   }
 
-  const message = `KIDS TRADE doğrulama kodunuz: ${otp}`;
+  /* Marka adı 2026-08-13'te ELDENELE oldu; bu satır o turda gözden kaçmış ve
+     hâlâ "KIDS TRADE" yazıyordu. SMS henüz hiç gönderilmediği için kimse
+     görmedi — ama telefon doğrulaması açıldığı gün kullanıcının göreceği ilk
+     şey eski marka adı olurdu. */
+  const message = `ELDENELE doğrulama kodunuz: ${otp}`;
   const result = await sendOtp(phone, message);
 
   if (!result.ok) {

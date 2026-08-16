@@ -887,11 +887,54 @@ RLS kapalı tablo 0, `authenticated` yazma yetkisi yalnızca gerçekten yazdığ
       **yanlış bir izlenim** yaratıyor ve diğer 30'u düzeltmiyor. Doğrusu ya
       hepsini `supabase migration repair` ile hizalamak ya da "bu depoda göçler
       `db push` ile uygulanmaz" kuralını yazmak. **Karar gerekiyor.**
-- [ ] **Edge Function kod incelemesi — ikinci geçişe kaldı.**
-      `iyzico-callback` gövdeye güvenmemeli (RETRIEVE ile doğrulama),
-      `send-sms` hook sırrı, JWT muafiyetleri tek tek gerekçelendirilmeli.
-- [ ] **Idempotency anahtarları — ikinci geçişe kaldı.** Puan fonksiyonlarının
-      yetkisi doğru, ama anahtarın tekrarı gerçekten önlediği ayrıca sınanmalı.
+### İkinci geçiş — Edge Function kod incelemesi (2026-08-16)
+
+**🔴 BULGU · düzeltildi ve dağıtıldı — `send-sms` imzasız isteği kabul
+ediyordu.** `verifySignature` ilk satırında `if (!HOOK_SECRET) return true`
+yazıyordu, yorumu "dev: secret yoksa atla". Bu uç `verify_jwt = false` ile
+**yayında** duruyor, yani hook sırrı tanımlı olmadığı sürece internetten gelen
+imzasız her istek kabul ediliyordu.
+
+NetGSM kimlik bilgileri girildiği gün, onaylı gönderici başlığımızla istediği
+numaraya istediği metni yollayabilen **açık bir SMS rölesi** olurdu — kontör de
+gider, marka da. Bugün patlamamasının tek sebebi NetGSM'in de yapılandırılmamış
+olması: bizi koruyan şey bir kontrol değil, bir tesadüftü.
+
+Artık sır yoksa **reddediyor** ve log'a yazıyor. Yayına alındı (sürüm 2).
+Aynı turda üç şey daha: HMAC karşılaştırması sabit süreli oldu, telefon
+numarası XML'e girmeden rakama indirgeniyor, ve SMS metni hâlâ
+**"KIDS TRADE"** diyordu — marka 2026-08-13'te değişmiş, bu satır atlanmış.
+
+**🟠 BULGU · düzeltildi (dağıtım iyzico anahtarlarını bekliyor) —
+`iyzico-callback` ödenen tutarı hiç doğrulamıyordu.** `paidPrice` okunmuyor,
+yalnızca "başarılı mı" soruluyordu. Bugün sömürülebilir değil (tutarı
+`cargo-payment-init` belirliyor, token bizim satırımıza bağlı) ama ödeme
+doğrulamasında tutara bakmamak kontrolün yarısını yapmaktır. Artık `paidPrice`
+`cargo_payments.amount` ile karşılaştırılıyor, kuruş toleransıyla.
+
+İki şey daha: takas artık `trade_id` ile anahtarlanıyor (eskiden iyzico'ya
+bakan `conversation_id` kullanılıyordu — bugün aynı değeri taşıyorlar, ama
+ödeme yeniden başlatılıp conversationId'ye sonek eklendiği gün callback takası
+sessizce ilerletemez olurdu); ve RETRIEVE patlarsa artık istisna dışarı
+sızmıyor — ödemesini yapmış kullanıcı 500 yerine uygulamaya dönüyor, kayıt
+`PENDING` kalıyor.
+
+- [x] **JWT muafiyetleri gerekçelendirildi.** Dördü de `config.toml`'da yazılı
+      ve doğru: `iyzico-callback` (iyzico oturum taşıyamaz) ve `send-sms`
+      (hook imzası fonksiyonun içinde) muaf; `photo-check` ve
+      `cargo-payment-init` oturum istiyor. Yayındaki değerler dosyayla uyuşuyor.
+- [ ] **`expire_stale_trades` de `conversation_id` ile anahtarlıyor.**
+      `where c.conversation_id = t.id::text and c.status = 'PAID'` →
+      `c.trade_id = t.id::text` olmalı. Callback'te düzeltildi, burada
+      **bilerek bırakıldı**: burası bir karar değil koruma ("ödeme varsa iade
+      etme") ve bugün doğru çalışıyor; 60 satırlık para-kritik bir cron
+      fonksiyonunu tek tanımlayıcı için yeniden yazmanın transkripsiyon riski,
+      gizli kalmış bir kusurun riskinden büyük. Ayrı ve dikkatli bir turda.
+- [ ] **Idempotency anahtarları — hâlâ açık.** Puan fonksiyonlarının yetkisi
+      doğru ve `iyzico-callback`'in idempotency'si okundu (koşullu `update` ile
+      yarış korunuyor). Sınanmayan: `earn_points` / `grant_campaign_points`
+      aynı anahtarla iki kez çağrılırsa gerçekten tek kez mi işliyor.
+- [ ] **`cargo-payment-init` okunmadı** (192 satır) — bu geçişte sıra gelmedi.
 
 ### Kapsam — uygulama
 - [x] **Sırlar.** Mobil ağaçtaki tek JWT `"role":"anon"`; `service_role` yalnızca
