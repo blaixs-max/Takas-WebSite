@@ -1,6 +1,6 @@
 # ELDENELE — Yol Haritası / TODO
 
-Son güncelleme: 2026-08-14 · Branch: `main`
+Son güncelleme: 2026-08-16 · Branch: `main`
 
 ## 🟢 Supabase artık gerçek
 
@@ -865,6 +865,56 @@ görünmüyordu:
       verilmeli; açık repoda sır tutulamaz.
 - [ ] Bulguların her biri ya kapatılır ya da "kabul edildi, gerekçesi şu"
       diye yazılır. Sessizce bırakılan bulgu yok.
+
+## 🌐 Alan adı — `eldeneletakas.com` (2026-08-16 · sürüyor)
+
+Alan adı GoDaddy'den alındı. Adım adım talimat **`KURULUM.md`** dosyasında;
+burada yalnızca durum takibi var. Sıra bozulmaz: DNS yeşile dönmeden Resend
+doğrulanmaz, Resend doğrulanmadan SMTP tanımlanmaz.
+
+**Panelde yapılacaklar (kullanıcıda):**
+
+- [ ] **Vercel — alan adı eklenir.** `takas-site` → Settings → Domains.
+      `eldeneletakas.com` ve `www.eldeneletakas.com` ayrı ayrı eklenir.
+      **"Redirect apex domains to www" işareti kaldırılır** — ana adres apex
+      (`eldeneletakas.com`), `www` ona yönlenir. Ters kurulsaydı paylaşım
+      kartındaki ve uygulamadaki beş sabit adres `www`'lu olmak zorunda kalırdı.
+- [ ] **GoDaddy — iki DNS kaydı Vercel'in verdiği değerlerle düzenlenir.**
+      `A · @` (şu an park IP'si `13.248.243.5` / `76.223.105.230`) ve
+      `CNAME · www` (şu an `eldeneletakas.com.`).
+      **Silinmez, düzenlenir** — Domain Forwarding açıksa silinen kayıt geri
+      yazılır ve neyin ne olduğu karışır. TTL 600.
+      Ayrıca **Domain Forwarding kapalı** olmalı; açık kaldığı sürece bütün
+      düzenlemeleri geri alır.
+      Doğrulama: Vercel'de iki adresin de yanında yeşil tik, tarayıcıda
+      `https://eldeneletakas.com` ELDENELE sitesini açıyor.
+- [ ] **Resend** — hesap, `eldeneletakas.com` alan adı (bölge **EU/Ireland**),
+      verdiği 3–4 kayıt GoDaddy'ye girilir, "Verified" beklenir, sonra
+      `supabase-auth` adlı API anahtarı üretilir (`re_…`, bir kez gösterilir).
+- [ ] **Supabase SMTP** — `smtp.resend.com:465`, kullanıcı `resend`, gönderen
+      `destek@eldeneletakas.com`.
+- [ ] **Supabase URL yapılandırması** — Site URL `https://eldeneletakas.com`,
+      izin listesine `eldenele://auth-callback`.
+- [ ] **E-posta şablonları Türkçe'ye çevrilir** (dördü de varsayılanda İngilizce).
+- [ ] **GoDaddy e-posta yönlendirmesi** — `destek@eldeneletakas.com` kendi
+      kutuna düşsün; `noreply@` kullanılmıyor, cevap yazan kullanıcı boşluğa
+      yazmasın diye.
+
+**Kodda yapılacaklar (bende — DNS yeşile döndükten sonra):**
+
+- [ ] `app/auth-callback` ekranı yazılacak — **şu an hiç yok.** `_layout.tsx`
+      onu `AUTH_ROUTES` içinde sayıyor ama dosya mevcut değil. OAuth akışı
+      tarayıcı oturumunu kendi yakaladığı için bugüne kadar patlamadı;
+      **şifre sıfırlama bağlantısı doğrudan o rotaya düşüyor.** Bu madde
+      alan adından bağımsız olarak da bir kusur.
+- [ ] `index.html` — dört meta etiketinde `takas-site.vercel.app` →
+      `eldeneletakas.com` (canonical, og:url, og:image, twitter:image)
+- [ ] `mobile/lib/brand.ts` — `WEB_URL` aynı şekilde
+- [ ] Alan adı iki reponun dokümanlarına işlenecek
+
+**Ertelendi (kullanıcı kararı):** Vercel'deki artık `takas-web-site` projesi
+silinecek — acelesi yok. Not: o projede **Vercel Authentication zaten açık**
+(`all_except_custom_domains`), yani dışarıya açık değil.
 
 ## 🚀 Yayın (config gerektirir)
 - [ ] Supabase dashboard: Google/Apple provider + redirect `eldenele://auth-callback`

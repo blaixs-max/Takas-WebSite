@@ -12,8 +12,8 @@ Vercel projesi: `takas-site` (takım `blaixs-4009s-projects`)
 
 | # | Adım | Durum |
 |---|---|---|
-| 1 | GoDaddy park kayıtları temizlendi | ☐ |
-| 2 | Vercel'e alan adı eklendi | ☐ ölçüldü, **eklenmemiş** |
+| 1 | GoDaddy Forwarding kapatıldı | ☐ |
+| 2 | Vercel'e alan adı eklendi | ☐ ölçüldü, **eklenmemiş** · kutu açıldı, işaret kaldırılacak |
 | 3 | GoDaddy'ye Vercel kayıtları girildi | ☐ ölçüldü, **girilmemiş** |
 | 4 | Resend hesabı + alan adı | ☐ |
 | 5 | GoDaddy'ye Resend kayıtları girildi | ☐ ölçüldü, **TXT/MX yok** |
@@ -36,8 +36,13 @@ Yapılacak:
 
 1. **Domain Forwarding varsa kapat.** (Aynı sayfada "Forwarding" bölümü.)
    Açık kaldığı sürece sildiğin kayıtları geri yazar — en sinsi hata budur.
-2. Listedeki **`A` · `@`** kaydını sil (park IP'sine gidiyor).
-3. Listedeki **`CNAME` · `www`** kaydını sil.
+2. **`A` · `@`** ve **`CNAME` · `www`** kayıtları listede zaten var (ilki park
+   IP'sine, ikincisi alan adının kendisine gidiyor). **Bunları silme** — adım
+   3'te Vercel'in değerleriyle **yerinde düzenleyeceğiz.**
+
+> Silmek yerine düzenlemenin sebebi: GoDaddy silinen kayıtları Forwarding veya
+> "Website Builder" bağlıysa geri yazıyor, ve arada alan adı bir süre hiçbir
+> yeri göstermiyor. Düzenlemede öyle bir boşluk oluşmuyor.
 
 > **GoDaddy'nin Name alanı alan adını kendisi ekler.** `@`, `www`,
 > `resend._domainkey` yazacaksın — sonuna `.eldeneletakas.com` **ekleme**,
@@ -58,14 +63,25 @@ saat beklersin.
 3. Vercel ikisi için de **"Invalid Configuration"** gösterecek ve altında
    girmen gereken DNS kayıtlarını yazacak. **O ekranı açık bırak.**
 
-Vercel hangi yönlendirmeyi soracak: `www` → apex mi, apex → `www` mi.
-Öneri: **apex ana adres** (`eldeneletakas.com`), `www` ona yönlensin.
+> **Ekleme kutusundaki "Redirect apex domains to www (recommended)" işaretini
+> KALDIR.** İşaretli bırakılırsa Vercel ana adresi `www.eldeneletakas.com`
+> yapar ve apex ona yönlenir — istediğimizin tersi.
+
+Ana adres **apex** (`eldeneletakas.com`), `www` ona yönlenir. Sebep: sitede ve
+uygulamada beş yerde sabit yazılı bir adres var (`index.html`'deki dört meta
+etiketi, `mobile/lib/brand.ts`'teki `WEB_URL`) ve paylaşım kartı da onu taşıyor.
+`www` ana adres olsaydı beşi de `www`'lu olmak zorunda kalırdı.
+
+`www`'yu ekledikten sonra satırının sağındaki **Edit** → **Redirect to** →
+`eldeneletakas.com` seçilir.
 
 ---
 
 ## 3 · GoDaddy — Vercel kayıtlarını gir
 
-Vercel'in gösterdiği değerleri **birebir** gir. Tipik olarak:
+Mevcut iki kaydın **kalem simgesine** basıp değerlerini değiştir (yeni kayıt
+ekleme, eskisini silme). Vercel'in gösterdiği değerleri **birebir** gir.
+Tipik olarak:
 
 | Tip | Name | Value | TTL |
 |---|---|---|---|
