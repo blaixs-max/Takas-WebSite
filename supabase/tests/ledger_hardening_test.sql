@@ -9,7 +9,11 @@
 
 \set b '11111111-1111-1111-1111-111111111111'
 \set s '22222222-2222-2222-2222-222222222222'
-\set t1 'aaaaaaaa-0000-0000-0000-000000000001'
+-- Kimlik `points_ledger_test.sql` ile çakışmamalı: testler tek veri tabanında
+-- sırayla koşuyor ve orada da `aaaa…0001` kullanılıyordu. İkisi birlikte
+-- çalıştırılınca ikincisi `trades_pkey` çakışmasıyla düşüyordu — kod kusuru
+-- değil, sabit kimlik çakışması.
+\set t1 'aaaaaaaa-0000-0000-0000-00000000b001'
 
 \echo ''
 \echo '=== 1) earn_points idempotent: aynı anahtarla iki çağrı ==='

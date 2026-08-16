@@ -892,42 +892,20 @@ RLS kapalı tablo 0, `authenticated` yazma yetkisi yalnızca gerçekten yazdığ
       ve doğru: `iyzico-callback` (iyzico oturum taşıyamaz) ve `send-sms`
       (hook imzası fonksiyonun içinde) muaf; `photo-check` ve
       `cargo-payment-init` oturum istiyor. Yayındaki değerler dosyayla uyuşuyor.
-- [ ] **`expire_stale_trades` de `conversation_id` ile anahtarlıyor.**
-      `where c.conversation_id = t.id::text and c.status = 'PAID'` →
-      `c.trade_id = t.id::text` olmalı. Callback'te düzeltildi, burada
-      **bilerek bırakıldı**: burası bir karar değil koruma ("ödeme varsa iade
-      etme") ve bugün doğru çalışıyor; 60 satırlık para-kritik bir cron
-      fonksiyonunu tek tanımlayıcı için yeniden yazmanın transkripsiyon riski,
-      gizli kalmış bir kusurun riskinden büyük. Ayrı ve dikkatli bir turda.
-- [ ] **Idempotency anahtarları — hâlâ açık.** Puan fonksiyonlarının yetkisi
-      doğru ve `iyzico-callback`'in idempotency'si okundu (koşullu `update` ile
-      yarış korunuyor). Sınanmayan: `earn_points` / `grant_campaign_points`
-      aynı anahtarla iki kez çağrılırsa gerçekten tek kez mi işliyor.
-**🔴 BULGU · düzeltildi (dağıtım anahtarları bekliyor) — "para alındı ama
-kayıt bulunamadı".** `cargo-payment-init` yarım kalmış bir denemeyi yeniden
-başlatırken aynı satırı kullanıp `token`'ı **üzerine yazıyordu.** Eski token
-iyzico tarafında hâlâ geçerli olabiliyor:
+- [x] **`expire_stale_trades` artık `trade_id` ile anahtarlıyor** (2026-08-16).
+      Canlıdaki tanım `pg_get_functiondef` ile alınıp yalnızca aranan kolon
+      değiştirildi — transkripsiyon riski böyle kapatıldı.
 
-1. Alıcı ödemeyi başlatıyor, iyzico sayfası açılıyor (token A).
-2. Sayfayı kapatmadan uygulamaya dönüp yeniden deniyor — token B yazılıyor,
-   A siliniyor.
-3. Alıcı **açık duran eski sekmeye** dönüp ödemeyi orada tamamlıyor.
-4. Callback token A ile geliyor, `.eq('token', A)` hiçbir şey bulmuyor → 404.
+      Yol üstünde ayrı bir bulgu: **yayındaki gövdede yorumlar yoktu.** Göç
+      dosyası sekiz yorum satırı taşıyor, canlı tanım hiçbirini. Mantık satır
+      satır aynıydı ama bu, depo ile veri tabanının sessizce ayrışabildiğinin
+      kanıtı. Gövde yorumlarıyla birlikte geri yazıldı.
 
-Sonuç: **para çekilmiş, hiçbir yere yazılmamış.** Takas `POINTS_HELD`'de
-kalıyor, `expire_stale_trades` PAID kayıt göremediği için puanı iade edip
-takası iptal ediyor — alıcı hem kargo parasını veriyor hem takası kaybediyor.
-
-Düzeltme: `previous_tokens text[]` (GIN indeksli) + `cargo_payment_token_arsivle`
-RPC'si; callback ilk aramada bulamazsa geçmişe bakıyor.
-
-**🟠 Kendi düzeltmemin kusuru — tutar uyuşmazlığında `FAILED` yazıyordum.**
-Bu geçişte eklediğim tutar denetimini `paid = onay && tutarTutuyor` diye
-kurmuştum; kalan hâller `FAILED`'a düşüyordu. Yanlış: `FAILED` "para hareket
-etmedi" iddiasıdır, oysa bu dalda iyzico ödemeyi **onaylamış**, yalnızca
-miktar beklediğimiz değil — ve bu, fiyat tazelenip alıcı eski sayfayı
-tamamladığında gerçekten olabiliyor. Artık kayıt `PENDING` kalıyor, log
-bağırıyor, kararı insan veriyor.
+- [x] **Idempotency zaten sınanıyormuş** (2026-08-16). Yeni test yazmak
+      gerekmedi: `ledger_hardening_test.sql`'in ilk bölümü tam olarak bunu
+      yapıyor — `earn_points` aynı anahtarla iki kez çağrılıyor, ikinci çağrının
+      puan basmadığı ve defterde tek satır kaldığı doğrulanıyor. Anahtarsız
+      çağrının reddedildiği de sınanıyor. **Koşuldu ve geçti.**
 
 - [x] **`cargo-payment-init` okundu.** Gerisi sağlam: fiyatı sunucu hesaplıyor
       (`quote_trade_price`), çağıranın takasın **alıcısı** olduğu doğrulanıyor,
@@ -941,10 +919,21 @@ bağırıyor, kararı insan veriyor.
       `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
       Yani kaynakta olmayan bir şey pakete de inemez — TODO "derlenmiş pakette
       ara" diyordu, `EXPO_PUBLIC_` listesi bunun daha güçlü hâli.
-- [ ] **Derin bağlantılar — ikinci geçişe kaldı.** `auth-callback` bugün
-      yazıldı ve gelen parametreleri Supabase'in kendi doğrulamasına veriyor
-      (`exchangeCodeForSession` / `verifyOtp`), yani sahte bir `code` oturum
-      üretmiyor. `payment-result` ayrıca okunmalı.
+- [x] **Derin bağlantılar incelendi** (2026-08-16). `openCheckout` sağlam:
+      dönüş `openAuthSessionAsync` ile yakalanıyor, sonuç **bilgilendirme
+      olarak** ele alınıyor (kanıt değil — gerçeği `iyzico-callback` belirler)
+      ve bilinmeyen durum güvenli dala düşüyor.
+
+      **Ama `payment-result` ekranı yoktu** — `auth-callback` ile tam olarak
+      aynı kusur. Normalde görünmüyor çünkü tarayıcı oturumu dönüşü kendi
+      yakalıyor; uygulama tarayıcı açıkken **öldürülürse** (Android'de düşük
+      bellekte sık) sistem o rotayla soğuk açıyor ve yakalayacak oturum
+      kalmıyordu. Kullanıcı parasını ödeyip eşleşmeyen bir ekrana iniyordu.
+      Ekran yazıldı; `status`'ü kanıt saymıyor, yalnızca cümle kurup
+      Takaslarım'a gönderiyor.
+- [ ] **`+not-found` ekranı yok.** Eşleşmeyen her derin bağlantı Expo'nun
+      geliştirici ekranını gösteriyor. `auth-callback` ve `payment-result`
+      yazıldı ama üçüncü bir eşleşmeyen adres yine boşluğa düşer.
 - [ ] **Oturum saklama — ikinci geçişe kaldı.** Jeton `AsyncStorage`'da, yani
       **şifresiz**. Root'lu/jailbreak'li cihazda okunabilir. Karar gerektiriyor:
       `expo-secure-store`'a taşımak native modül demek değil (Expo Go'da var).

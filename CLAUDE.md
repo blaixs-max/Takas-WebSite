@@ -49,6 +49,21 @@ Anon anahtarı `mobile/eas.json` içindeki üç build profilinde yazılıdır; g
 değildir, uygulama paketine zaten gömülür. `service_role` anahtarı repoda
 **hiçbir yerde bulunmaz** — yalnızca Edge Function ortamında.
 
+**Göçler ve testler yerelde koşturulabilir: `supabase/tests/kosu.sh`.**
+Temiz bir veri tabanı kurar, `00_yerel_kurulum.sql` ile Supabase'e özgü şeyleri
+(auth/storage/cron şemaları, üç rol, `auth.uid()`, **varsayılan yetkiler**)
+taklit eder, bütün göçleri uygular, sonra test paketini koşar. Bugün: 37 göç,
+18 test, sıfır hata.
+
+**Bunu çalıştırmak zorunlu, çünkü göçler canlıya panelden/MCP'den uygulanıyor
+— yani dosyaların kendisi hiç çalıştırılmıyor.** 2026-08-16'da tam olarak bu
+yüzden repoda sözdizimi hatalı bir göç dosyası fark edilmeden durdu: veri
+tabanı doğruydu, dosya bozuktu. Aynı gün ikinci bir ayrışma daha çıktı —
+`expire_stale_trades`'in yayındaki gövdesinde göç dosyasındaki yorumlar yoktu.
+`00_yerel_kurulum.sql` varsayılan yetkileri **göçlerden önce** kurar; kurmazsa
+`yetki_daraltma` geri alacak bir şey bulamaz ve test üretimden farklı bir
+dünyada koşar, yani hiçbir şey kanıtlamaz.
+
 **Göç dosya adları sunucudaki sürümlerle birebir aynıdır.** 2026-08-16'da
 hizalandı: repo elle seçilmiş yuvarlak damgalar kullanıyordu, sunucu gerçek
 uygulama anını kaydetmişti ve hiçbiri eşleşmiyordu. Yeni bir göç uygulandıktan

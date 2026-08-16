@@ -90,6 +90,12 @@ function RootNavigator() {
           — form orada olsaydı görünür görünmez kaybolurdu. */}
       <Stack.Screen name="auth-callback" />
       <Stack.Screen name="yeni-sifre" options={{ presentation: 'card' }} />
+      {/* Ödeme dönüşü. Normalde görünmez — `openAuthSessionAsync` dönüşü
+          kendi yakalar. Uygulama tarayıcı açıkken öldürülürse (Android'de
+          düşük bellekte sık) sistem bu rotayla soğuk açıyor ve yakalayacak
+          oturum kalmıyor; rota olmadan kullanıcı parasını ödeyip hiçbir yere
+          inmiyordu. AUTH_ROUTES'a girmiyor: buraya gelindiğinde oturum açık. */}
+      <Stack.Screen name="payment-result" options={{ presentation: 'card' }} />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="trades" options={{ presentation: 'card' }} />
       <Stack.Screen name="wallet" options={{ presentation: 'card' }} />

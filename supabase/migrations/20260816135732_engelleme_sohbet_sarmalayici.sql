@@ -1,6 +1,7 @@
 -- Sohbetten engelleme sarmalayıcısı.
 -- kullanici_engelleme göçünün hemen ardından ayrı olarak uygulandı.
--- ------------------------------------------- sohbetten engelleme sarmalayıcı/**
+
+/**
  * Karşı tarafı sohbet üzerinden engeller.
  *
  * Uygulamanın kullandığı giriş noktası bu. `block_user` karşı tarafın
