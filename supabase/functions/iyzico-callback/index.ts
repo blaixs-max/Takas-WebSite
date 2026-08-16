@@ -66,11 +66,30 @@ Deno.serve(async (req) => {
      conversationId'ye bir sonek eklenirse, ki çok doğal bir hamle — callback
      takası sessizce ilerletemez hâle gelirdi. Kendi tablomuzu kendi
      anahtarımızla anahtarlıyoruz. */
-  const { data: payment } = await supabase
+  const KOLONLAR = 'id, trade_id, conversation_id, status, amount';
+
+  let { data: payment } = await supabase
     .from('cargo_payments')
-    .select('id, trade_id, conversation_id, status, amount')
+    .select(KOLONLAR)
     .eq('token', token)
-    .single();
+    .maybeSingle();
+
+  /* Güncel token tutmadıysa geçmişe bak.
+     `cargo-payment-init` yarım kalmış bir denemeyi yeniden başlatınca token'ı
+     değiştiriyor, ama eskisi iyzico tarafında hâlâ geçerli olabiliyor. Alıcı
+     açık duran eski sayfayı tamamlarsa callback o token'la geliyor; burada
+     durup 404 dönseydik **para çekilmiş, hiçbir yere yazılmamış** olurdu. */
+  if (!payment) {
+    const { data: eski } = await supabase
+      .from('cargo_payments')
+      .select(KOLONLAR)
+      .contains('previous_tokens', [token])
+      .maybeSingle();
+    if (eski) {
+      console.warn('[iyzico-callback] ödeme eski token ile bulundu', eski.trade_id);
+      payment = eski;
+    }
+  }
 
   if (!payment) return new Response('ödeme bulunamadı', { status: 404 });
 
@@ -109,13 +128,22 @@ Deno.serve(async (req) => {
 
   const iyzicoOnayladi = result.status === 'success' && result.paymentStatus === 'SUCCESS';
 
+  /* Tutar tutmuyorsa FAILED YAZMIYORUZ.
+     İlk yazdığımda `paid = onay && tutarTutuyor` deyip gerisini FAILED'e
+     bırakmıştım; yanlıştı. FAILED "para hareket etmedi" iddiasıdır ve burada
+     tam tersi biliniyor: iyzico ödemeyi onayladı, yalnızca miktar beklediğimiz
+     değil. Bu, ödeme yeniden başlatılıp fiyat tazelendiğinde gerçekten
+     olabilecek bir durum — alıcı açık duran eski sayfayı eski fiyattan
+     tamamlar. Kayıt PENDING kalıyor, log bağırıyor, kararı insan veriyor. */
   if (iyzicoOnayladi && !tutarTutuyor) {
     console.error(
-      `[iyzico-callback] TUTAR UYUŞMUYOR trade=${payment.trade_id} beklenen=${beklenen} odenen=${odenen}`,
+      `[iyzico-callback] TUTAR UYUŞMUYOR — insan incelemesi gerekiyor. ` +
+        `trade=${payment.trade_id} beklenen=${beklenen} odenen=${odenen} paymentId=${result.paymentId}`,
     );
+    return redirect('pending', payment.trade_id);
   }
 
-  const paid = iyzicoOnayladi && tutarTutuyor;
+  const paid = iyzicoOnayladi;
 
   // Yalnızca hâlâ PENDING ise yaz: iki callback yarışırsa biri boşa düşer.
   const { data: updated } = await supabase

@@ -173,6 +173,20 @@ Deno.serve(async (req) => {
     return json({ error: 'iyzico başlatma başarısız', detail: result.errorMessage }, 502);
   }
 
+  /* Eski token kaybolmuyor, geçmişe ekleniyor.
+     Üzerine yazıldığında iyzico tarafında hâlâ geçerli olabiliyor: alıcı açık
+     duran eski ödeme sayfasını tamamlarsa callback o token'la geliyordu ve
+     satırı bulamıyordu — para çekilmiş, hiçbir yere yazılmamış olurdu.
+     Aynı token yeniden dönerse arşivlemiyoruz. */
+  if (mevcut?.token && mevcut.token !== result.token) {
+    const { error: arsivHata } = await supabase.rpc('cargo_payment_token_arsivle', {
+      p_payment_id: paymentId,
+      p_eski_token: mevcut.token,
+    });
+    if (arsivHata) {
+      console.error('[cargo-payment-init] eski token arşivlenemedi', paymentId, arsivHata.message);
+    }
+  }
   await supabase.from('cargo_payments').update({ token: result.token }).eq('id', paymentId);
 
   return json({

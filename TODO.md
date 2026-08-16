@@ -934,7 +934,36 @@ sızmıyor — ödemesini yapmış kullanıcı 500 yerine uygulamaya dönüyor, 
       doğru ve `iyzico-callback`'in idempotency'si okundu (koşullu `update` ile
       yarış korunuyor). Sınanmayan: `earn_points` / `grant_campaign_points`
       aynı anahtarla iki kez çağrılırsa gerçekten tek kez mi işliyor.
-- [ ] **`cargo-payment-init` okunmadı** (192 satır) — bu geçişte sıra gelmedi.
+**🔴 BULGU · düzeltildi (dağıtım anahtarları bekliyor) — "para alındı ama
+kayıt bulunamadı".** `cargo-payment-init` yarım kalmış bir denemeyi yeniden
+başlatırken aynı satırı kullanıp `token`'ı **üzerine yazıyordu.** Eski token
+iyzico tarafında hâlâ geçerli olabiliyor:
+
+1. Alıcı ödemeyi başlatıyor, iyzico sayfası açılıyor (token A).
+2. Sayfayı kapatmadan uygulamaya dönüp yeniden deniyor — token B yazılıyor,
+   A siliniyor.
+3. Alıcı **açık duran eski sekmeye** dönüp ödemeyi orada tamamlıyor.
+4. Callback token A ile geliyor, `.eq('token', A)` hiçbir şey bulmuyor → 404.
+
+Sonuç: **para çekilmiş, hiçbir yere yazılmamış.** Takas `POINTS_HELD`'de
+kalıyor, `expire_stale_trades` PAID kayıt göremediği için puanı iade edip
+takası iptal ediyor — alıcı hem kargo parasını veriyor hem takası kaybediyor.
+
+Düzeltme: `previous_tokens text[]` (GIN indeksli) + `cargo_payment_token_arsivle`
+RPC'si; callback ilk aramada bulamazsa geçmişe bakıyor.
+
+**🟠 Kendi düzeltmemin kusuru — tutar uyuşmazlığında `FAILED` yazıyordum.**
+Bu geçişte eklediğim tutar denetimini `paid = onay && tutarTutuyor` diye
+kurmuştum; kalan hâller `FAILED`'a düşüyordu. Yanlış: `FAILED` "para hareket
+etmedi" iddiasıdır, oysa bu dalda iyzico ödemeyi **onaylamış**, yalnızca
+miktar beklediğimiz değil — ve bu, fiyat tazelenip alıcı eski sayfayı
+tamamladığında gerçekten olabiliyor. Artık kayıt `PENDING` kalıyor, log
+bağırıyor, kararı insan veriyor.
+
+- [x] **`cargo-payment-init` okundu.** Gerisi sağlam: fiyatı sunucu hesaplıyor
+      (`quote_trade_price`), çağıranın takasın **alıcısı** olduğu doğrulanıyor,
+      durum `POINTS_HELD` değilse reddediliyor, PAID ödeme varsa ikinci kez
+      başlatılmıyor.
 
 ### Kapsam — uygulama
 - [x] **Sırlar.** Mobil ağaçtaki tek JWT `"role":"anon"`; `service_role` yalnızca
