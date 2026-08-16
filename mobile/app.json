@@ -20,8 +20,8 @@
       "bundleIdentifier": "com.eldenele.app",
       "buildNumber": "1",
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "Takas için ürün fotoğrafı seçmek üzere galeriye erişim gerekir.",
-        "NSCameraUsageDescription": "Ürün fotoğrafı çekmek için kamera erişimi gerekir."
+        "NSCameraUsageDescription": "İlan fotoğrafları yalnızca kamerayla çekilir; bunun için kamera erişimi gerekir.",
+        "NSPhotoLibraryUsageDescription": "Yalnızca itiraz sürecinde kanıt fotoğrafı eklemek için galeriye erişim gerekir. İlan fotoğrafları galeriden seçilemez."
       }
     },
     "android": {

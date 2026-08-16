@@ -66,31 +66,46 @@ export default function ListingPhotos() {
   const cekilen = slotlar.filter(tamam).length;
   const hepsiVar = cekilen === slotlar.length;
 
-  async function cek(kaynak: 'kamera' | 'galeri') {
-    const izin =
-      kaynak === 'kamera'
-        ? await ImagePicker.requestCameraPermissionsAsync()
-        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+  /**
+   * Kare **yalnızca kamerayla** çekilir; galeriden seçmek kaldırıldı.
+   *
+   * Bu bir sadeleştirme değil, sahteciliğe karşı bir kapı. Galeri açıkken
+   * satıcı üreticinin stok fotoğrafını, başka bir ilanın karesini ya da
+   * internetten indirdiği bir görseli yükleyebiliyordu; ikinci elde alıcının
+   * tek dayanağı fotoğraf olduğu için bu, sistemin en zayıf yeriydi.
+   * Kameradan gelen kare o an, o ürünün karşısında çekilmiş olur.
+   *
+   * Tam güvence değil — kararlı biri ekranı fotoğraflayabilir. Ama kolay
+   * yolu kapatmak, dolandırıcılığın büyük kısmını kolay olduğu için
+   * yapıldığından, tek başına ciddi bir fark yaratır.
+   *
+   * Sonucu: `NSPhotoLibraryUsageDescription` ve `READ_MEDIA_IMAGES` izinleri
+   * de düştü. Kullanılmayan izni istemek hem mağaza incelemesinde soru
+   * doğurur hem kullanıcıya haksız bir şey sorar.
+   */
+  async function cek() {
+    const izin = await ImagePicker.requestCameraPermissionsAsync();
     if (!izin.granted) {
-      uyar(
-        'İzin gerekli',
-        kaynak === 'kamera'
-          ? 'Fotoğraf çekmek için kamera izni vermen gerekiyor.'
-          : 'Galeriden seçmek için izin vermen gerekiyor.',
-      );
+      uyar('İzin gerekli', 'Fotoğraf çekmek için kamera izni vermen gerekiyor.');
       return;
     }
 
-    const secenekler: ImagePicker.ImagePickerOptions = {
+    /* `allowsEditing` + `aspect: [4,3]` kaldırıldı.
+     *
+       Bu ikisi, çekimden hemen sonra sistemin kırpma ekranını açıyor ve kareyi
+       zorla 4:3'e indiriyordu — telefon 16:9 çektiğinde altından belirgin bir
+       parça gidiyordu. Satıcı "kadrajı doldur" diye çektiği kareyi eksik
+       yüklüyordu ve kaybolan kısım çoğu zaman ürünün alt tarafı, yani
+       tekerlek, ayak, taban oluyordu.
+
+       Artık kamera karesi olduğu gibi yükleniyor. Kırpma yalnızca **gösterim
+       anında** yapılıyor (kart 1.5, hero 1.54, ikisi de `cover`) — ama asıl
+       dosya tam, tam ekran görüntüleyici bütün kareyi gösteriyor ve
+       moderasyon da tam kareyi görüyor. */
+    const sonuc = await ImagePicker.launchCameraAsync({
       mediaTypes: ['images'],
       quality: 0.8,
-      allowsEditing: true,
-      aspect: [4, 3],
-    };
-    const sonuc =
-      kaynak === 'kamera'
-        ? await ImagePicker.launchCameraAsync(secenekler)
-        : await ImagePicker.launchImageLibraryAsync(secenekler);
+    });
 
     if (sonuc.canceled || !sonuc.assets?.[0]?.uri) return;
     const uri = sonuc.assets[0].uri;
@@ -187,7 +202,7 @@ export default function ListingPhotos() {
             yoksa sunucudaki kare gösteriliyor. */}
         <View style={styles.onizleme}>
           {onizlemeUri ? (
-            <Image source={{ uri: onizlemeUri }} style={styles.onizlemeImg} />
+            <Image source={{ uri: onizlemeUri }} style={styles.onizlemeImg} resizeMode="contain" />
           ) : durum ? (
             /* Kare var ama bağlantı üretilemedi — "çekilmedi" demek yanlış olur. */
             <View style={styles.onizlemeBos}>
@@ -243,46 +258,21 @@ export default function ListingPhotos() {
           </View>
         )}
 
-        {/* Kare bitmişse çekim düğmeleri geri çekiliyor.
-
-            İki dolu turkuaz düğme ekranın ortasında dururken, kare çoktan
-            onaylanmış olsa bile yapılacak iş buymuş gibi okunuyordu. Bitmiş
-            karede ikisi de sönükleşiyor ve birincisi "Yeniden çek" oluyor;
-            asıl eylem alttaki "İlanı yayına al". Yetenek kaybolmuyor —
-            galeriden seçme duruyor, yalnızca vurgusu düşüyor. Reddedilen kare
-            bunun dışında: orada gerçekten yeniden çekmek gerekiyor, düğmeler
-            dolu kalıyor. */}
+        {/* Kare bitmişse düğme geri çekiliyor: dolu turkuaz bir düğme ekranın
+            ortasında dururken, kare çoktan onaylanmış olsa bile yapılacak iş
+            buymuş gibi okunuyordu. Bitmiş karede sönükleşiyor ve "Yeniden çek"
+            oluyor; asıl eylem alttaki "Kontrole gönder". Reddedilen kare bunun
+            dışında: orada gerçekten yeniden çekmek gerekiyor, düğme dolu
+            kalıyor. */}
         <View style={styles.cekButonlar}>
-          <Pressable
-            style={[styles.cekBtn, slotBitti && styles.cekBtnSessiz]}
-            onPress={() => cek('kamera')}
-          >
+          <Pressable style={[styles.cekBtn, slotBitti && styles.cekBtnSessiz]} onPress={cek}>
             <MaterialIcons
               name={slotBitti ? 'refresh' : 'photo-camera'}
               size={20}
               color={slotBitti ? colors.onSurfaceVariant : '#fff'}
             />
             <Text style={[styles.cekBtnText, slotBitti && styles.cekBtnTextSessiz]}>
-              {slotBitti ? 'Yeniden çek' : 'Kamerayı aç'}
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[styles.cekBtn, styles.cekBtnIkincil, slotBitti && styles.cekBtnSessiz]}
-            onPress={() => cek('galeri')}
-          >
-            <MaterialIcons
-              name="photo-library"
-              size={20}
-              color={slotBitti ? colors.onSurfaceVariant : colors.primary}
-            />
-            <Text
-              style={[
-                styles.cekBtnText,
-                { color: colors.primary },
-                slotBitti && styles.cekBtnTextSessiz,
-              ]}
-            >
-              Galeriden seç
+              {slotBitti ? 'Yeniden çek' : 'Kamera ile çek'}
             </Text>
           </Pressable>
         </View>
@@ -358,6 +348,9 @@ const styles = StyleSheet.create({
   rehberBaslik: { fontSize: 16, fontWeight: '800', color: colors.onSurface },
   rehberYonerge: { fontSize: 13.5, color: colors.onSurface, fontWeight: '500', marginTop: 3 },
   rehberNeden: { fontSize: 12, color: colors.onSurfaceVariant, fontWeight: '500', marginTop: 4 },
+  /* Önizleme `contain`: satıcı **yükleyeceği karenin tamamını** görsün.
+     `cover` olsaydı ekranda kırpılmış görünür, kırpma kalktığı hâlde satıcı
+     hâlâ kesiliyor sanırdı. */
   onizleme: {
     aspectRatio: 4 / 3,
     borderRadius: shape.lg,
@@ -417,7 +410,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  cekBtnIkincil: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: colors.primary },
   cekBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   tazele: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 16 },
   tazeleText: { fontSize: 12.5, color: colors.onSurfaceVariant, fontWeight: '600' },

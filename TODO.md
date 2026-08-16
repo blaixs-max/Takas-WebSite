@@ -766,6 +766,25 @@ hepsi 24 ekranın baskın renkleri sayılarak ölçüldü, göz kararı seçilme
 > ve şimdilik dokunulunca ne olduğunu söylüyor — sessizce hiçbir şey yapmayan
 > bir bağlantı değil. Yayından önce ya harita yazılacak ya bağlantı düşecek.
 
+## 📷 Kare çekimi (2026-08-14)
+
+- [x] **Galeriden seçme kaldırıldı** — ilan kareleri yalnızca kamerayla.
+      Satıcı stok fotoğrafı ya da başkasının karesini yükleyemiyor. Tam
+      güvence değil (kararlı biri ekranı fotoğraflar) ama kolay yolu kapatmak
+      dolandırıcılığın büyük kısmını keser, çünkü kolay olduğu için yapılıyor.
+- [x] **Zorunlu kırpma kaldırıldı** — `allowsEditing` + `aspect: [4,3]`
+      çekimden sonra sistemin kırpma ekranını açıp kareyi 4:3'e indiriyordu;
+      telefon 16:9 çektiğinde alttan belirgin bir parça gidiyordu ve kaybolan
+      yer çoğu zaman ürünün tabanı oluyordu. Artık kamera karesi olduğu gibi
+      yükleniyor; kırpma yalnızca gösterim anında (kart 1.5, hero 1.54).
+      Önizleme `contain` — satıcı yükleyeceği karenin tamamını görüyor.
+- [ ] **`trades.tsx` kanıt akışındaki galeri geri dönüşü gözden geçirilmeli.**
+      Şu an kamera izni verilmemişse **sessizce** galeriye düşüyor ve galeri
+      izni hiç istenmiyor — iOS'ta bu yol büyük ihtimalle hata verir.
+      Kanıt için galeri doğru (hasar kutu açılırken çekilmiş olabilir), ama
+      bilinçli bir seçim olarak sunulmalı, izin reddinin yan etkisi olarak
+      değil.
+
 ## 🔒 Yayın öncesi güvenlik turu (KURAL — atlanamaz)
 
 Launch'tan önce hem site hem uygulama için ayrı ayrı, kapsamlı bir güvenlik

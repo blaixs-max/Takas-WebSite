@@ -113,7 +113,13 @@ Bu ayrım her zaman geçerlidir.
   eşlemeli. Her ürün tam olarak bir ana ve bir alt kategoriye aittir; "Tümü"
   kategori değil, süzgecin kapalı hâlidir. Ürün görselleri `data/productImages.ts`.
 - İlan açma iki adımdır: `add-listing` (beyanlar + desi) → `listing-photos`
-  (kareler + kontrole gönderme). **Beş kare her ilanda zorunlu**, altıncısı
+  (kareler + kontrole gönderme). **Kareler yalnızca kamerayla çekilir** —
+  galeriden seçmek 2026-08-14'te kaldırıldı. Bu bir sadeleştirme değil,
+  sahteciliğe karşı bir kapı: galeri açıkken satıcı üreticinin stok
+  fotoğrafını ya da başka bir ilanın karesini yükleyebiliyordu ve ikinci elde
+  alıcının tek dayanağı fotoğraf. Galeri izinleri `app.json`'da duruyor ama
+  yalnızca **itiraz kanıtı** için (`app/trades.tsx`) — orada alıcı hasarı
+  kutuyu açarken çekmiş olabilir. **Beş kare her ilanda zorunlu**, altıncısı
   hasar beyan edilmişse ve yedincisi ürün setse isteniyor — sayaç bu yüzden
   çoğu ilanda 0/5 diyor. Arayüzde "yedi" yazmak yanlış; tek doğruluk kaynağı
   veri tabanındaki `required_slots()`, `data/photoSlots.ts` onun aynası.
