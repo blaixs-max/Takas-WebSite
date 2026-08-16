@@ -802,12 +802,12 @@ hepsi 24 ekranın baskın renkleri sayılarak ölçüldü, göz kararı seçilme
       yer çoğu zaman ürünün tabanı oluyordu. Artık kamera karesi olduğu gibi
       yükleniyor; kırpma yalnızca gösterim anında (kart 1.5, hero 1.54).
       Önizleme `contain` — satıcı yükleyeceği karenin tamamını görüyor.
-- [ ] **`trades.tsx` kanıt akışındaki galeri geri dönüşü gözden geçirilmeli.**
-      Şu an kamera izni verilmemişse **sessizce** galeriye düşüyor ve galeri
-      izni hiç istenmiyor — iOS'ta bu yol büyük ihtimalle hata verir.
-      Kanıt için galeri doğru (hasar kutu açılırken çekilmiş olabilir), ama
-      bilinçli bir seçim olarak sunulmalı, izin reddinin yan etkisi olarak
-      değil.
+- [x] **`trades.tsx` kanıt akışındaki galeri geri dönüşü düzeltildi**
+      (2026-08-16). Kamera izni reddedilince galeri izni **hiç istenmeden**
+      `launchImageLibraryAsync` çağrılıyordu; iOS'ta sessizce boş dönüyordu.
+      Artık galeri izni ayrıca isteniyor, ikisi de reddedilirse ne yapılacağını
+      söyleyen bir uyarı çıkıyor. Kanıt için galeri **bilinçli** bir yedek
+      olarak duruyor (hasar, kutu açılırken çekilmiş olabilir).
 
 ## 🔒 Yayın öncesi güvenlik turu (KURAL — atlanamaz)
 
@@ -1236,7 +1236,10 @@ bile değildi. Dördü ölçülerek doğrulandı (kodda arandı, yok).
       tamamlanması gereken iki adım" maddesiyle aynı iş)
 - [ ] iyzico **sandbox** anahtarları → uçtan uca ödeme testi → canlı anahtar
 - [ ] EAS build + submit (App Store + Google Play) — `mobile/README.md`
-- [ ] Gizlilik politikası (KVKK), mağaza görselleri, yaş derecelendirmesi
+- [x] **Gizlilik politikası yazıldı** (2026-08-16) — `/gizlilik/`. Metnin
+      verdiği destek adresinin çalışması ve hukuki inceleme hâlâ açık;
+      ikisi "Kapsam denetimi" bölümünde ayrı madde.
+- [ ] Mağaza görselleri (ekran görüntüleri, tanıtım metni), yaş derecelendirmesi
 
 ## 📌 Bağımlılıklar (bizde değil — kullanıcı sağlamalı)
 - iyzico sandbox/canlı API key + secret
