@@ -124,7 +124,21 @@ export default function ListingPhotos() {
       uyar('Yüklenemedi', cikti.message);
       return;
     }
+
     await tazele();
+
+    /* Reddedilen karede sonraki slota GEÇİLMEZ. Kullanıcı hâlâ ürünün
+       başındayken hangi kareyi neden yeniden çekeceğini biliyor olmalı;
+       ilerlemek bu bilgiyi en sona, "Kontrole gönder" hatasına erteler.
+
+       Yerel dosya bilerek tutuluyor: sunucudaki nesne ret kararıyla birlikte
+       siliniyor, yani önizleme başka türlü boşalır ve kullanıcı hangi kareden
+       söz ettiğimizi göremezdi. Kare kendi telefonunda zaten var. */
+    if (cikti.durum === 'rejected') {
+      uyar('Bu kare geçmedi', cikti.gerekce || 'Kareyi yeniden çekmen gerekiyor.');
+      return;
+    }
+
     if (aktif < slotlar.length - 1) setAktif(aktif + 1);
   }
 
@@ -203,6 +217,14 @@ export default function ListingPhotos() {
         <View style={styles.onizleme}>
           {onizlemeUri ? (
             <Image source={{ uri: onizlemeUri }} style={styles.onizlemeImg} resizeMode="contain" />
+          ) : durum?.moderationStatus === 'rejected' ? (
+            /* Reddedilen kare depodan siliniyor; ekrana geri dönüldüğünde
+               gösterilecek bir görsel kalmıyor. "Önizleme açılamadı" demek
+               burada yanlış olur — kare açılamıyor değil, yok. */
+            <View style={styles.onizlemeBos}>
+              <MaterialIcons name="do-not-disturb-on" size={40} color={colors.outline} />
+              <Text style={styles.onizlemeBosText}>Bu kare kabul edilmedi ve silindi</Text>
+            </View>
           ) : durum ? (
             /* Kare var ama bağlantı üretilemedi — "çekilmedi" demek yanlış olur. */
             <View style={styles.onizlemeBos}>
@@ -218,7 +240,10 @@ export default function ListingPhotos() {
           {yukleniyor === slot && (
             <View style={styles.yukleniyor}>
               <ActivityIndicator color="#fff" />
-              <Text style={styles.yukleniyorText}>Yükleniyor…</Text>
+              {/* Bekleme artık yükleme + inceleme; sürenin büyük kısmı
+                  ikincisi. "Yükleniyor" demek, iki saniye sonra çıkan ret
+                  mesajını beklenmedik hâle getiriyordu. */}
+              <Text style={styles.yukleniyorText}>Kare inceleniyor…</Text>
             </View>
           )}
         </View>

@@ -195,6 +195,30 @@ Bu ayrım her zaman geçerlidir.
 - **Moderasyonda şüphe onay değildir.** Yapay zekâ erişilemezse, anahtar yoksa ya
   da yanıt çözümlenemezse kare `pending` kalır — bu "geçti" demek değildir. Hiçbir
   kod yolu kareyi kendiliğinden `approved` yapmaz.
+- **Kareler birbiriyle kıyaslanır, tek tek değil** (2026-08-16). `photo-check`
+  yeni kareyi aynı ilanın **en son onaylanmış açı karesiyle** birlikte modele
+  gönderir ve iki soru daha sorar: aynı ürün mü, farklı bir açı mı. Sebebi:
+  satıcı ürünün sağlam yüzünü beş slotun beşine de çekerse kareler **tek tek
+  kusursuz** görünür, hasar hiç fotoğraflanmaz, iadeyi havuzdan biz öderiz.
+  Kıyas yalnızca `front/back/left/right` için yapılır — `label`, `damage` ve
+  `parts` tanımı gereği yakın çekim ve "aynı ürün mü" sorusuna sağlıklı cevap
+  vermez. Zincir ardışıktır: beşi de aynı yüzse ilk çiftte yakalanır.
+- **Reddedilen kare depoda tutulmaz.** Ret gerekçelerinden biri "kadrajda çocuk
+  yüzü var" ve kare eskiden reddedilip kovada kalıyordu: ilan yayına çıkmıyordu
+  ama görsel süresiz duruyordu. KVKK'nın sorduğu şey **saklama** — "reddettik"
+  ile "silmedik" farklı iki cümle. Karar anında nesne siliniyor, satır kalıyor
+  (satıcı hangi karenin neden geçmediğini görmeli). Görselin sunucuya **hiç**
+  çıkmaması ancak cihazda yüz tanımayla olurdu; o da native modül → development
+  build → Expo Go'nun sonu.
+- **Çekim ekranı kararı bekler.** `uploadPhoto` incelemeyi tetikleyip hemen
+  dönmez; sonucu bekler ve reddedilen karede **sonraki slota geçmez**. Eskiden
+  "ateşle ve unut"tu ve ret ancak en sonda "Kontrole gönder"de ortaya çıkıyordu:
+  beş kareyi bitirdiğini sanan kişi başa dönüyordu. "Bu kareyi öncekiyle aynı
+  açıdan çekmişsin" uyarısının işe yaradığı tek an, kullanıcının hâlâ ürünün
+  başında olduğu andır.
+- **Kıyas ret cümlelerini biz yazarız, model değil.** Modelin serbest cümlesi
+  "görseller birbirinden farklı" gibi doğru ama işe yaramaz bir şey olabiliyor.
+  Karar modelin, cümle bizim; her seferinde aynı ve ne yapılacağını söylüyor.
 
 ## Profil ve satıcı adı
 

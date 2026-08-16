@@ -866,6 +866,66 @@ görünmüyordu:
 - [ ] Bulguların her biri ya kapatılır ya da "kabul edildi, gerekçesi şu"
       diye yazılır. Sessizce bırakılan bulgu yok.
 
+## 📸 Kare denetimi — sahtecilik ve mahremiyet (2026-08-16)
+
+**Bu turda yapıldı:**
+
+- [x] **Kıyaslamalı denetim.** `photo-check` yeni kareyi ilanın en son onaylanmış
+      açı karesiyle birlikte modele gönderiyor; "aynı ürün mü", "farklı açı mı".
+      Ürünün tek yüzünü beş slota çekmek artık ilk çiftte yakalanıyor.
+- [x] **Reddedilen kare depodan siliniyor.** Çocuk yüzü içerdiği için reddedilen
+      görsel kovada süresiz duruyordu; artık karar anında siliniyor.
+- [x] **Çekim ekranı kararı bekliyor**, reddedilen karede sonraki slota geçmiyor.
+- [x] Ekrandan/basılı fotoğraftan çekim istem maddesine eklendi.
+- [x] `String.fromCharCode(...bytes)` parçalı çevrime alındı — kova sınırı 8 MB
+      ve tek seferlik yayma büyük karelerde çağrı yığınını taşırıyordu. Küçük
+      fotoğrafta çalışıp büyüğünde patlayan cinsten gizli bir hataydı.
+
+**Geriye dönük temizlik gerekmedi:** ölçüldü, `product_photos`'ta 15 kare var ve
+hepsi `approved`. Reddedilmiş kare yok, yani silinecek birikmiş görsel de yok.
+
+### Kapanmayan açıklar — bu konunun devamı
+
+- [ ] **Dönüşümlü aynı açı.** Zincir ardışık çiftlere bakıyor; satıcı A yüzü →
+      B yüzü → A yüzü → B yüzü sırasıyla çekerse her ardışık çift farklı
+      görünür ve geçer. Tam çözüm, kareyi **önceki tüm onaylı açılarla**
+      kıyaslamak ya da gömme vektörü (embedding) tutmak.
+- [ ] **İlanlar arası kare yeniden kullanımı.** Kıyas ilanın içinde kalıyor.
+      Satıcının kendi eski ilanından ya da **başka bir hesabın** ilanından kare
+      kopyalaması yakalanmıyor. Gerekli: kare başına parmak izi (pHash ucuz ve
+      birebir kopyayı, embedding aynı ürünün farklı karesini yakalar), bir tablo
+      ve yükleme anında veri tabanı geneli arama. Eşleşme **otomatik ret değil,
+      incelemeye düşürme** olmalı — aynı üründen ikinci bir tane satmak meşru.
+- [ ] **Alıcının itiraz fotoğrafı ile satıcının kareleri kıyaslanmıyor.**
+      Dolandırıcılığın gerçekten *kanıtlandığı* yer burası ve aynı parmak izi
+      altyapısını kullanıyor. Yukarıdaki maddeyle aynı turda yapılmalı.
+- [ ] **Çekim telemetrisi kaydedilmiyor.** Kareler arası süre ve cihaz yönü
+      (`expo-sensors`, Expo Go'da çalışır) bedava sinyaller ve hiçbiri
+      tutulmuyor. Beş kare üç saniyede geldiyse kimse ürünün etrafında
+      dolaşmadı. **Sert kapı olmasın, güven skoruna girsin** — dürüst sınır:
+      küçük üründe doğru yöntem eşyayı çevirmek, telefon yerinde durur ve yön
+      değişmez. Yön büyük ürün kategorilerinde anlamlı, zıbında değil.
+- [ ] **Yanlış reddin itiraz yolu yok.** Model hatalı reddederse satıcı yalnızca
+      yeniden çekebiliyor; "bu karar yanlış, insan baksın" diyemiyor. `pending`
+      insan kuyruğu zaten var, ret için de bir kapı açılmalı.
+- [ ] **`pending` kuyruğunu kimse izlemiyor.** Yapay zekâ erişilemezse kareler
+      doğru şekilde `pending` kalıyor ve ilan yayına giremiyor — ama kuyruğa
+      bakan biri yoksa satıcı süresiz bekler. Operasyon kararı, kod değil.
+- [ ] **Silme başarısız olursa artık kalıyor.** `remove()` hata verirse log'a
+      düşüyor ve nesne kovada kalıyor; toparlayan periyodik bir iş yok.
+      Yeniden çekilen kare aynı yola `upsert` edildiği için kendiliğinden
+      üzerine yazılıyor — açık olan tek durum, **reddedilip hiç yeniden
+      çekilmeyen** kare, yani ilanı yarıda bırakan kullanıcı.
+- [ ] **Model maliyeti ölçülmüyor, sınırı yok.** Beş karenin dördü artık iki
+      görsel taşıyor; ilan başına maliyet hâlâ kuruş mertebesinde ama **ölçülmüş
+      bir rakam yok** ve oran sınırı da yok. Kimlik doğrulaması istiyoruz, yani
+      rastgele biri değil — ama oturum açmış bir kullanıcı arka arkaya kare
+      yükleyerek kotayı yakabilir.
+- [ ] **Cihazda, deklanşörden önce yüz tanıma.** Görsel hâlâ sunucuya çıkıyor
+      (saniyeler için, saklanmadan). Hiç çıkmaması için ML Kit / vision-camera
+      gerekiyor → development build → Expo Go biter. Launch öncesi güvenlik
+      turunda ayrı bir karar olarak ele alınacak.
+
 ## 🌐 Alan adı — `eldeneletakas.com` (2026-08-16 · sürüyor)
 
 Alan adı GoDaddy'den alındı. Adım adım talimat **`KURULUM.md`** dosyasında;

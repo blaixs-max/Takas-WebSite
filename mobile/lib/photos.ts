@@ -3,16 +3,35 @@ import { PhotoSlot } from '../data/photoSlots';
 import { imzaliBaglantilar } from './admin';
 import { supabase, supabaseConfigured } from './supabase';
 
-export type UploadResult = { ok: true; photoId: string } | { ok: false; message: string };
+export type ModerasyonDurumu = 'approved' | 'pending' | 'rejected';
+
+export type UploadResult =
+  | { ok: true; photoId: string; durum: ModerasyonDurumu; gerekce?: string }
+  | { ok: false; message: string };
 
 /**
- * Bir kareyi depoya yükler ve product_photos'a kaydeder.
+ * Bir kareyi depoya yükler, product_photos'a kaydeder ve **incelemeyi bekler.**
  *
  * Yol düzeni: {satici_id}/{ilan_id}/{slot}.jpg — ilk klasör sahibi belirtir,
  * depolama politikası da bunun üzerinden çalışır.
  *
  * Kayıt `pending` moderasyon durumuyla açılır. Bu ONAY DEĞİLDİR: yayın kapısı
  * yalnız `approved` kareyi geçirir. İnceleme photo-check fonksiyonunda yapılır.
+ *
+ * ## Neden artık sonucu bekliyoruz
+ *
+ * Bu çağrı "ateşle ve unut"tu: `invoke(...).catch(() => {})` yazılıp hemen
+ * dönülüyordu. Çekim ekranı da kareyi yükler yüklemez bir sonraki slota
+ * geçiyordu, yani kullanıcı kararı hiç görmüyordu. Ret ancak en sonda,
+ * "Kontrole gönder"e basınca "bir kare incelemeden geçmedi" diye ortaya
+ * çıkıyordu — beş kareyi bitirdiğini sanan kişi başa dönüyordu.
+ *
+ * Kıyaslamalı denetim bunu iyice tutarsız hâle getirdi: "bu kareyi öncekiyle
+ * aynı açıdan çekmişsin" uyarısının işe yaradığı tek an, kullanıcının hâlâ
+ * ürünün başında olduğu an. Bir-iki saniyelik bekleme bunun karşılığı.
+ *
+ * Fonksiyon yanıt vermezse `pending` dönüyor: akış durmuyor, kare kuyrukta
+ * kalıyor, ekranda "İnceleniyor…" yazıyor ve elle tazeleme düğmesi çıkıyor.
  */
 export async function uploadPhoto(
   productId: string,
@@ -62,11 +81,25 @@ export async function uploadPhoto(
 
   if (error || !data?.id) return { ok: false, message: 'Fotoğraf kaydedilemedi.' };
 
-  // İncelemeyi tetikle. Başarısız olursa kare 'pending' kalır ve ilan insana
-  // kuyruklanır — sessizce onaylanmaz, o yüzden hata burada yutulabilir.
-  supabase.functions.invoke('photo-check', { body: { photoId: data.id } }).catch(() => {});
+  const photoId = data.id as string;
 
-  return { ok: true, photoId: data.id as string };
+  /* İncelemeyi tetikle ve sonucunu bekle. Hata yutuluyor çünkü başarısızlığın
+     sonucu zaten güvenli tarafta: kare 'pending' kalır, yayın kapısı geçirmez,
+     ilan insan kuyruğuna düşer. Yükleme başarılı olduğu için `ok: false`
+     dönmek yanlış olurdu — kare gerçekten yüklendi. */
+  try {
+    const { data: karar } = await supabase.functions.invoke('photo-check', {
+      body: { photoId },
+    });
+    const durum = karar?.status;
+    if (durum === 'approved' || durum === 'rejected' || durum === 'pending') {
+      return { ok: true, photoId, durum, gerekce: karar?.gerekce || undefined };
+    }
+  } catch {
+    // yut: aşağıdaki 'pending' doğru cevap
+  }
+
+  return { ok: true, photoId, durum: 'pending' };
 }
 
 export interface PhotoRow {
