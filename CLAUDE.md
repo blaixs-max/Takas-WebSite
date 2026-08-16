@@ -25,6 +25,16 @@ Her push ve her merge öncesinde, sırayla:
 
 Dördü de doğrulanmadan push yok; push edilmeden merge yok. Bu sıra kısaltılmaz.
 
+## Alan adı ve e-posta
+
+`eldeneletakas.com` (GoDaddy, 2026-08-14). Site, şifre sıfırlama postası ve
+derin bağlantı doğrulaması buna bağlanacak — **henüz hiçbiri bağlanmadı.**
+
+Panel panel ne yapılacağı **`KURULUM.md`** içinde; buraya tekrarlanmıyor.
+Kodda alan adı beş yerde geçiyor (`index.html` dört meta + `mobile/lib/brand.ts`
+`WEB_URL`) ve hepsi hâlâ `takas-site.vercel.app` — site yeni alan adında
+yayına girmeden çevrilmez, yoksa paylaşım bağlantıları kırılır.
+
 ## Supabase projesi (gerçek)
 
 | | |

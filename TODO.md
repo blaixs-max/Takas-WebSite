@@ -472,6 +472,11 @@ eski anahtarları yeniden kullandığı için `--clear` şart.
         içinde sayıyor ama dosya yok. OAuth akışı tarayıcı oturumunu kendi
         yakaladığı için şimdilik patlamıyor; **şifre sıfırlama bağlantısı ise
         doğrudan o rotaya düşer** — ekran yazılmalı.
+- [ ] **Alan adı `eldeneletakas.com` alındı, hiçbir yere bağlanmadı**
+      (2026-08-14 ölçümü). DNS hâlâ GoDaddy park sunucularını gösteriyor
+      (`13.248.243.5`, `76.223.105.230`), MX ve TXT kaydı yok, Vercel
+      projesinin `domains` listesinde yalnızca üç `vercel.app` adresi var.
+      Adım adım talimat: **`KURULUM.md`**.
 - [ ] **Supabase Auth → Redirect URLs.** İzin listesine `eldenele://auth-callback`
       eklenmeli. Eklenmezse Google/Apple ile giriş tarayıcıdan geri dönemez;
       kullanıcı açık bir sekmeyle kalır, hata da görmez.
