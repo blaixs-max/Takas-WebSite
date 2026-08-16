@@ -177,7 +177,7 @@ alınamayan sahte ilan olurlardı.
       `scripts/vitrin-cek.mjs` (karşı repo) derleme anında anlık görüntü
       üretiyor. İlk canlı ilan "Suluk" uçtan uca doğrulandı: ilan → yedi kare →
       yönetici onayı → `publish_listing()` → derleme → sitede kart.
-- [x] **Tazeleme otomatik.** `20260814100000_vitrin_tazele.sql`: `pg_net`,
+- [x] **Tazeleme otomatik.** `20260814083631_vitrin_tazele.sql`: `pg_net`,
       `site_settings` (RLS açık, politika yok, yetkiler geri alınmış),
       `vitrin_tazele()` ve `products` üzerinde trigger. ACTIVE'e giren **ve
       çıkan** her geçiş tetikliyor — yalnızca girişi dinleseydik satılan ilan
@@ -426,21 +426,22 @@ eski anahtarları yeniden kullandığı için `--clear` şart.
       yerel SHA-256'sını WebCrypto arayüzü olarak kuruyor. Cihazda doğrulama:
       konsoldaki "WebCrypto API is not supported" uyarısı kaybolmalı
 
-### Depo görünürlüğü — karar bekliyor (2026-08-14)
+### Depo görünürlüğü — KARAR VERİLDİ (2026-08-16): arka uç private olacak
 
-- [ ] **Bu repo herkese açık, pazarlama sitesi reposu özel.** Muhtemelen ters.
-      `blaixs-max/Takas-WebSite` → **public** · `blaixs-max/Takas-site` → private.
+Bu repo (`blaixs-max/Takas-WebSite`) **public**, pazarlama sitesi
+(`blaixs-max/Takas-site`) private. Ters ve düzeltiliyor.
 
-      Bugün bir sızıntı yok: `service_role` repoda hiçbir yerde geçmiyor, anon
-      anahtarı zaten uygulama paketine gömülü ve korumayı RLS yapıyor. Yani
-      açık olması *savunulabilir* — ama bilinçli bir karar mı, emin değilim.
+Gerekçe sızıntı değil — `service_role` repoda geçmiyor, anon anahtarı zaten
+uygulama paketine gömülü ve korumayı RLS yapıyor. İki başka sebep var:
+şema, RLS politikaları ve iş kuralları saldırgana yol haritası veriyor; ve
+hiçbir sır konulamıyor — Vercel deploy hook URL'si bir kez yazıldı, commit'ten
+önce çıkarıldı.
 
-      Somut sonucu şu: Vercel deploy hook URL'si göç dosyasına yazılamıyor
-      (yazıldı, commit'ten önce çıkarıldı). Yetki bağlantıları ve ileride
-      eklenecek her sır bu repoda duramaz.
-
-      Karar: açık kalacaksa "burası açıktır" CLAUDE.md'ye kural olarak yazılsın;
-      kapanacaksa Settings → Danger Zone → Change visibility.
+- [ ] **Sende, tek adım:** github.com → `blaixs-max/Takas-WebSite` → Settings →
+      en altta **Danger Zone** → *Change repository visibility* → **Private**.
+      API'den yapılamıyor, panel gerektiriyor. GitHub Actions ve Vercel
+      bağlantıları private repoda da çalışmaya devam eder; bir şey yeniden
+      bağlanmaz.
 
 ### Hâlâ maket olan ekranlar
 
@@ -493,7 +494,7 @@ Uygulama mağazalarda olmadığı için paket kimliği (`com.kidstrade.app` →
 değiştirilemez.
 
 - [x] **Kategori göçü canlıya uygulandı** (2026-08-13) —
-      `20260813100000_kategori_matrisi.sql` canlı projede (`kategori_matrisi`).
+      `20260813072758_kategori_matrisi.sql` canlı projede (`kategori_matrisi`).
       Uygulama öncesi durum: 1 ilan (`Beslenme`, SOLD), ağaç tabloları yok,
       eski CHECK yerinde. Sonrası: 9 ana + 62 alt satır, tek ilan
       `Beslenme / Sofra ürünleri`'ne taşındı, eski CHECK kalktı, iki dış
@@ -538,7 +539,7 @@ değiştirilemez.
 - [x] **İlk yönetici eklendi** — bu madde "`auth.users` henüz **boş**" diyordu;
       2026-08-14 ölçümünde `auth.users` 3, `admins` 1 satır. Artık geçersiz.
 - [ ] **Hiç profil yok** (2026-08-14 ölçümü) — `profiles` **0 satır**.
-      `20260814110000_profiller` göçü canlıda ve `edit-profile` ekranı
+      `20260814090949_profiller` göçü canlıda ve `edit-profile` ekranı
       çalışıyor; henüz kimse kaydetmedi. Sonucu sitede görünüyor: `seller_name`
       hâlâ e-postadan türüyor ve vitrin bunu **"Üye"** diye yazıyor — doğru
       davranış, ama gerçek ad değil. Uygulamada Profil → Profili düzenle'den ad
@@ -617,9 +618,12 @@ değiştirilemez.
 - [ ] **iyzico sandbox ucundan uca test** — ödeme akışı yazıldı ama gerçek bir
       kartla hiç koşmadı. Sandbox anahtarları olmadan 3D Secure dönüşü, callback
       ve `SHIPPED`'e geçiş doğrulanamıyor
-- [ ] **Adres defteri kararı** — fatura bilgisi ve T.C. kimlik numarası şu an
-      saklanmıyor, her ödemede yeniden soruluyor. Saklamaya geçmek bir KVKK
-      kararıdır (Ana Doküman 7.4 · 7)
+- [x] **Adres defteri — KARAR VERİLDİ (2026-08-16): saklanmayacak.** Fatura
+      bilgisi ve T.C. kimlik numarası her ödemede sorulmaya devam edecek,
+      yalnızca o istekte iyzico'ya iletilecek. Her seferinde sormak biraz
+      sürtünme ama **saklamadığın veri sızmaz**: KVKK yükümlülüğü, VERBİS
+      eşiği ve ihlal riski hep birden düşük kalıyor. Bu artık açık bir soru
+      değil, verilmiş bir karar — `addresses` tablosu açılmayacak.
 - [ ] **Kargo aggregator** (Navlungo/Kolay Gelsin) — `iyzico-callback` etiket üretimi.
       Teslimat webhook'u `mark_delivered()` çağıracak; şu an o fonksiyonu
       çağıran kimse yok, yani 48 saatlik sayaç pratikte hiç başlamıyor
@@ -661,12 +665,13 @@ değiştirilemez.
 
       Doğrulandı: **18/18 test geçiyor** (yeni `favoriler_sepet_test` dahil),
       göç canlıya uygulandı — RLS açık, `anon` okuyamıyor.
-- [ ] **MERDİVENİ AÇ (kurucu kararı)** — mekanizma kurulu ama **kapalı**:
-      `update sanction_settings set active = true;`
-      Kapalı bırakmam bilinçli: eşikler (uyarı 70, kısıt 40) birer başlangıç
-      önerisi, karar değil. Çok sert bir eşik dürüst satıcıyı da vurur ve o kişi
-      bir daha dönmez; çok gevşek olanı merdiveni anlamsız kılar. Sayıları
-      onaylayın, sonra açalım
+- [x] **Yaptırım merdiveni — KARAR VERİLDİ (2026-08-16): kapalı kalıyor.**
+      `sanction_settings.active = false` bilinçli bir durum, eksik bir iş
+      değil. Gerekçe: launch'ta kullanıcı da yok güven skoru da yok, yani
+      merdiven boşa çalışır ve ilk dürüst satıcıyı vurabilir — o kişi bir daha
+      dönmez. Eşikler (uyarı 70, kısıt 40) yazılı duruyor ama **onaylanmadı**.
+      Yeniden gündeme geleceği an: gerçek takas verisi birikip güven skorları
+      anlam kazandığında. O zamana kadar bu madde açık soru değil.
 - [x] **Güven skoru ilan kartında** (2026-08-14) — bir şartla: satıcı **en az
       bir takas tamamladıysa**. `products.seller_trust` varsayılanı 90; hiç
       takas yapmamış birinde 90 göstermek, profil ekranının "Güven skoru henüz
@@ -842,7 +847,7 @@ yeterdi.
 Bu depo aynı mekanikten iki kez yaralandı (`rpc_grants`, `rpc_grants_final`);
 fonksiyon tarafı kapatılmış, **tablo tarafı açık kalmıştı.**
 
-Göç: `20260816120000_yetki_daraltma.sql`. Yazma yetkisi, o rol için yazma
+Göç: `20260816131944_yetki_daraltma.sql`. Yazma yetkisi, o rol için yazma
 politikası **bulunmayan** her tablodan geri alındı — 30 tablonun 22'si, yani
 yazmanın zaten reddedildiği yerler. Davranış değişmedi, ikinci kilit eklendi.
 `favorites`/`cart_items` politikaları da `to public` yerine `to authenticated`
@@ -869,56 +874,20 @@ RLS kapalı tablo 0, `authenticated` yazma yetkisi yalnızca gerçekten yazdığ
 - [x] **Puan ekonomisi.** `earn_points`, `release_points`, `refund_points`,
       `grant_campaign_points`, `hold_points` — beşi de `SECURITY DEFINER` ve
       yalnızca `service_role`da; `anon` ve `authenticated` için ikisi de false.
-- [ ] **Göç sürüm numaraları repo ile sunucuda uyuşmuyor.** 31 göçün
-      **hepsinde** ad aynı ve sıra aynı, ama numaralar farklı: repo elle
-      seçilmiş yuvarlak damgalar kullanıyor (`20260814110000_profiller`),
-      `supabase_migrations.schema_migrations` ise gerçek uygulama anını
-      kaydetmiş (`20260814090949_profiller`). Bugüne kadar sorun çıkarmadı
-      çünkü göçler panelden/MCP'den uygulandı.
+- [x] **Göç sürüm numaraları hizalandı — KARAR VERİLDİ (2026-08-16).**
+      31 göçün hepsinde ad ve sıra aynıydı ama numaralar farklıydı: repo elle
+      seçilmiş yuvarlak damgalar kullanıyordu, `schema_migrations` gerçek
+      uygulama anını. `supabase db push` çalıştırıldığı gün CLI hiçbir sürümü
+      eşleştiremeyip bütün göçleri baştan uygulamaya kalkardı.
 
-      **Tehlike `supabase db push` çalıştırıldığı gün ortaya çıkar:** CLI yerel
-      dosya sürümlerini tablodakilerle karşılaştırıyor, hiçbiri eşleşmediği
-      için 31 göçü baştan uygulamaya kalkar. Çoğu `if not exists` / `create or
-      replace` ile yazıldığı için bir kısmı sessizce geçer, bir kısmı patlar —
-      yarı uygulanmış bir şema en kötü sonuç.
+      Yerel dosyalar sunucudaki sürümlere göre yeniden adlandırıldı. Bu yön
+      seçildi çünkü **sunucu, neyin çalıştığının doğruluk kaynağı** — ve bu
+      yönde veri tabanına hiç yazılmıyor.
 
-      Bu turda bir dosyayı sunucudaki numaraya hizalamayı denedim, sonra geri
-      aldım: tek dosyayı eşlemek, dosya adlarının sunucuyu izlediği gibi
-      **yanlış bir izlenim** yaratıyor ve diğer 30'u düzeltmiyor. Doğrusu ya
-      hepsini `supabase migration repair` ile hizalamak ya da "bu depoda göçler
-      `db push` ile uygulanmaz" kuralını yazmak. **Karar gerekiyor.**
-### İkinci geçiş — Edge Function kod incelemesi (2026-08-16)
-
-**🔴 BULGU · düzeltildi ve dağıtıldı — `send-sms` imzasız isteği kabul
-ediyordu.** `verifySignature` ilk satırında `if (!HOOK_SECRET) return true`
-yazıyordu, yorumu "dev: secret yoksa atla". Bu uç `verify_jwt = false` ile
-**yayında** duruyor, yani hook sırrı tanımlı olmadığı sürece internetten gelen
-imzasız her istek kabul ediliyordu.
-
-NetGSM kimlik bilgileri girildiği gün, onaylı gönderici başlığımızla istediği
-numaraya istediği metni yollayabilen **açık bir SMS rölesi** olurdu — kontör de
-gider, marka da. Bugün patlamamasının tek sebebi NetGSM'in de yapılandırılmamış
-olması: bizi koruyan şey bir kontrol değil, bir tesadüftü.
-
-Artık sır yoksa **reddediyor** ve log'a yazıyor. Yayına alındı (sürüm 2).
-Aynı turda üç şey daha: HMAC karşılaştırması sabit süreli oldu, telefon
-numarası XML'e girmeden rakama indirgeniyor, ve SMS metni hâlâ
-**"KIDS TRADE"** diyordu — marka 2026-08-13'te değişmiş, bu satır atlanmış.
-
-**🟠 BULGU · düzeltildi (dağıtım iyzico anahtarlarını bekliyor) —
-`iyzico-callback` ödenen tutarı hiç doğrulamıyordu.** `paidPrice` okunmuyor,
-yalnızca "başarılı mı" soruluyordu. Bugün sömürülebilir değil (tutarı
-`cargo-payment-init` belirliyor, token bizim satırımıza bağlı) ama ödeme
-doğrulamasında tutara bakmamak kontrolün yarısını yapmaktır. Artık `paidPrice`
-`cargo_payments.amount` ile karşılaştırılıyor, kuruş toleransıyla.
-
-İki şey daha: takas artık `trade_id` ile anahtarlanıyor (eskiden iyzico'ya
-bakan `conversation_id` kullanılıyordu — bugün aynı değeri taşıyorlar, ama
-ödeme yeniden başlatılıp conversationId'ye sonek eklendiği gün callback takası
-sessizce ilerletemez olurdu); ve RETRIEVE patlarsa artık istisna dışarı
-sızmıyor — ödemesini yapmış kullanıcı 500 yerine uygulamaya dönüyor, kayıt
-`PENDING` kalıyor.
-
+      Yol üstünde bir tutarsızlık daha çıktı: bugün iki göçü sunucuya *ayrı*
+      uygulamış ama yerelde *tek dosyaya* yazmıştım. Dosyalar bölündü; artık
+      **36 sunucu kaydı ↔ 36 yerel dosya**, birebir. Eski dosya adlarına yapılan
+      atıflar beş dosyada güncellendi.
 - [x] **JWT muafiyetleri gerekçelendirildi.** Dördü de `config.toml`'da yazılı
       ve doğru: `iyzico-callback` (iyzico oturum taşıyamaz) ve `send-sms`
       (hook imzası fonksiyonun içinde) muaf; `photo-check` ve

@@ -1,6 +1,6 @@
 -- ELDENELE — Kategori matrisi testleri
 --
--- Göç: 20260813100000_kategori_matrisi.sql
+-- Göç: 20260813072758_kategori_matrisi.sql
 -- Sınanan kurallar: ağaç eksiksiz seed edildi, ana kategori ağaçtan gelmek
 -- zorunda, alt kategori ana kategorisiyle tutarlı olmak zorunda, alt
 -- kategorisiz ilan yayına giremez, kategori doğrudan UPDATE ile değişmez.

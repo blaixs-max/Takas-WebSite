@@ -49,6 +49,14 @@ Anon anahtarı `mobile/eas.json` içindeki üç build profilinde yazılıdır; g
 değildir, uygulama paketine zaten gömülür. `service_role` anahtarı repoda
 **hiçbir yerde bulunmaz** — yalnızca Edge Function ortamında.
 
+**Göç dosya adları sunucudaki sürümlerle birebir aynıdır.** 2026-08-16'da
+hizalandı: repo elle seçilmiş yuvarlak damgalar kullanıyordu, sunucu gerçek
+uygulama anını kaydetmişti ve hiçbiri eşleşmiyordu. Yeni bir göç uygulandıktan
+sonra dosya adı `schema_migrations`'taki sürümle eşitlenir; **eşleşmezse
+`supabase db push` bütün göçleri baştan uygulamaya kalkar.** Bir göçü panelden
+ya da MCP'den uygularken yerelde de tek dosya olarak tutun — ikiye bölünmüş
+bir uygulama, ikiye bölünmüş bir dosya ister.
+
 **Edge Function'lar repodan otomatik yayına gitmiyor.** `supabase/functions/`
 altındaki dosyayı değiştirmek canlıyı değiştirmez; ayrıca deploy edilir ve
 `verify_jwt` `config.toml`'daki değeriyle aynı verilir. Yayındaki sürüm
@@ -176,6 +184,23 @@ Bu ayrım her zaman geçerlidir.
   politikasında `with check` verilmemişse `using` ifadesini yeni satıra da
   uygular. Aranacak şey eksik `with check` değil, `using`'den **daha gevşek**
   olanı. (Bu doküman bir tur boyunca tersini yazdı.)
+- **Oturum jetonu Keychain/Keystore'da, `AsyncStorage`'da değil.**
+  `lib/guvenliDepo.ts` supabase-js'in depolama arayüzünü `expo-secure-store`
+  üzerinden veriyor. `AsyncStorage` şifresizdi; root'lu ya da jailbreak'li
+  cihazda oturum okunabiliyordu. **Düz bir sarmalayıcı yetmez:** SecureStore
+  girdi başına 2048 baytla sınırlı ve Supabase oturumu bunu aşıyor, o yüzden
+  değer parçalanıyor ve parça sayısı EN SON yazılıyor (yarıda kesilen bir
+  yazma yarım oturum bırakmasın). Web'de SecureStore yok, orada
+  `AsyncStorage`'a düşülüyor. Eski şifresiz kayıt taşınmıyor, **siliniyor** —
+  taşımak, şifresiz kopyayı yerinde bırakmak olurdu.
+- **Fatura bilgisi ve T.C. kimlik numarası saklanmayacak — karar verildi**
+  (2026-08-16). Her ödemede sorulur, yalnızca o istekte iletilir. `addresses`
+  tablosu açılmayacak. Bu artık açık bir soru değil: saklamadığın veri sızmaz
+  ve KVKK yükümlülüğü, VERBİS eşiği, ihlal riski birden düşük kalıyor.
+- **Yaptırım merdiveni kapalı kalacak — karar verildi** (2026-08-16).
+  `sanction_settings.active = false` eksik bir iş değil, bilinçli bir durum:
+  kullanıcı ve güven skoru yokken merdiven boşa çalışır ve ilk dürüst
+  satıcıyı vurabilir. Eşikler (70/40) yazılı ama onaylanmadı.
 - **Yapılandırma eksikse hizmet kapanır, açılmaz.** `send-sms`'in imza
   doğrulaması "sır yoksa geç" diyordu ve o uç `verify_jwt = false` ile
   yayındaydı — NetGSM anahtarları girildiği gün açık bir SMS rölesi olurdu.

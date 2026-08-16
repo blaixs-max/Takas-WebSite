@@ -57,7 +57,7 @@ create policy "kendi engelini kaldırır"
 
 /* Yetki matrisi kuralı: yeni tablo, yazma politikası olan tablolardandır ve
    `authenticated` yazma yetkisi burada gerçekten kullanılıyor. `anon`ın işi
-   yok — 20260816120000_yetki_daraltma.sql'in koyduğu çizgi korunuyor. */
+   yok — 20260816131944_yetki_daraltma.sql'in koyduğu çizgi korunuyor. */
 revoke insert, update, delete, truncate, references, trigger
   on table public.user_blocks from anon;
 revoke update, truncate, references, trigger
@@ -165,36 +165,3 @@ end; $$;
 
 revoke all on function public.send_message(uuid, text) from public;
 grant execute on function public.send_message(uuid, text) to authenticated;
-
--- ------------------------------------------- sohbetten engelleme sarmalayıcı
-
-/**
- * Karşı tarafı sohbet üzerinden engeller.
- *
- * Uygulamanın kullandığı giriş noktası bu. `block_user` karşı tarafın
- * `uuid`'sini istiyor ama sohbet listesi onu taşımıyor — ve taşımamalı:
- * kullanıcı kimliğini istemciye göndermek, engellemek için gerekmeyen bir
- * veriyi dışarı vermek olurdu. Sunucu zaten sohbetin taraflarını biliyor.
- */
-create or replace function public.block_conversation_peer(p_conversation_id uuid)
-returns void
-language plpgsql security definer set search_path = public as $$
-declare uid uuid := auth.uid(); c public.conversations; hedef uuid;
-begin
-  if uid is null then raise exception 'oturum gerekli'; end if;
-
-  select * into c from public.conversations where id = p_conversation_id;
-  if not found then raise exception 'sohbet bulunamadi'; end if;
-  if uid <> c.buyer_id and uid <> c.seller_id then
-    raise exception 'bu sohbetin tarafi degilsiniz';
-  end if;
-
-  hedef := case when uid = c.buyer_id then c.seller_id else c.buyer_id end;
-
-  insert into public.user_blocks (blocker_id, blocked_id)
-  values (uid, hedef)
-  on conflict do nothing;
-end $$;
-
-revoke all on function public.block_conversation_peer(uuid) from public;
-grant execute on function public.block_conversation_peer(uuid) to authenticated;

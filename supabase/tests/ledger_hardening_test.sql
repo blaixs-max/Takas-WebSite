@@ -1,6 +1,6 @@
 -- KIDS TRADE — Defter sağlamlaştırma testleri
 --
--- 20260807100000_ledger_hardening.sql'in kapattığı iki açığın gerçekten
+-- 20260809172014_ledger_hardening.sql'in kapattığı iki açığın gerçekten
 -- kapandığını gösterir. Her bölüm beklenen sonucu yazdırır; "BEKLENEN" ile
 -- "SONUÇ" satırları uyuşmuyorsa test başarısızdır.
 --
