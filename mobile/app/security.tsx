@@ -36,8 +36,9 @@ import { colors, elevation, shape } from '../theme/tokens';
 export default function Security() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, hesabiSil } = useAuth();
   const [gonderiliyor, setGonderiliyor] = useState(false);
+  const [siliniyor, setSiliniyor] = useState(false);
 
   const eposta = user?.email ?? null;
   const epostaOnayli = Boolean(user?.email_confirmed_at ?? user?.confirmed_at);
@@ -77,6 +78,44 @@ export default function Security() {
       error ? 'Gönderilemedi' : 'Bağlantı gönderildi',
       error ? error.message : `Şifre sıfırlama bağlantısı ${eposta} adresine gönderildi.`,
     );
+  }
+
+  /**
+   * Hesap silme.
+   *
+   * İki adım: önce ne kaybedileceğini sayan bir onay, sonra işlem. Tek
+   * dokunuşla silinebilen bir hesap, yanlışlıkla silinen bir hesaptır — ve
+   * geri getirmenin yolu yok.
+   *
+   * Engelleri sunucu koyuyor (açık takas, rezerve ilan, ödenmemiş borç);
+   * burada tekrarlamıyoruz. Ret gelirse sebebi kullanıcıya olduğu gibi
+   * gösteriliyor: "silemezsin" değil, "şunu bitir sonra silebilirsin".
+   */
+  function hesapSilmeyiSor() {
+    uyar(
+      'Hesabın kalıcı olarak silinsin mi?',
+      'İlanların raftan kalkacak, kalan puanların düşecek ve bu işlem geri alınamaz. ' +
+        'Tamamlanmış takasların kaydı, karşı tarafın geçmişi olduğu için kalır.',
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        { text: 'Hesabımı sil', style: 'destructive', onPress: hesapSil },
+      ],
+    );
+  }
+
+  async function hesapSil() {
+    setSiliniyor(true);
+    const sonuc = await hesabiSil();
+    setSiliniyor(false);
+
+    if (sonuc.error) {
+      uyar('Hesap silinemedi', sonuc.error);
+      return;
+    }
+    /* Oturum `hesabiSil` içinde kapatıldı; kapı kullanıcıyı zaten onboarding'e
+       alıyor. `replace` ile geçmiş de temizleniyor — geri tuşu silinmiş bir
+       hesabın ekranına dönmemeli. */
+    router.replace('/onboarding');
   }
 
   return (
@@ -153,6 +192,32 @@ export default function Security() {
           Telefon, IBAN ve kimlik doğrulaması henüz toplanmıyor. Fatura bilgisi ve T.C. kimlik
           numarası saklanmıyor; ödeme sırasında sorulur ve yalnızca o işlemde iletilir.
         </Text>
+
+        {/* Hesap silme en altta ve kırmızı: aranınca bulunabilecek kadar
+            görünür, yanlışlıkla basılamayacak kadar uzakta. Mağaza kuralı
+            (App Store 5.1.1(v)) uygulama içinden silmeyi zorunlu tutuyor;
+            ayarların derinine gömmek o kuralı karşılamaz. */}
+        {eposta && (
+          <>
+            <Text style={styles.section}>Hesap</Text>
+            <View style={styles.group}>
+              <Pressable style={styles.row} onPress={hesapSilmeyiSor} disabled={siliniyor}>
+                <View style={styles.icTehlike}>
+                  <MaterialIcons name="delete-forever" size={20} color={colors.error} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.rowTitle, { color: colors.error }]}>
+                    {siliniyor ? 'Siliniyor…' : 'Hesabımı sil'}
+                  </Text>
+                  <Text style={styles.rowSub}>
+                    Kalıcıdır, geri alınamaz. Açık takasın varken yapılamaz.
+                  </Text>
+                </View>
+                <MaterialIcons name="chevron-right" size={20} color={colors.outline} />
+              </Pressable>
+            </View>
+          </>
+        )}
       </ScrollView>
     </View>
   );
@@ -189,6 +254,8 @@ const styles = StyleSheet.create({
   group: { backgroundColor: colors.surfaceContainerLowest, borderRadius: shape.md, paddingHorizontal: 12, marginBottom: 18, ...elevation.level1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 12 },
   ic: { width: 36, height: 36, borderRadius: shape.sm, backgroundColor: colors.primaryContainer, alignItems: 'center', justifyContent: 'center' },
+  /* Aynı kutu, farklı zemin: kırmızı yalnızca yıkıcı eylemi işaretliyor. */
+  icTehlike: { width: 36, height: 36, borderRadius: shape.sm, backgroundColor: colors.errorContainer, alignItems: 'center', justifyContent: 'center' },
   rowTitle: { fontSize: 14, fontWeight: '800', color: colors.onSurface },
   rowSub: { fontSize: 11.5, color: colors.onSurfaceVariant, fontWeight: '500', marginTop: 2 },
   addPill: { height: 30, paddingHorizontal: 14, borderRadius: shape.full, backgroundColor: colors.secondaryContainer, justifyContent: 'center' },

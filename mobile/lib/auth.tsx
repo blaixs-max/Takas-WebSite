@@ -64,6 +64,8 @@ interface AuthState {
   sifreSifirlamaGonder: (email: string) => Promise<{ error?: string }>;
   /** Yeni şifreyi yazar. Sıfırlama bağlantısıyla açılmış oturum gerektirir. */
   sifreBelirle: (yeniSifre: string) => Promise<{ error?: string }>;
+  /** Hesabı kalıcı olarak siler. Açık takas/borç varsa sunucu reddeder. */
+  hesabiSil: () => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
 }
 
@@ -188,6 +190,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return error ? { error: error.message } : {};
       },
 
+      /**
+       * Hesabı kalıcı olarak siler.
+       *
+       * Karar sunucuda: `delete_own_account` açık takas, rezerve ilan ya da
+       * ödenmemiş borç varsa reddediyor. Arayüz o kuralları tekrarlamıyor —
+       * iki yerde yazılan bir kural er geç ayrışır ve burada ayrışması,
+       * silinemeyecek bir hesabı silindi sanmak demek olurdu.
+       *
+       * Onay metni sunucunun beklediğiyle birebir aynı olmak zorunda.
+       *
+       * Silmeden sonra `signOut`: kullanıcı yok ama cihazdaki jeton duruyor
+       * ve süresi dolana kadar geçerli görünürdü. Silme başarısızsa oturum
+       * kapatılmıyor, çünkü kullanıcı hâlâ hesabının içinde.
+       */
+      async hesabiSil() {
+        if (!supabase) return { error: 'Supabase yapılandırılmadı' };
+        const { error } = await supabase.rpc('delete_own_account', {
+          p_onay: 'HESABIMI SIL',
+        });
+        if (error) return { error: cevirSilmeHatasi(error.message) };
+        await supabase.auth.signOut();
+        return {};
+      },
+
       async signOut() {
         await supabase?.auth.signOut();
       },
@@ -202,4 +228,28 @@ export function useAuth(): AuthState {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth, AuthProvider içinde kullanılmalı');
   return ctx;
+}
+
+/**
+ * Sunucunun ret gerekçesini kullanıcıya söylenebilir hâle getirir.
+ *
+ * Sunucudaki metinler Türkçe'ye özgü harf taşımıyor (kodlama farkı yüzünden
+ * eşleşmemeleri, silinemeyen bir hesap demek olurdu); okunabilir cümleyi
+ * burada kuruyoruz.
+ */
+function cevirSilmeHatasi(mesaj: string): string {
+  if (mesaj.includes('acik takas')) {
+    return 'Devam eden bir takasın var. Hesabını silmeden önce takasın tamamlanması ya da iptal edilmesi gerekiyor.';
+  }
+  if (mesaj.includes('rezerve ilan')) {
+    return 'İlanlarından biri için birinin puanı ayrılmış durumda. O takas sonuçlanınca hesabını silebilirsin.';
+  }
+  if (mesaj.includes('odenmemis borc')) {
+    return 'Ödenmemiş bir kargo borcun görünüyor. Hesap silme, borç kapandıktan sonra yapılabilir.';
+  }
+  if (mesaj.includes('havuzda tutulan puan')) {
+    return 'Puanlarının bir kısmı güvenli havuzda tutuluyor. Destek ile iletişime geç.';
+  }
+  if (mesaj.includes('oturum gerekli')) return 'Oturumun kapanmış. Tekrar giriş yap.';
+  return 'Hesap silinemedi. Tekrar dene, sorun sürerse destek ile iletişime geç.';
 }

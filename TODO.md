@@ -1094,17 +1094,24 @@ bile değildi. Dördü ölçülerek doğrulandı (kodda arandı, yok).
 
 ### A · Mağaza reddi sebebi — bunlar olmadan yayın olmaz
 
-- [ ] **Hesap silme yok.** Kodda hiçbir karşılığı bulunamadı. App Store
-      kuralı 5.1.1(v) açık: hesap açtıran uygulama **uygulama içinden hesap
-      silmeyi** sunmak zorunda. Sert ret sebebi. KVKK'nın silme hakkı da aynı
-      kapıya çıkıyor. Kapalı devre puanla birleşince bir tasarım sorusu var:
-      bakiyesi olan ve **açık takası olan** hesap silinince ne oluyor?
-      Muhtemel kural: açık takas varken silinemez, bakiye sıfırlanır ve bu
-      ekranda önceden söylenir.
-- [ ] **Kullanıcı engelleme yok.** `report_message` var, engelleme yok. App
-      Store kuralı 1.2, kullanıcı içeriği taşıyan uygulamalardan **hem
-      bildirme hem engelleme** istiyor. Mesajlaşma var, yani bu kural bizi
-      kapsıyor.
+- [x] **Hesap silme yazıldı** (2026-08-16). `delete_own_account` +
+      Güvenlik ekranının altında kırmızı bölüm, iki adımlı onay.
+      Açık takas, rezerve ilan ya da ödenmemiş borç varsa **reddediliyor** ve
+      sebebi söyleniyor ("silemezsin" değil, "şunu bitir sonra silebilirsin").
+      Bakiye deftere `CLOSE` hareketiyle düşüyor — yeni hareket türü eklendi.
+      `auth.users` silinince yalnızca `profiles`, `favorites`, `cart_items`
+      zincirleme gidiyor (ölçüldü); defter, denetim kaydı, takas ve mesajlar
+      kasıtlı olarak duruyor, geride yalnızca `uuid` kalıyor.
+      **Cihazda denenmedi** — kamera gibi bu da gerçek bir hesap gerektiriyor.
+- [x] **Kullanıcı engelleme yazıldı** (2026-08-16). `user_blocks` tablosu,
+      `block_conversation_peer` / `unblock_user`, sohbet başlığında düğme.
+      Engel `send_message` içinde **iki yönlü** denetleniyor. Hedef sunucuda
+      sohbetten türetiliyor: karşı tarafın kimliği istemciye hiç verilmiyor.
+      Sohbet gizlenmiyor (kanıt), takas durdurulmuyor (kilitlenirdi), hangi
+      tarafın engellediği söylenmiyor.
+- [ ] **Engellenenler listesi ekranı yok.** Engel kurulabiliyor ama kullanıcı
+      kimleri engellediğini göremiyor ve kaldıramıyor. `unblock_user` hazır,
+      `user_blocks` kendi satırlarını okumaya açık — eksik olan tek şey ekran.
 - [ ] **Gizlilik politikası için erişilebilir bir URL yok.** Sitede
       `LegalModal` var ama (a) bir adresi yok — modal, (b) metni kendi
       söylüyor: "bu web sitesi için geçerli", yani **uygulamayı kapsamıyor.**

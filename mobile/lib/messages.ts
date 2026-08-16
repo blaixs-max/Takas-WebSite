@@ -164,6 +164,10 @@ function cevir(mesaj: string): string {
   if (mesaj.includes('henüz yayında değil')) return 'Bu ilan henüz yayında değil.';
   if (mesaj.includes('tarafı değilsiniz')) return 'Bu sohbetin tarafı değilsiniz.';
   if (mesaj.includes('boş mesaj')) return 'Boş mesaj gönderilemez.';
+  /* Engelin hangi yönde olduğu bilerek söylenmiyor. "Seni engelledi" demek,
+     engellemeyi bir bildirime çevirir ve engelleyeni hedef hâline getirir —
+     engellemenin amacı tam olarak temastan çıkmak. */
+  if (mesaj.includes('engel nedeniyle')) return 'Bu sohbette mesajlaşma kapalı.';
   if (mesaj.includes('oturum bulunamadı')) return 'Giriş yapmalısınız.';
   if (mesaj.includes('ilan bulunamadı')) return 'İlan bulunamadı.';
   return 'Mesaj gönderilemedi. Bağlantınızı kontrol edin.';
@@ -203,5 +207,28 @@ export async function reportMessage(
     }
     return { ok: false, message: 'Şikâyet gönderilemedi. Tekrar deneyin.' };
   }
+  return { ok: true };
+}
+
+/**
+ * Karşı tarafı engeller.
+ *
+ * Hedefi sunucu sohbetten türetiyor; sohbet listesi karşı tarafın kimliğini
+ * hiç taşımıyor ve taşımamalı — engellemek için gerekmeyen bir veriyi
+ * istemciye vermek olurdu.
+ *
+ * Engelin etkisi tek şey: **iki yönde de mesaj kesilir.** Sohbet listede
+ * kalmaya devam eder, çünkü geçmiş konuşma bir kanıt ve itiraz sürecinde
+ * gerekebilir. Bildirmenin (`reportMessage`) yerine geçmez: biri moderasyon
+ * isteği, öbürü kullanıcının kendi elindeki anında çözüm.
+ */
+export async function blockConversationPeer(
+  conversationId: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (!supabaseConfigured || !supabase) return { ok: false, message: 'Sunucu bağlantısı yok.' };
+  const { error } = await supabase.rpc('block_conversation_peer', {
+    p_conversation_id: conversationId,
+  });
+  if (error) return { ok: false, message: 'Engellenemedi. Tekrar deneyin.' };
   return { ok: true };
 }

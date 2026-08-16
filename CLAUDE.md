@@ -176,6 +176,23 @@ Bu ayrım her zaman geçerlidir.
   politikasında `with check` verilmemişse `using` ifadesini yeni satıra da
   uygular. Aranacak şey eksik `with check` değil, `using`'den **daha gevşek**
   olanı. (Bu doküman bir tur boyunca tersini yazdı.)
+- **Hesap silme geri alınamaz ve üç durumda reddedilir.** `delete_own_account`
+  açık takas, rezerve ilan ya da ödenmemiş borç varsa hata veriyor — hesap
+  silerek yükümlülükten kurtulmak ya da karşı tarafı ortada bırakmak mümkün
+  olmamalı. Bakiye düşüyor ve deftere `CLOSE` hareketi olarak yazılıyor;
+  sessizce sıfırlamak çift girişli defteri bozardı. **Kurallar tek yerde,
+  sunucuda:** arayüz onları tekrarlamıyor, yalnızca ret gerekçesini çeviriyor.
+  Geride kalanlar kasıtlı — `wallet_entries`, `audit_logs`, `trades` ve
+  `messages` duruyor (karşı tarafın da kaydı), yalnızca `uuid` kalıyor, ad ve
+  e-posta gidiyor.
+- **Engelleme ile bildirme farklı şeylerdir, ikisi de gerekli.** Mağaza
+  (App Store 1.2) kullanıcı içeriği taşıyan uygulamadan ikisini birden
+  istiyor. `report_message` bir moderasyon isteği; `block_user` kullanıcının
+  kendi elindeki anında çözüm. Engel **iki yönlü** denetleniyor — tek yönlü
+  olsaydı engelleyen kişi engellediğinden mesaj almaya devam ederdi.
+  Engelleme sohbeti **gizlemiyor** (geçmiş bir kanıt, itirazda gerekir) ve
+  **takası durdurmuyor** (durdursaydı süreç ortada kilitlenirdi).
+  Hangi tarafın engellediği kullanıcıya söylenmiyor.
 - **Yönetici yetkisi `admins` tablosundadır, JWT'de değil.** Rol iddiası oturum
   yenilenene kadar geçerli olmaz; yetkisi alınan biri elindeki token'la karar
   vermeye devam edemez. Kontrol her zaman sunucudaki `is_admin()` ile yapılır —

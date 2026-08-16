@@ -24,6 +24,7 @@ import {
   MessageRow,
   ReportReason,
   SIKAYET_NEDENLERI,
+  blockConversationPeer,
   loadConversation,
   loadMessages,
   markConversationRead,
@@ -117,6 +118,38 @@ export default function Chat() {
     );
   }
 
+  /**
+   * Karşı tarafı engelle.
+   *
+   * Ne yaptığını ve ne yapmadığını önceden söylüyoruz. En çok yanlış anlaşılan
+   * yer, engellemenin açık bir takası durdurmaması: durdursaydı, takasın
+   * ortasında iletişim kesilir ve süreç kilitlenirdi.
+   */
+  function engellemeyiSor() {
+    if (!id) return;
+    uyar(
+      'Bu kişiyi engelle',
+      'Karşılıklı mesajlaşma kapanır. Sohbet geçmişi silinmez — bir itirazda kanıt olarak gerekebilir. ' +
+        'Devam eden bir takasın varsa süreci durdurmaz.',
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        {
+          text: 'Engelle',
+          style: 'destructive',
+          onPress: async () => {
+            const s = await blockConversationPeer(id);
+            uyar(
+              s.ok ? 'Engellendi' : 'Engellenemedi',
+              s.ok
+                ? 'Bu kişi artık sana mesaj gönderemez, sen de ona gönderemezsin.'
+                : s.message,
+            );
+          },
+        },
+      ],
+    );
+  }
+
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.appbar}>
@@ -124,7 +157,13 @@ export default function Chat() {
           <MaterialIcons name="arrow-back" size={24} color={colors.onSurface} />
         </Pressable>
         <Text style={styles.appTitle}>Sohbet</Text>
-        <View style={styles.iconBtn} />
+        {/* Engelleme başlıkta: mağaza kuralı (App Store 1.2) bildirmenin yanında
+            engellemeyi de istiyor ve rahatsız olan kişinin onu araması değil,
+            görmesi gerekiyor. Bildirme mesaja basılı tutmakla, engelleme
+            buradan — biri tek bir mesaj hakkında, öbürü kişi hakkında. */}
+        <Pressable style={styles.iconBtn} onPress={engellemeyiSor} hitSlop={6}>
+          <MaterialIcons name="block" size={22} color={colors.onSurfaceVariant} />
+        </Pressable>
       </View>
 
       <KeyboardAvoidingView
