@@ -165,6 +165,17 @@ Bu ayrım her zaman geçerlidir.
 - **İtiraz sayacı durdurur, SIFIRLAMAZ.** Kalan süre `deadline_remaining`'e
   yazılır ve talep reddedilirse aynen sürer. Sıfırlansaydı arka arkaya açılan
   asılsız talepler satıcının puanını süresiz rehin alırdı (Ana Doküman 5.4).
+- **Tablo yetkisi RLS'in yedeği değil, ikinci kilidi.** Supabase kurulumu
+  `grant all on all tables ... to anon, authenticated` yazıyor; bu depoda o
+  yüzden `anon` **cüzdan tablosuna bile** yazabiliyordu (yalnızca RLS
+  engelliyordu). 2026-08-16'da geri alındı: yazma yetkisi, o rol için yazma
+  politikası **bulunmayan** her tablodan kaldırıldı. Aynı mekanik fonksiyon
+  tarafını iki kez vurdu (`rpc_grants`, `rpc_grants_final`). Yeni tablo
+  eklerken RLS'i açmak yetmez — **yetki matrisi yeniden ölçülür.**
+- **`with check` yokluğu bir açık değildir.** PostgreSQL, UPDATE
+  politikasında `with check` verilmemişse `using` ifadesini yeni satıra da
+  uygular. Aranacak şey eksik `with check` değil, `using`'den **daha gevşek**
+  olanı. (Bu doküman bir tur boyunca tersini yazdı.)
 - **Yönetici yetkisi `admins` tablosundadır, JWT'de değil.** Rol iddiası oturum
   yenilenene kadar geçerli olmaz; yetkisi alınan biri elindeki token'la karar
   vermeye devam edemez. Kontrol her zaman sunucudaki `is_admin()` ile yapılır —

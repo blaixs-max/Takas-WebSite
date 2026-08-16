@@ -825,42 +825,94 @@ görünmüyordu:
   PUBLIC yetkisiyle doğurdu (`rpc_grants_final`).
 - İlk gerçek ilan vitrine kişinin e-postasının yarısıyla düştü.
 
-### Kapsam — arka uç
-- [ ] **RPC yetki matrisi baştan sona.** Her fonksiyon için: `anon`
-      çağırabiliyor mu, `authenticated` çağırmalı mı, `SECURITY DEFINER` ise
-      `search_path` sabit mi. Bugünkü ölçüm temiz (anon 0, authenticated 31)
-      ama bu bir kez ölçüldü; her yeni göç sonrası tekrar ölçülmeli.
-- [ ] **RLS politikaları tablo tablo.** Yalnızca "RLS açık" yetmiyor:
-      politikanın `using` ve `with check` yanları ayrı ayrı okunmalı. Eksik
-      `with check`, kullanıcının başkasının satırına yazmasına izin verir.
-- [ ] **Depolama politikaları.** `listing-photos` özel; imzalı bağlantı
-      süreleri ve kimin hangi yolu yazabildiği doğrulanmalı. Yol düzeni
-      `{satici_id}/...` — başka birinin klasörüne yazılabiliyor mu?
-- [ ] **Edge Function'lar.** `iyzico-callback` gövdeye güvenmemeli (RETRIEVE
-      ile doğrulama), `send-sms` hook sırrı, JWT muafiyetleri tek tek
-      gerekçelendirilmeli.
-- [ ] **Puan ekonomisi.** Kapalı devrede en ağır risk puan basmak: `earn_points`,
-      `release_points`, `refund_points`, `grant_campaign_points` yalnızca
-      `service_role`da mı, idempotency anahtarı gerçekten tekrarı önlüyor mu.
+### Birinci geçiş — 2026-08-16 (ölçüldü, biri düzeltildi)
+
+**🔴 BULGU · düzeltildi — `anon` her tabloya yazabiliyordu.** 30 tablonun
+hepsinde INSERT/UPDATE/DELETE yetkisi vardı: `wallets`, `wallet_entries`,
+`admins`, `audit_logs`, `trades`, `campaign_grants`, `user_sanctions`,
+`seller_debts` dahil. Kaynağı Supabase'in kurulum betiğindeki
+`grant all on all tables ... to anon, authenticated, service_role`.
+
+Sömürülebilir **değildi** ve bu doğrulandı: 30 tablonun hepsinde RLS açık ve
+hiçbirinde `anon`a yazma izni veren politika yok. Ama tek savunma katmanı
+buydu — `anon` ile cüzdan tablosu arasında duran tek şey bir politikanın
+**yokluğu**. RLS'i açmayı unutan bir göç ya da fazla geniş tek bir politika
+yeterdi.
+
+Bu depo aynı mekanikten iki kez yaralandı (`rpc_grants`, `rpc_grants_final`);
+fonksiyon tarafı kapatılmış, **tablo tarafı açık kalmıştı.**
+
+Göç: `20260816120000_yetki_daraltma.sql`. Yazma yetkisi, o rol için yazma
+politikası **bulunmayan** her tablodan geri alındı — 30 tablonun 22'si, yani
+yazmanın zaten reddedildiği yerler. Davranış değişmedi, ikinci kilit eklendi.
+`favorites`/`cart_items` politikaları da `to public` yerine `to authenticated`
+oldu. Ölçüm sonrası: **anon yazma yetkisi 0**, anon yazma politikası 0,
+RLS kapalı tablo 0, `authenticated` yazma yetkisi yalnızca gerçekten yazdığı
+8 tabloda.
+
+- [x] **RPC yetki matrisi.** 71 fonksiyon: `anon` çağırabilen **0**,
+      `authenticated` 31, `SECURITY DEFINER` olup `search_path`'i sabitlenmemiş
+      **0**. Her yeni göç sonrası tekrar ölçülmeli — bu bir kerelik değil.
+- [x] **RLS politikaları tablo tablo.** 30 tablonun hepsinde RLS açık.
+      Politikası hiç olmayan tek tablo `site_settings` — yani `service_role`
+      dışında kimse okuyup yazamıyor; bilinçli görünüyor ama teyit edilmeli.
+      **Not — eski maddedeki "eksik `with check` başkasının satırına yazdırır"
+      cümlesi yanlıştı:** PostgreSQL, UPDATE politikasında `with check`
+      verilmemişse `using` ifadesini yeni satıra da uyguluyor. `profiles`
+      UPDATE'i bu yüzden açık değil. Gerçek risk, `using`'den **daha gevşek**
+      bir `with check` yazmak; öyle bir politika yok.
+- [x] **Depolama politikaları.** İki kova da özel (`listing-photos` 8 MB,
+      `dispute-evidence` 10 MB). Yazma ve okuma `foldername(name)[1] =
+      auth.uid()` ile klasör sahibine bağlı — başkasının klasörüne yazılamıyor.
+      `anon` yalnızca **yayındaki ilanın onaylanmış** karesini okuyabiliyor
+      (politika `product_photos` + `products` durumunu birlikte denetliyor).
+- [x] **Puan ekonomisi.** `earn_points`, `release_points`, `refund_points`,
+      `grant_campaign_points`, `hold_points` — beşi de `SECURITY DEFINER` ve
+      yalnızca `service_role`da; `anon` ve `authenticated` için ikisi de false.
+- [ ] **Edge Function kod incelemesi — ikinci geçişe kaldı.**
+      `iyzico-callback` gövdeye güvenmemeli (RETRIEVE ile doğrulama),
+      `send-sms` hook sırrı, JWT muafiyetleri tek tek gerekçelendirilmeli.
+- [ ] **Idempotency anahtarları — ikinci geçişe kaldı.** Puan fonksiyonlarının
+      yetkisi doğru, ama anahtarın tekrarı gerçekten önlediği ayrıca sınanmalı.
 
 ### Kapsam — uygulama
-- [ ] **Sırlar.** `service_role` ve iyzico secret'ının pakete hiç girmediği
-      doğrulanmalı — derlenmiş paket üzerinde arama yaparak, kaynak koda
-      bakarak değil.
-- [ ] **Derin bağlantılar.** `eldenele://` şemasına gelen veri doğrulanıyor mu;
-      `auth-callback` ve `payment-result` sahte bir çağrıyla kandırılabilir mi.
-- [ ] **Oturum saklama.** Jeton nerede duruyor, cihaz kilidi açıkken başka bir
-      uygulama okuyabilir mi.
+- [x] **Sırlar.** Mobil ağaçtaki tek JWT `"role":"anon"`; `service_role` yalnızca
+      bir yorum satırında geçiyor, iyzico sırrı hiç yok. Pakete inebilecek tek
+      değişken sınıfı `EXPO_PUBLIC_*` ve yalnızca ikisi tanımlı:
+      `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
+      Yani kaynakta olmayan bir şey pakete de inemez — TODO "derlenmiş pakette
+      ara" diyordu, `EXPO_PUBLIC_` listesi bunun daha güçlü hâli.
+- [ ] **Derin bağlantılar — ikinci geçişe kaldı.** `auth-callback` bugün
+      yazıldı ve gelen parametreleri Supabase'in kendi doğrulamasına veriyor
+      (`exchangeCodeForSession` / `verifyOtp`), yani sahte bir `code` oturum
+      üretmiyor. `payment-result` ayrıca okunmalı.
+- [ ] **Oturum saklama — ikinci geçişe kaldı.** Jeton `AsyncStorage`'da, yani
+      **şifresiz**. Root'lu/jailbreak'li cihazda okunabilir. Karar gerektiriyor:
+      `expo-secure-store`'a taşımak native modül demek değil (Expo Go'da var).
 
 ### Kapsam — site
-- [ ] **Vitrin anlık görüntüsünde kişisel veri.** Kural yazılı (kısaltılmış ad,
-      ilçe, mesafe yok) ama üretilen JSON her yayında yeniden denetlenmeli —
-      şema değişince yeni bir alan sessizce sızabilir.
-- [ ] **Derleme ortamı sırları.** `SUPABASE_ANON_KEY` yalnızca derleme anında;
-      `dist` çıktısında anahtarın ve deploy hook URL'sinin geçmediği
-      doğrulanmalı.
-- [ ] **Bağımlılık taraması.** `npm audit` bugün 29 uyarı veriyor; hangileri
-      gerçekten yayınlanan pakete iniyor, ayıklanmalı.
+- [x] **Vitrin anlık görüntüsünde kişisel veri.** Repodaki `liveListings.json`
+      boş yer tutucu (`kaynak: "ornek"`), gerçek anlık görüntü Vercel'de
+      derleme anında üretiliyor — yani depoda kişisel veri yok.
+      `vitrin-cek.mjs` iki katmanda korunuyor: SELECT listesi açık bir izin
+      listesi (mesafe alanı hiç seçilmiyor) **ve** üretilen nesne alan alan
+      yazılıyor, spread yok. Yeni bir kolon sessizce sızamaz.
+      **Küçük not:** `seller.id` alanına satıcının değil **ilanın** kimliği
+      yazılıyor. Semantik olarak yanlış ama sonucu iyi — satıcının UUID'si
+      siteye hiç çıkmıyor. Biri bunu "düzeltirse" gerçek kullanıcı kimlikleri
+      açık web'e iner; `vitrin-cek.mjs` içine bu uyarı düşülmeli.
+- [x] **Derleme ortamı sırları.** `npm run build` çalıştırıldı; `dist/`
+      içinde JWT, `service_role` ya da deploy hook URL'si **yok**.
+- [x] **Bağımlılık taraması.** Sitede `npm audit --omit=dev` → **0 açık**;
+      tümünde 1 yüksek (`nanoid`, yalnızca geliştirme bağımlılığı, pakete
+      inmiyor). TODO'daki "29 uyarı" aslında **mobil** tarafın sayısıydı ve
+      hâlâ 29 — ama 29'un neredeyse tamamı **derleme araç zinciri**
+      (`@expo/cli`, `metro`, `tar`, `xcode`, `shell-quote`, `js-yaml`);
+      uygulamanın JS paketine inen kod değil. Expo bunları normal bağımlılık
+      olarak listelediği için `--omit=dev` de ayıklamıyor, sayı yanıltıcı.
+      **`npm audit fix --force` çalıştırılmayacak:** `react-native` ve `expo`
+      sürümlerini SDK 54 hizasından çıkarır. Bunlar Expo SDK yükseltmesiyle
+      kapanır.
 
 ### Kapsam — süreç
 - [ ] **Depo görünürlüğü kararı** (yukarıda açık madde) bu turdan önce
