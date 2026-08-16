@@ -614,7 +614,16 @@ değiştirilemez.
       buradan onaylandı. Madde yazıldığı gün doğruydu, sonra yapıldı ve
       güncellenmemiş.
 - [ ] **`AI_VISION_API_KEY` ayarlanması** — anahtar girilene kadar hiçbir kare
-      otomatik onaylanmaz (tasarım gereği güvenli taraf), yani yayın akışı durur
+      otomatik onaylanmaz (tasarım gereği güvenli taraf), yani yayın akışı durur.
+
+      **Aynı turda `photo-check` yeniden deploy edilmeli.** Repodaki sürüm
+      canlıdakinden ileride: silme borcu (`kareyiSil` + `silmeBorcunuBosalt`)
+      eklendi ama fonksiyon deploy edilmedi. Bilerek bekletildi — anahtar
+      yokken fonksiyon zaten hiç karar vermiyor, yani borç yolu canlıda hiç
+      çalışmıyor; 18 KB'lik dosyayı elle kopyalayarak deploy etmek ise
+      repo/canlı ayrışması riski taşıyordu ve bu deponun iki kez yandığı
+      hata tam olarak o. Anahtar girilirken ikisi birlikte yapılır ve
+      `get_edge_function` ile doğrulanır.
 - [ ] **iyzico sandbox ucundan uca test** — ödeme akışı yazıldı ama gerçek bir
       kartla hiç koşmadı. Sandbox anahtarları olmadan 3D Secure dönüşü, callback
       ve `SHIPPED`'e geçiş doğrulanamıyor
@@ -987,6 +996,19 @@ içeriği repodakiyle birebir doğrulandı.
       tam boya düşen yedek yol. Dört tam boy fotoğraf tek isteğe sığmıyordu.
 - [x] **Reddedilen kare depodan siliniyor.** Çocuk yüzü içerdiği için reddedilen
       görsel kovada süresiz duruyordu; artık karar anında siliniyor.
+- [x] **Silme başarısız olursa borç kaydediliyor** (2026-08-16). Silme çağrısı
+      düşerse eskiden yalnızca `console.error` yazılıyordu: dosya depoda
+      süresiz kalıyor, kimse bilmiyor ve `/gizlilik/` sayfasında **yayında
+      duran** "reddedilen kare anında silinir" cümlesi sessizce yanlış hâle
+      geliyordu. Artık `product_photos.deletion_pending_at` damgalanıyor ve
+      her `photo-check` çağrısı en eski beş borcu yeniden deniyor — silme
+      oranı yükleme trafiğiyle ölçekleniyor, ki borcun oluştuğu an da o.
+
+      Zamana bağlı süpürücü (pg_cron + pg_net) bilerek kurulmadı: veri
+      tabanına yeni bir sır sokardı ve yükleme dururken yeni borç oluşmuyor.
+      Birikirse `admin_silme_borcu_sayisi()` görünür kılıyor; o zaman
+      süpürücü gerekir. **Fonksiyon henüz deploy edilmedi** — anahtar
+      maddesine bağlandı.
 - [x] **Çekim ekranı kararı bekliyor**, reddedilen karede sonraki slota geçmiyor.
 - [x] Ekrandan/basılı fotoğraftan çekim istem maddesine eklendi.
 - [x] `String.fromCharCode(...bytes)` parçalı çevrime alındı — kova sınırı 8 MB

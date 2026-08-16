@@ -52,8 +52,8 @@ değildir, uygulama paketine zaten gömülür. `service_role` anahtarı repoda
 **Göçler ve testler yerelde koşturulabilir: `supabase/tests/kosu.sh`.**
 Temiz bir veri tabanı kurar, `00_yerel_kurulum.sql` ile Supabase'e özgü şeyleri
 (auth/storage/cron şemaları, üç rol, `auth.uid()`, **varsayılan yetkiler**)
-taklit eder, bütün göçleri uygular, sonra test paketini koşar. Bugün: 38 göç,
-19 test, sıfır hata.
+taklit eder, bütün göçleri uygular, sonra test paketini koşar. Bugün: 39 göç,
+20 test, sıfır hata.
 
 **Betik "hata yok" derken sözdizimini kastediyor, iddiaları değil.** Sayaç
 psql'in hata verip vermediğine bakıyor; `BEKLENEN` satırları göz kararı
@@ -82,6 +82,14 @@ sonra dosya adı `schema_migrations`'taki sürümle eşitlenir; **eşleşmezse
 `supabase db push` bütün göçleri baştan uygulamaya kalkar.** Bir göçü panelden
 ya da MCP'den uygularken yerelde de tek dosya olarak tutun — ikiye bölünmüş
 bir uygulama, ikiye bölünmüş bir dosya ister.
+
+**Yayında duran bir cümle, kodda kapatılmamış bir borç bırakamaz.**
+`/gizlilik/` "reddedilen kare anında silinir" diyor. Silme çağrısı düştüğünde
+kod yalnızca `console.error` yazıyordu: dosya depoda kalıyor, kimse bilmiyor
+ve yayındaki cümle sessizce yanlış hâle geliyordu. Artık borç satıra yazılıyor
+(`product_photos.deletion_pending_at`) ve her `photo-check` çağrısı en eski
+beşini yeniden deniyor. Kimsenin bakmadığı bir günlük satırı, kapatılmamış bir
+borçtur — bir vaadi tutan mekanizma, vaadin kendisi kadar görünür olmalı.
 
 **Edge Function'lar repodan otomatik yayına gitmiyor.** `supabase/functions/`
 altındaki dosyayı değiştirmek canlıyı değiştirmez; ayrıca deploy edilir ve

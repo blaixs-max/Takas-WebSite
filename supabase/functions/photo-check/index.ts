@@ -243,16 +243,63 @@ Deno.serve(async (req) => {
   if (yeni === 'rejected' && kararVerildi) {
     /* Reddedilen görsel depoda tutulmaz — dosyanın başındaki KVKK notu.
        Satır kalıyor: satıcı hangi karenin neden geçmediğini görmeli. */
-    const { error: silmeHatasi } = await supabase.storage
-      .from('listing-photos')
-      .remove([kare.storage_path]);
-    if (silmeHatasi) {
-      console.error('[photo-check] reddedilen kare silinemedi', kare.storage_path, silmeHatasi.message);
-    }
+    await kareyiSil(supabase, kare.id, kare.storage_path);
   }
+
+  /* Geçmiş turlarda silinemeyen kareler burada yeniden deneniyor. Sonucu
+     beklenmiyor: kullanıcının kendi karesinin kararı, başkasının silme
+     borcunun arkasında kuyruğa girmemeli. */
+  void silmeBorcunuBosalt(supabase);
 
   return json({ photoId: kare.id, status: yeni, gerekce: gerekce ?? '' });
 });
+
+/**
+ * Kareyi depodan siler; olmazsa borcu satıra kaydeder.
+ *
+ * Eskiden başarısızlık yalnızca `console.error`'a yazılıyordu — yani dosya
+ * depoda süresiz kalıyor, kimse bilmiyor ve `/gizlilik/` sayfasında **yayında
+ * duran** "reddedilen kare anında silinir" cümlesi sessizce yanlış hâle
+ * geliyordu. Kimsenin bakmadığı bir günlük satırı, kapatılmamış bir borçtur.
+ */
+async function kareyiSil(
+  supabase: ReturnType<typeof createClient>,
+  photoId: string,
+  path: string,
+): Promise<boolean> {
+  const { error } = await supabase.storage.from('listing-photos').remove([path]);
+  if (error) {
+    console.error('[photo-check] reddedilen kare silinemedi', path, error.message);
+    await supabase.rpc('silme_borcu_ac', { p_photo_id: photoId });
+    return false;
+  }
+  await supabase.rpc('silme_borcu_kapat', { p_photo_id: photoId });
+  return true;
+}
+
+/**
+ * Bekleyen silme borçlarından birkaçını kapatmayı dener.
+ *
+ * Her `photo-check` çağrısında koşuyor, yani silme oranı yükleme trafiğiyle
+ * ölçekleniyor — borcun oluştuğu an da tam olarak o. Zamana bağlı bir
+ * süpürücü (pg_cron + pg_net ile bu fonksiyona POST) bilerek kurulmadı:
+ * veri tabanına yeni bir sır sokardı ve yükleme dururken yeni borç da
+ * oluşmuyor. Birikme olursa `admin_silme_borcu_sayisi()` bunu görünür kılar.
+ *
+ * Beşer beşer: bir isteği geciktirmeyecek kadar az, birikmeyi eritecek kadar
+ * çok. Hata yutuluyor — bu yol kullanıcının isteğinin sonucunu etkilemez.
+ */
+async function silmeBorcunuBosalt(supabase: ReturnType<typeof createClient>): Promise<void> {
+  try {
+    const { data, error } = await supabase.rpc('silme_borcu_al', { p_adet: 5 });
+    if (error || !Array.isArray(data) || data.length === 0) return;
+    for (const b of data as { photo_id: string; storage_path: string }[]) {
+      await kareyiSil(supabase, b.photo_id, b.storage_path);
+    }
+  } catch (e) {
+    console.error('[photo-check] silme borcu boşaltılamadı', e);
+  }
+}
 
 /**
  * Kareyi (varsa kıyas kareleriyle birlikte) modele gönderir ve kararı çözümler.
