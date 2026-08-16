@@ -10,7 +10,6 @@ export interface NewListing {
   subCategory: SubCategory;
   condition: Condition;
   sizeClass: SizeClass;
-  points: number;
   location?: string;
   description?: string;
   /** Hasar beyanı — hasar yakın çekimi karesini zorunlu yapar. */
@@ -44,7 +43,6 @@ export async function createListing(l: NewListing): Promise<CreateResult> {
     p_sub_category: l.subCategory,
     p_condition: l.condition,
     p_size_class: l.sizeClass,
-    p_points: l.points,
     p_location: l.location ?? 'Belirtilmedi',
     p_description: l.description ?? null,
     p_has_damage: l.hasDamage ?? false,
@@ -58,6 +56,42 @@ export async function createListing(l: NewListing): Promise<CreateResult> {
   return { ok: true, id: row.id as string };
 }
 
+export interface DegerlemeSonuc {
+  bulundu: boolean;
+  urun?: string;
+  sifirFiyat?: number | null;
+  puan?: number | null;
+}
+
+/**
+ * İlanı değerletir — sıfır fiyatını buldurup puanı hesaplatır.
+ *
+ * Kareler onaylandıktan **sonra** çağrılıyor: model ürünü dört açıdan görmeden
+ * tanıyamıyor. Yayından hemen önce çalışıyor çünkü yayın kapısı değerlenmemiş
+ * ilanı geçirmiyor.
+ *
+ * Hata yutuluyor ve `bulundu: false` dönüyor: değerleme başarısız olduğunda
+ * doğru davranış akışı durdurmak değil, ilanı taslakta bırakmak. Kullanıcı
+ * kareleri boşuna çekmiş olmuyor, ilan insan kuyruğuna düşüyor.
+ */
+export async function degerlet(productId: string): Promise<DegerlemeSonuc> {
+  if (!supabaseConfigured || !supabase) return { bulundu: false };
+  try {
+    const { data, error } = await supabase.functions.invoke('listing-value', {
+      body: { productId },
+    });
+    if (error) return { bulundu: false };
+    return {
+      bulundu: data?.bulundu === true || data?.tekrar === true,
+      urun: data?.urun,
+      sifirFiyat: data?.sifirFiyat ?? null,
+      puan: data?.puan ?? null,
+    };
+  } catch {
+    return { bulundu: false };
+  }
+}
+
 /** Postgres hata metinlerini kullanıcıya gösterilebilir hâle çevirir. */
 function cevir(mesaj: string): string {
   if (mesaj.includes('oturum açmalısınız')) return 'İlan vermek için giriş yapmalısınız.';
@@ -68,7 +102,12 @@ function cevir(mesaj: string): string {
     return 'Seçtiğiniz alt kategori bu kategoriye ait değil.';
   if (mesaj.includes('alt kategori seçilmeden'))
     return 'İlanı yayına almak için bir alt kategori seçin.';
-  if (mesaj.includes('puan sıfırdan büyük')) return 'Puan sıfırdan büyük olmalı.';
+  if (mesaj.includes('henüz değerlenmedi'))
+    return 'İlan değerleniyor, birkaç saniye sonra tekrar dene.';
+  if (mesaj.includes('piyasa değeri bulunamadı'))
+    return 'Bu ürünün piyasa değeri bulunamadı. İlan incelemeye alındı, sana haber vereceğiz.';
+  if (mesaj.includes('olağandışı yüksek'))
+    return 'Hesaplanan değer olağandışı yüksek çıktı. İlan incelemeye alındı.';
   return 'İlan kaydedilemedi. Bağlantınızı kontrol edip tekrar deneyin.';
 }
 

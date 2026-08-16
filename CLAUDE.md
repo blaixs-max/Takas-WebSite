@@ -52,8 +52,8 @@ değildir, uygulama paketine zaten gömülür. `service_role` anahtarı repoda
 **Göçler ve testler yerelde koşturulabilir: `supabase/tests/kosu.sh`.**
 Temiz bir veri tabanı kurar, `00_yerel_kurulum.sql` ile Supabase'e özgü şeyleri
 (auth/storage/cron şemaları, üç rol, `auth.uid()`, **varsayılan yetkiler**)
-taklit eder, bütün göçleri uygular, sonra test paketini koşar. Bugün: 43 göç,
-22 test, sıfır hata.
+taklit eder, bütün göçleri uygular, sonra test paketini koşar. Bugün: 44 göç,
+23 test, sıfır hata.
 
 **Betik "hata yok" derken sözdizimini kastediyor, iddiaları değil.** Sayaç
 psql'in hata verip vermediğine bakıyor; `BEKLENEN` satırları göz kararı
@@ -130,6 +130,32 @@ ayarlanacak ve her ayar için deploy beklemek ayarı hiç yapmamak demek.
   lehine yorumlamak, hasarı gizlemeyi kârlı kılardı.
 - **Tavan aşılırsa değer kırpılmaz, işaretlenir** (`puan_bandi_disinda`).
   Kırpmak, 50.000'lik bir hatayı sessizce 5.000 yapıp geçirmek olurdu.
+
+**Puan istemciden gelmiyor.** `create_listing` artık `p_points` almıyor —
+eski imza **düşürüldü**, üstüne yazılmadı: PostgreSQL aşırı yükleme yapıyor,
+eskisi bırakılsaydı güncel olmayan istemci onu çağırmaya devam eder ve hiçbir
+şey değişmezdi. Puanı yalnızca `degerleme_yaz()` yazar ve o da yalnızca
+`service_role`a açık — puanı yazabilen istemci, puanı seçebilir demektir.
+
+Sıra: `create_listing` (DRAFT, puansız) → kareler → `listing-value` →
+`degerleme_yaz` → `publish_listing`. Değerleme kareleri görmek zorunda,
+kareler de ilan oluşturulduktan sonra yükleniyor; bu yüzden puan oluşturma
+anında **bilinemez** ve `points` boş doğuyor. Yayın kapısı üç yeni sebeple
+reddediyor: değerleme yapılmadı, fiyat bulunamadı, puan bant dışı.
+
+`degerleme_yaz` `kt.bypass_product_guard` bayrağını **açıkça** açıyor.
+Kendiliğinden de geçerdi (tetikleyici `auth.uid() is null` durumunda çekiliyor,
+Edge Function oturumsuz çağırıyor) ama o zaman koruma "kod doğru olduğu için"
+değil "çağıranın oturumu olmadığı için" aşılmış olurdu. Testi yazarken tam
+olarak bu oldu ve tetikleyici çarptı.
+
+**Test iskelesinde `test_degerle` var ve göçlerden SONRA uygulanıyor.**
+Yayın kapısına değerleme koşulu eklenince değerlemeyle ilgisi olmayan on dört
+test birden kırıldı — hepsi bir ilan açıp yayına alıyor, konusu takas ya da
+mesajlaşma. Yardımcı onların konusuna dönmesini sağlıyor ve gerçek formülü
+bilerek atlıyor; formülün kendi testleri var. Sıra kritik: `rpc_grants_final`
+bütün fonksiyonlardan EXECUTE'u geri alıyor, yardımcı göçlerden önce
+oluşturulsaydı yetkisi hemen silinirdi.
 
 **Açık yan etki: kampanya puanı.** Ölçek ~420'den ~1000'e çıktı, yani 250+250
 hoş geldin puanı bir ürünün tamamı yerine yarısını alıyor. Soğuk başlangıçta

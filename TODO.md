@@ -634,6 +634,10 @@ değiştirilemez.
       | `AI_VISION_MODEL_STRICT` | boş bırak — önce Flash'ı ölç |
       | `AI_VISION_SAATLIK_LIMIT` | 60 (varsayılan, dokunma) |
 
+      **İKİ fonksiyon aynı turda deploy edilmeli: `photo-check` ve
+      `listing-value`.** İkincisi tamamen yeni ve hiç yayınlanmadı; onsuz
+      hiçbir ilan değerlenemez, yani hiçbir ilan yayına giremez.
+
       **`photo-check` aynı turda deploy edilmeli.** Repodaki sürüm canlıdakinden
       epeyce ileride: sahiplik kontrolü, oran sınırı, ölçüm, yeniden deneme,
       zaman aşımı, `sebep` enum'u, ikinci görüş ve silme borcu. Deploy
@@ -672,14 +676,15 @@ değiştirilemez.
       `products`'a `sifir_fiyat`, `degerleme_kaynak`, `degerleme_guven`,
       `degerleme_model`, `degerleme_at` eklendi — "bu puan nereden çıktı"nın
       cevabı olmadan hiçbir itiraz çözülemez.
-- [ ] **Değerlemeyi akışa bağla — KALAN İŞ.** Motor hazır ama henüz kimse
-      çağırmıyor. İki parça eksik:
-      1. `listing-value` Edge Function: kareler + başlık + durum → Gemini
-         (Google Search grounding) → sıfır fiyatı + kaynak + güven.
-         Bulamazsa uydurmaz, ilan insan kuyruğuna düşer.
-      2. `create_listing` artık `points` parametresini **almamalı**; puanı
-         `puan_hesapla()` üretmeli. Bu yapılmadan formül anlamsız — istemci
-         hâlâ istediği sayıyı gönderebiliyor.
+- [x] **Değerleme akışa bağlandı** (2026-08-16). `create_listing` artık
+      `p_points` almıyor (eski imza düşürüldü), `degerleme_yaz()` yalnızca
+      `service_role`a açık, yayın kapısı değerlenmemiş / fiyatı bulunamamış /
+      bant dışı ilanı geçirmiyor. `listing-value` Edge Function yazıldı:
+      onaylı kareler + beyan → Gemini + Google Search grounding → sıfır fiyatı,
+      kaynak, güven, hasar şiddeti. Mobil tarafta uydurma puan tablosu
+      ("Kategori taban puanı 500") kaldırıldı, yerine ne olacağını anlatan
+      metin geldi; yayından hemen önce `degerlet()` çağrılıyor.
+      **Fonksiyon henüz deploy edilmedi** — anahtar maddesine bağlı.
 - [ ] **Kampanya puanı yeniden değerlendirilmeli.** Ölçek ~420'den ~1000'e
       çıktı; 250+250 hoş geldin puanı artık ortalama bir ürünün yarısını
       alıyor, eskiden tamamını alıyordu. Soğuk başlangıçta ilk takası

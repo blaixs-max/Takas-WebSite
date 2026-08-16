@@ -29,10 +29,11 @@ returns text language plpgsql as $$
 declare pid text; sid text := 'ccddccdd-ccdd-ccdd-ccdd-ccddccddccdd';
 begin
   perform set_config('test.uid', sid, false);
-  select id into pid from create_listing(p_baslik, 'Oyun & Oyuncak', 'Az kullanılmış', 'M', p_puan, p_sub_category => 'Yapı & inşa');
+  select id into pid from create_listing(p_baslik, 'Oyun & Oyuncak', 'Az kullanılmış', 'M', p_sub_category => 'Yapı & inşa');
   insert into product_photos (product_id, slot, storage_path, moderation_status)
   select pid, s, sid || '/' || pid || '/' || s || '.jpg', 'approved'
     from unnest(array['front','back','left','right','label']::photo_slot[]) s;
+  perform test_degerle(pid);
   perform publish_listing(pid, 'front');
   return pid;
 end; $$;
@@ -121,7 +122,7 @@ select is_restricted(:'s') as satici_kisitli;
 do $$
 begin
   perform set_config('test.uid', 'ccddccdd-ccdd-ccdd-ccdd-ccddccddccdd', false);
-  perform create_listing('Kısıtlıyken ilan', 'Oyun & Oyuncak', 'İyi durumda', 'S', 100, p_sub_category => 'Yapı & inşa');
+  perform create_listing('Kısıtlıyken ilan', 'Oyun & Oyuncak', 'İyi durumda', 'S', p_sub_category => 'Yapı & inşa');
   raise notice 'SONUÇ: HATA — kısıtlı hesap yeni ilan verdi';
 exception when others then
   raise notice 'SONUÇ: doğru — engellendi (%)', sqlerrm;
@@ -171,7 +172,7 @@ select is_restricted(:'s') as hala_kisitli;
 \echo ''
 \echo '=== 9) Kısıt kalkınca yeniden ilan verebiliyor ==='
 select set_config('test.uid', :'s', false);
-select status from create_listing('Kısıt sonrası ilan', 'Oyun & Oyuncak', 'İyi durumda', 'S', 100, p_sub_category => 'Yapı & inşa');
+select status from create_listing('Kısıt sonrası ilan', 'Oyun & Oyuncak', 'İyi durumda', 'S', p_sub_category => 'Yapı & inşa');
 \echo 'BEKLENEN: DRAFT — ilan açılabildi'
 
 \echo ''
@@ -192,10 +193,11 @@ select level from admin_close_account(:'b', 'Tekrarlanan ihlal') \gset kapat_
 reset role;
 select is_restricted(:'b') as alici_kisitli;
 select set_config('test.uid', :'s', false);
-select id as pid from create_listing('Kapatma testi', 'Oyun & Oyuncak', 'İyi durumda', 'S', 100, p_sub_category => 'Yapı & inşa') \gset pk_
+select id as pid from create_listing('Kapatma testi', 'Oyun & Oyuncak', 'İyi durumda', 'S', p_sub_category => 'Yapı & inşa') \gset pk_
 insert into product_photos (product_id, slot, storage_path, moderation_status)
 select :'pk_pid', s, :'s' || '/' || :'pk_pid' || '/' || s || '.jpg', 'approved'
   from unnest(array['front','back','left','right','label']::photo_slot[]) s;
+select test_degerle(:'pk_pid');
 select status from publish_listing(:'pk_pid', 'front');
 do $$
 declare pid text;

@@ -31,3 +31,10 @@ verify_jwt = true
 [functions.send-sms]
 # Supabase Auth Hook'u çağırır; imza doğrulaması fonksiyonun içindedir.
 verify_jwt = false
+
+[functions.listing-value]
+# İlan sahibi çağırır; oturum zorunlu. Aynı uyarı photo-check'te olduğu gibi
+# burada da geçerli: verify_jwt yalnızca birinin giriş yaptığını kanıtlar,
+# bu ilanın sahibi olduğunu değil. Sahiplik kontrolü fonksiyonun içinde,
+# products.seller_id ile karşılaştırılarak yapılıyor. İkisi birden gerekli.
+verify_jwt = true

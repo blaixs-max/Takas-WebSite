@@ -131,3 +131,4 @@ create or replace function cron.unschedule(p_ad text)
 returns boolean language sql as $$
   delete from cron.job where jobname = p_ad returning true
 $$;
+

@@ -39,7 +39,7 @@ select category, sub_category, count(*) as adet
 \echo '=== 4) Ağaçta olmayan ana kategori reddedilir ==='
 do $$
 begin
-  perform create_listing('Uydurma kategori', 'Zırva', 'Az kullanılmış', 'S', 100,
+  perform create_listing('Uydurma kategori', 'Zırva', 'Az kullanılmış', 'S',
                          p_sub_category => 'Yapı & inşa');
   raise notice 'SONUÇ: HATA — geçersiz kategori kabul edildi';
 exception when others then
@@ -50,7 +50,7 @@ end $$;
 \echo '=== 5) Başka ana kategorinin alt kategorisi reddedilir ==='
 do $$
 begin
-  perform create_listing('Yanlış eşleşme', 'Giyim & Ayakkabı', 'Az kullanılmış', 'S', 100,
+  perform create_listing('Yanlış eşleşme', 'Giyim & Ayakkabı', 'Az kullanılmış', 'S',
                          p_sub_category => 'Bisiklet');
   raise notice 'SONUÇ: HATA — yanlış çift kabul edildi';
 exception when others then
@@ -59,7 +59,7 @@ end $$;
 
 \echo ''
 \echo '=== 6) Alt kategorisiz taslak açılır ==='
-select id from create_listing('Alt kategorisiz', 'Oyun & Oyuncak', 'Az kullanılmış', 'S', 100) \gset a_
+select id from create_listing('Alt kategorisiz', 'Oyun & Oyuncak', 'Az kullanılmış', 'S') \gset a_
 -- psql değişkenleri $$...$$ içinde ikame edilmez; kimliği geçici bir tabloya
 -- koyup DO bloklarında oradan okuyoruz (bkz. product_photos_test).
 create temp table if not exists t_kat (ad text primary key, deger text);
@@ -75,6 +75,7 @@ do $$
 declare pid text;
 begin
   select deger into pid from t_kat where ad = 'ilan';
+  perform test_degerle(pid);
   perform publish_listing(pid, 'front');
   raise notice 'SONUÇ: HATA — alt kategorisiz ilan yayına girdi';
 exception when others then
@@ -105,6 +106,7 @@ do $$
 declare pid text;
 begin
   select deger into pid from t_kat where ad = 'ilan';
+  perform test_degerle(pid);
   perform publish_listing(pid, 'front');
   raise notice 'SONUÇ: HATA — karesiz ilan yayına girdi';
 exception when others then

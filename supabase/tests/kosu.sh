@@ -37,6 +37,11 @@ for f in "$KOK"/supabase/migrations/*.sql; do
 done
 echo "  göç: $goc_ok başarılı, $goc_hata hatalı"
 
+# Test yardımcıları göçlerden SONRA: `rpc_grants_final` bütün fonksiyonlardan
+# EXECUTE'u geri alıyor, önce uygulansaydı yardımcının yetkisi silinirdi.
+echo "▸ test yardımcıları"
+"${PSQL[@]}" -d "$DB" -f "$KOK/supabase/tests/01_test_yardimcilari.sql" >/dev/null || exit 1
+
 echo "▸ testler"
 t_ok=0; t_hata=0
 for f in "$KOK"/supabase/tests/*_test.sql; do

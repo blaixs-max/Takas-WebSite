@@ -24,10 +24,11 @@ returns text language plpgsql as $$
 declare pid text; sid text := '55ee55ee-55ee-55ee-55ee-55ee55ee55ee';
 begin
   perform set_config('test.uid', sid, false);
-  select id into pid from create_listing(p_baslik, 'Oyun & Oyuncak', 'Az kullanılmış', 'M', 300, p_sub_category => 'Yapı & inşa');
+  select id into pid from create_listing(p_baslik, 'Oyun & Oyuncak', 'Az kullanılmış', 'M', p_sub_category => 'Yapı & inşa');
   insert into product_photos (product_id, slot, storage_path, moderation_status)
   select pid, s, sid || '/' || pid || '/' || s || '.jpg', 'approved'
     from unnest(array['front','back','left','right','label']::photo_slot[]) s;
+  perform test_degerle(pid);
   perform publish_listing(pid, 'front');
   return pid;
 end; $$;
@@ -164,7 +165,7 @@ select product_title, ben_aliciyim, okunmamis, son_mesaj
 \echo '=== 11) Taslak ilana sohbet açılamaz ==='
 reset role;
 select set_config('test.uid', :'s', false);
-select id as pid from create_listing('Taslak ürün', 'Oyun & Oyuncak', 'İyi durumda', 'S', 120, p_sub_category => 'Yapı & inşa') \gset p2_
+select id as pid from create_listing('Taslak ürün', 'Oyun & Oyuncak', 'İyi durumda', 'S', p_sub_category => 'Yapı & inşa') \gset p2_
 insert into m_ids values ('p2', :'p2_pid');
 set session role authenticated;
 select set_config('test.uid', :'b', false);

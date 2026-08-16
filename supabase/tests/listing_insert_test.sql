@@ -17,7 +17,7 @@ select set_config('test.uid', :'s', false);
 \echo '=== 1) İlan açılır, satıcı ve baş harfler oturumdan gelir ==='
 select id, title, points, ai_suggested_points, size_class, status,
        seller_name, seller_initials
-  from create_listing('Ahşap tren seti', 'Oyun & Oyuncak', 'Az kullanılmış', 'M', 380, 'Kadıköy',
+  from create_listing('Ahşap tren seti', 'Oyun & Oyuncak', 'Az kullanılmış', 'M', 'Kadıköy',
                       'Doğal ahşap, 12 parça, kutusunda.', p_sub_category => 'Yapı & inşa') \gset l_
 select title, points, ai_suggested_points, size_class, status, seller_name, seller_initials
   from products where id = :'l_id';
@@ -35,6 +35,7 @@ reset role;
 update product_photos set moderation_status = 'approved' where product_id = :'l_id';
 set session role authenticated;
 select set_config('test.uid', :'s', false);
+select test_degerle(:'l_id');
 select status from publish_listing(:'l_id', 'front');
 \echo 'BEKLENEN: ACTIVE'
 
@@ -58,7 +59,7 @@ select size_class, shipping_tl, service_fee_tl, transaction_fee_tl, total_tl
 select set_config('test.uid', :'s', false);
 do $$
 begin
-  perform create_listing('Kötü desi', 'Oyun & Oyuncak', 'Az kullanılmış', 'XXXL', 100, p_sub_category => 'Yapı & inşa');
+  perform create_listing('Kötü desi', 'Oyun & Oyuncak', 'Az kullanılmış', 'XXXL', p_sub_category => 'Yapı & inşa');
   raise notice 'SONUÇ: HATA — geçersiz desi kabul edildi';
 exception when others then
   raise notice 'SONUÇ: doğru — reddedildi (%)', sqlerrm;
@@ -68,7 +69,7 @@ end $$;
 \echo '=== 4) Boş başlık reddedilir ==='
 do $$
 begin
-  perform create_listing('   ', 'Oyun & Oyuncak', 'Az kullanılmış', 'S', 100, p_sub_category => 'Yapı & inşa');
+  perform create_listing('   ', 'Oyun & Oyuncak', 'Az kullanılmış', 'S', p_sub_category => 'Yapı & inşa');
   raise notice 'SONUÇ: HATA — boş başlık kabul edildi';
 exception when others then
   raise notice 'SONUÇ: doğru — reddedildi (%)', sqlerrm;
@@ -79,7 +80,7 @@ end $$;
 select set_config('test.uid', '', false);
 do $$
 begin
-  perform create_listing('Oturumsuz', 'Oyun & Oyuncak', 'Az kullanılmış', 'S', 100, p_sub_category => 'Yapı & inşa');
+  perform create_listing('Oturumsuz', 'Oyun & Oyuncak', 'Az kullanılmış', 'S', p_sub_category => 'Yapı & inşa');
   raise notice 'SONUÇ: HATA — oturumsuz ilan açıldı';
 exception when others then
   raise notice 'SONUÇ: doğru — reddedildi (%)', sqlerrm;

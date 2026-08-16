@@ -27,7 +27,7 @@ returns text language plpgsql as $$
 declare pid text; sid text := 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 begin
   perform set_config('test.uid', sid, false);
-  select id into pid from create_listing(p_baslik, 'Oyun & Oyuncak', 'Az kullanılmış', 'M', 300, p_sub_category => 'Yapı & inşa');
+  select id into pid from create_listing(p_baslik, 'Oyun & Oyuncak', 'Az kullanılmış', 'M', p_sub_category => 'Yapı & inşa');
   insert into product_photos (product_id, slot, storage_path)
   select pid, s, sid || '/' || pid || '/' || s || '.jpg'
     from unnest(array['front','back','left','right','label']::photo_slot[]) s;
@@ -93,6 +93,7 @@ select count(*) as onaylanan from (
   select admin_moderate_photo(id, true) from product_photos where product_id = :'p1_pid'
 ) x;
 select set_config('test.uid', :'s', false);
+select test_degerle(:'p1_pid');
 select status from publish_listing(:'p1_pid', 'front');
 \echo 'BEKLENEN: 5 onaylandı, ACTIVE'
 
@@ -101,10 +102,11 @@ select status from publish_listing(:'p1_pid', 'front');
 reset role;
 -- 800 puanlık bir takas: eşiğin üstünde olmalı.
 select set_config('test.uid', :'s', false);
-select id as pid from create_listing('Pahalı ürün', 'Oyun & Oyuncak', 'İyi durumda', 'M', 800, p_sub_category => 'Yapı & inşa') \gset p2_
+select id as pid from create_listing('Pahalı ürün', 'Oyun & Oyuncak', 'İyi durumda', 'M', p_sub_category => 'Yapı & inşa') \gset p2_
 insert into product_photos (product_id, slot, storage_path, moderation_status)
 select :'p2_pid', s, :'s' || '/' || :'p2_pid' || '/' || s || '.jpg', 'approved'
   from unnest(array['front','back','left','right','label']::photo_slot[]) s;
+select test_degerle(:'p2_pid');
 select status from publish_listing(:'p2_pid', 'front');
 set session role authenticated;
 select set_config('test.uid', :'b', false);

@@ -21,6 +21,7 @@ import {
   zorunluSlotlar,
 } from '../data/photoSlots';
 import { PhotoRow, loadPhotos, publishListing, uploadPhoto } from '../lib/photos';
+import { degerlet } from '../lib/listings';
 import { colors, elevation, shape } from '../theme/tokens';
 
 /**
@@ -52,6 +53,7 @@ export default function ListingPhotos() {
   const [yerel, setYerel] = useState<Record<string, string>>({});
   const [yukleniyor, setYukleniyor] = useState<PhotoSlot | null>(null);
   const [yayinlaniyor, setYayinlaniyor] = useState(false);
+  const [degerleniyor, setDegerleniyor] = useState(false);
 
   const tazele = useCallback(async () => {
     if (!id) return;
@@ -179,6 +181,19 @@ export default function ListingPhotos() {
 
   async function yayinla() {
     setYayinlaniyor(true);
+
+    /* Değerleme yayından hemen önce, burada: modelin ürünü tanıyabilmesi için
+       dört açı karesinin onaylanmış olması gerekiyor ve o ancak bu noktada
+       kesin. Daha erken çağırsaydık kareler eksikken tanıma denenir, "ürün
+       bulunamadı" çıkar ve ilan boşuna insan kuyruğuna düşerdi.
+
+       Sonucuna bakıp akışı durdurmuyoruz: değerleme başarısızsa yayın kapısı
+       zaten geçirmeyecek ve aşağıdaki hata kullanıcıya ne olduğunu söyleyecek.
+       Burada ayrıca kontrol etmek, aynı kararı iki yerde vermek olurdu. */
+    setDegerleniyor(true);
+    await degerlet(id!);
+    setDegerleniyor(false);
+
     // Kapak: kullanıcı seçmediyse ön görünüm. Hangi kare kapak olursa olsun
     // ürünün durumu kapağın üzerinde rozet olarak görünür.
     const sonuc = await publishListing(id!, 'front');
@@ -370,7 +385,14 @@ export default function ListingPhotos() {
           onPress={yayinla}
         >
           {yayinlaniyor ? (
-            <ActivityIndicator color="#fff" />
+            /* Değerleme internette arama yapıyor ve saniyeler sürebiliyor.
+               Boş bir dönen çarkın altında ne beklendiği belli olmuyor;
+               "Değerleniyor…" hem süreyi haklı çıkarıyor hem de kullanıcıya
+               puanı kendisinin belirlemediğini bir kez daha söylüyor. */
+            <>
+              <ActivityIndicator color="#fff" />
+              {degerleniyor && <Text style={styles.ctaText}>Değerleniyor…</Text>}
+            </>
           ) : (
             <>
               <MaterialIcons name="publish" size={20} color="#fff" />

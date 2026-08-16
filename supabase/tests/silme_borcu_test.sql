@@ -20,7 +20,7 @@ values (:'s', 'borc-satici@example.com', '+905557770001', now(),
 on conflict (id) do nothing;
 
 select set_config('test.uid', :'s', false);
-select id from create_listing('Borçlu ilan', 'Oyun & Oyuncak', 'Az kullanılmış', 'M', 300,
+select id from create_listing('Borçlu ilan', 'Oyun & Oyuncak', 'Az kullanılmış', 'M',
                               p_sub_category => 'Yapı & inşa') \gset b_
 insert into product_photos (product_id, slot, storage_path, moderation_status)
 select :'b_id', s, :'s' || '/' || :'b_id' || '/' || s || '.jpg', 'pending'

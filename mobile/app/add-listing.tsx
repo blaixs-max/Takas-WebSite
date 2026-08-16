@@ -20,8 +20,6 @@ import { useAuth } from '../lib/auth';
 import { colors, elevation, shape } from '../theme/tokens';
 
 const CONDITIONS: Condition[] = ['İyi durumda', 'Az kullanılmış', 'Yeni gibi'];
-const COND_MULT: Record<Condition, number> = { 'İyi durumda': 0.8, 'Az kullanılmış': 0.9, 'Yeni gibi': 1.0 };
-const BASE = 500;
 
 export default function AddListing() {
   const insets = useSafeAreaInsets();
@@ -45,9 +43,6 @@ export default function AddListing() {
   const [isSet, setIsSet] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const mult = COND_MULT[condition];
-  const photoBonus = 20;
-  const total = Math.round(BASE * mult) + photoBonus;
 
   const baslikTamam = title.trim().length >= 3;
   const altTamam = subCategory !== null;
@@ -69,7 +64,6 @@ export default function AddListing() {
       subCategory,
       condition,
       sizeClass,
-      points: total,
       location: location.trim() || undefined,
       hasDamage,
       isSet,
@@ -255,24 +249,25 @@ export default function AddListing() {
           />
         </View>
 
-        {/* Puan hesabı */}
-        <Text style={styles.flabel}>PUAN HESABI</Text>
+        {/* Puan hesabı.
+
+            Burada bir tablo vardı: "Kategori taban puanı 500", "kondisyon
+            × 0,80", "+20 foto bonusu" ve altında "Önerilen takas değeri 420".
+            Üçü de uyduruktu. BASE her kategori için sabit 500'dü — yani
+            "Kategori taban puanı" etiketi olmayan bir zekâyı ima ediyordu; ve
+            hesap istemcideydi, sunucu ne gelirse yazıyordu.
+
+            Gerçek değerleme kareler yüklendikten sonra yapılıyor: model
+            ürünü tanıyıp sıfır fiyatını buluyor, puanı sunucu hesaplıyor.
+            Bu ekranda gösterilecek bir sayı yok — olmayan bir sayıyı
+            göstermektense neyin olacağını anlatmak doğru. */}
+        <Text style={styles.flabel}>DEĞERLEME</Text>
         <View style={styles.calc}>
-          <Row label="Kategori taban puanı" value={`${BASE}`} />
-          <Row label={`Kondisyon: ${condition.toLowerCase()}`} value={`× ${mult.toFixed(2)}`} />
-          <Row label="Gerçek fotoğraf bonusu" value={`+ ${photoBonus}`} last />
-        </View>
-        <View style={styles.total}>
-          <View>
-            <Text style={styles.totalLabel}>Önerilen takas değeri</Text>
-            <Text style={styles.totalBig}>{total}</Text>
-          </View>
-          <View style={{ alignItems: 'flex-end' }}>
-            <Text style={styles.totalBand}>tahmini bant</Text>
-            <Text style={styles.totalBandVal}>
-              {total - 30} – {total + 30}
-            </Text>
-          </View>
+          <Text style={styles.degerlemeMetin}>
+            Kareleri çektikten sonra ürünün sıfır fiyatı bulunacak ve durumuna göre takas
+            puanı hesaplanacak. Puanı sen belirlemiyorsun — bu, herkesin ilanının aynı
+            ölçüyle değerlenmesi için.
+          </Text>
         </View>
       </ScrollView>
 
@@ -306,16 +301,14 @@ export default function AddListing() {
   );
 }
 
-function Row({ label, value, last }: { label: string; value: string; last?: boolean }) {
-  return (
-    <View style={[styles.row, last && { borderBottomWidth: 0 }]}>
-      <Text style={styles.rowLabel}>{label}</Text>
-      <Text style={styles.rowValue}>{value}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
+  degerlemeMetin: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: colors.onSurfaceVariant,
+    fontWeight: '500',
+    padding: 14,
+  },
   root: { flex: 1, backgroundColor: colors.surface },
   appbar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6 },
   appTitle: { flex: 1, fontSize: 15, fontWeight: '800', paddingLeft: 8, color: colors.onSurface },
