@@ -270,6 +270,8 @@ eski anahtarları yeniden kullandığı için `--clear` şart.
       Function'ında yapay zekâya inceletiliyor (çocuk yüzü, arka plan, stok görsel,
       bulanıklık, yanlış açı). **Şüphede onay yok:** servis erişilemezse kare `pending`
       kalır, kapı `pending`i geçirmez, ilan insan kuyruğunda bekler.
+      2026-08-16'da denetim **kıyaslamalı** oldu ve reddedilen kare depodan
+      siliniyor — aşağıdaki "Kare denetimi" bölümüne bak.
       Kapak `is_cover` ile işaretleniyor; `products.image_key` artık kapağın türevi
 - [x] **Puan havuzdan çıkıyor** — puanı havuza alan uç bağlıydı, çıkaran uç açıktı:
       `release_points()` yazılıydı ama kimse çağırmıyordu, satıcı puanını hiç
@@ -867,6 +869,10 @@ görünmüyordu:
       diye yazılır. Sessizce bırakılan bulgu yok.
 
 ## 📸 Kare denetimi — sahtecilik ve mahremiyet (2026-08-16)
+
+`photo-check` **canlıya alındı: sürüm 2, ACTIVE, `verify_jwt = true`.** Yayındaki
+dosya içeriği repodakiyle birebir doğrulandı. Mobil taraf eski sürümle de
+çalışıyordu (yanıt şekli aynı), yalnızca kıyas devrede değildi.
 
 **Bu turda yapıldı:**
 

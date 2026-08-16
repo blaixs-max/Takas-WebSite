@@ -49,6 +49,12 @@ Anon anahtarı `mobile/eas.json` içindeki üç build profilinde yazılıdır; g
 değildir, uygulama paketine zaten gömülür. `service_role` anahtarı repoda
 **hiçbir yerde bulunmaz** — yalnızca Edge Function ortamında.
 
+**Edge Function'lar repodan otomatik yayına gitmiyor.** `supabase/functions/`
+altındaki dosyayı değiştirmek canlıyı değiştirmez; ayrıca deploy edilir ve
+`verify_jwt` `config.toml`'daki değeriyle aynı verilir. Yayındaki sürüm
+repodakiyle aynı mı, `get_edge_function` ile okunup doğrulanır — commit'in
+yeşil olması fonksiyonun güncel olduğu anlamına gelmez.
+
 ## Arka uç kuralları (canlıda öğrenildi)
 
 - **Fonksiyon oluşturan her göç, yetki revoke'unu SON adım olarak yazar.**
