@@ -215,8 +215,9 @@ Bunlar bende; adım 3 doğrulandıktan sonra yapılır:
 - [ ] `index.html` — dört meta etiketinde `takas-site.vercel.app` →
       `eldeneletakas.com` (canonical, og:url, og:image, twitter:image)
 - [ ] `mobile/lib/brand.ts` — `WEB_URL` aynı şekilde
-- [ ] **`app/auth-callback` ekranı yazılacak** — şu an **hiç yok**.
-      `_layout.tsx` onu `AUTH_ROUTES` içinde sayıyor ama dosya mevcut değil.
-      OAuth akışı tarayıcı oturumunu kendi yakaladığı için bugüne kadar
-      patlamadı; **şifre sıfırlama bağlantısı doğrudan o rotaya düşer.**
+- [x] **`app/auth-callback` ekranı yazıldı** (2026-08-16) — sıfırlama
+      bağlantısının indiği rota artık var ve `/yeni-sifre` formuna devrediyor.
+      Bu madde alan adını beklemiyordu, o yüzden öne alındı. Yani **adım 9'daki
+      uçtan uca doğrulama artık gerçekten yapılabilir**; eksik olan tek şey
+      postanın gitmesi.
 - [ ] Dokümanlara alan adı işlenecek

@@ -870,15 +870,18 @@ görünmüyordu:
 
 ## 📸 Kare denetimi — sahtecilik ve mahremiyet (2026-08-16)
 
-`photo-check` **canlıya alındı: sürüm 2, ACTIVE, `verify_jwt = true`.** Yayındaki
-dosya içeriği repodakiyle birebir doğrulandı. Mobil taraf eski sürümle de
-çalışıyordu (yanıt şekli aynı), yalnızca kıyas devrede değildi.
+`photo-check` **canlıda: sürüm 3, ACTIVE, `verify_jwt = true`.** Yayındaki dosya
+içeriği repodakiyle birebir doğrulandı.
 
 **Bu turda yapıldı:**
 
-- [x] **Kıyaslamalı denetim.** `photo-check` yeni kareyi ilanın en son onaylanmış
-      açı karesiyle birlikte modele gönderiyor; "aynı ürün mü", "farklı açı mı".
-      Ürünün tek yüzünü beş slota çekmek artık ilk çiftte yakalanıyor.
+- [x] **Kıyaslamalı denetim.** `photo-check` yeni kareyi ilanın **onaylanmış
+      bütün açı kareleriyle** birlikte modele gönderiyor; "aynı ürün mü",
+      "hiçbiriyle aynı açı değil mi". Ürünün tek yüzünü beş slota çekmek de,
+      iki yüzü dönüşümlü çekmek de yakalanıyor.
+- [x] **Kıyas kareleri küçültülerek gönderiliyor** (depolama dönüşümü: denetlenen
+      kare 1280, kıyas kareleri 640) + 8 MB bayt bütçesi ve dönüşüm kapalıysa
+      tam boya düşen yedek yol. Dört tam boy fotoğraf tek isteğe sığmıyordu.
 - [x] **Reddedilen kare depodan siliniyor.** Çocuk yüzü içerdiği için reddedilen
       görsel kovada süresiz duruyordu; artık karar anında siliniyor.
 - [x] **Çekim ekranı kararı bekliyor**, reddedilen karede sonraki slota geçmiyor.
@@ -892,10 +895,9 @@ hepsi `approved`. Reddedilmiş kare yok, yani silinecek birikmiş görsel de yok
 
 ### Kapanmayan açıklar — bu konunun devamı
 
-- [ ] **Dönüşümlü aynı açı.** Zincir ardışık çiftlere bakıyor; satıcı A yüzü →
-      B yüzü → A yüzü → B yüzü sırasıyla çekerse her ardışık çift farklı
-      görünür ve geçer. Tam çözüm, kareyi **önceki tüm onaylı açılarla**
-      kıyaslamak ya da gömme vektörü (embedding) tutmak.
+- [x] **Dönüşümlü aynı açı kapatıldı** (2026-08-16, aynı gün). Zincir ardışık
+      çiftlere bakıyordu; A → B → A sırası her çiftte farklı görünüp geçiyordu.
+      Kıyas artık önceki **tüm** onaylı açılarla yapılıyor.
 - [ ] **İlanlar arası kare yeniden kullanımı.** Kıyas ilanın içinde kalıyor.
       Satıcının kendi eski ilanından ya da **başka bir hesabın** ilanından kare
       kopyalaması yakalanmıyor. Gerekli: kare başına parmak izi (pHash ucuz ve
@@ -931,6 +933,41 @@ hepsi `approved`. Reddedilmiş kare yok, yani silinecek birikmiş görsel de yok
       (saniyeler için, saklanmadan). Hiç çıkmaması için ML Kit / vision-camera
       gerekiyor → development build → Expo Go biter. Launch öncesi güvenlik
       turunda ayrı bir karar olarak ele alınacak.
+
+## 🩹 Üç kusur kapatıldı (2026-08-16)
+
+- [x] **`app/auth-callback` ekranı yazıldı** — rota `_layout.tsx`'te
+      `AUTH_ROUTES` içinde sayılıyordu ama **dosyası hiç yoktu.** OAuth dönüşü
+      `openAuthSessionAsync` ile uygulama içinde yakalandığı için bugüne kadar
+      görünmemişti; **şifre sıfırlama bağlantısı doğrudan o rotaya düşüyor**,
+      yani SMTP kurulur kurulmaz kullanıcı boş bir ekrana inecekti.
+
+      Üç bağlantı biçimi de karşılanıyor: `?code=` (PKCE, varsayılan),
+      `?token_hash=&type=` (doğrulama), `#access_token=` (örtük). Parça
+      `Linking` ile okunuyor — expo-router'ın `useLocalSearchParams`'ı yalnızca
+      sorgu dizesini görür.
+
+      Sıfırlama `/yeni-sifre` rotasına devrediyor. Kendi rotası olması teknik
+      bir zorunluluk: oturum açıldığı anda kapı `AUTH_ROUTES` içindeki her
+      rotayı `/(tabs)`'a atıyor, form `auth-callback` içinde olsaydı görünür
+      görünmez kaybolurdu.
+
+      Bir de bayrak var (`sifirlamaBayragiYaz`): PKCE akışında Supabase dönüş
+      adresine `type=recovery` yazmayabiliyor ve o durumda kullanıcı içeri
+      girer ama şifre formu hiç açılmazdı. Bayrak sıfırlama isteği
+      gönderilirken yazılıp dönüşte siliniyor, ömrü bir saat.
+- [x] **Türkçe arama düzeltildi** (`lib/arama.ts`). İki ayrı kusur vardı:
+      `"İpekyol".toLowerCase()` birleşen noktalı bir `i` üretiyor ve düz
+      "ipek" ile eşleşmiyordu; şapkasız yazan ("cocuk", "ahsap", "puset")
+      hiçbir şey bulamıyordu. Taranan alanlara **açıklama ve konum** da
+      eklendi, sorgu kelimelere bölünüyor (sıra dayatılmıyor).
+      12 vaka ile doğrulandı.
+- [x] **İtiraz kanıtında galeri izni isteniyor** (`trades.tsx`). Kamera izni
+      reddedilince galeri izni **hiç istenmeden** `launchImageLibraryAsync`
+      çağrılıyordu; iOS'ta sessizce boş dönüyor, kullanıcı "Fotoğraf ekle"ye
+      basıp hiçbir şey olmadığını görüyordu — 24 saatlik kanıt sayacı işlerken
+      ve parası havuzda rehinken. İkisi de reddedilirse artık ne yapacağını
+      söyleyen bir uyarı çıkıyor.
 
 ## 🌐 Alan adı — `eldeneletakas.com` (2026-08-16 · sürüyor)
 
@@ -968,11 +1005,8 @@ doğrulanmaz, Resend doğrulanmadan SMTP tanımlanmaz.
 
 **Kodda yapılacaklar (bende — DNS yeşile döndükten sonra):**
 
-- [ ] `app/auth-callback` ekranı yazılacak — **şu an hiç yok.** `_layout.tsx`
-      onu `AUTH_ROUTES` içinde sayıyor ama dosya mevcut değil. OAuth akışı
-      tarayıcı oturumunu kendi yakaladığı için bugüne kadar patlamadı;
-      **şifre sıfırlama bağlantısı doğrudan o rotaya düşüyor.** Bu madde
-      alan adından bağımsız olarak da bir kusur.
+- [x] **`app/auth-callback` ekranı yazıldı** (2026-08-16) — alan adını
+      beklemiyordu, ayrıntısı yukarıdaki "Üç kusur kapatıldı" bölümünde.
 - [ ] `index.html` — dört meta etiketinde `takas-site.vercel.app` →
       `eldeneletakas.com` (canonical, og:url, og:image, twitter:image)
 - [ ] `mobile/lib/brand.ts` — `WEB_URL` aynı şekilde

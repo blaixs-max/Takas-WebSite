@@ -194,15 +194,42 @@ export default function TradesScreen() {
     }
   }
 
+  /**
+   * İtiraz kanıtı ekler.
+   *
+   * Kamera tercih ediliyor, galeri **bilinçli bir yedek**: ilan karelerinin
+   * aksine kanıt fotoğrafı galeriden gelebilir, çünkü kullanıcı kargoyu açtığı
+   * anda çekmiş ve itirazı sonra açmış olabilir. İlan tarafında galeri bir
+   * sahtecilik kapısıydı; burada kanıt zaten alıcının elindeki üründen.
+   *
+   * Eskiden kamera izni reddedilince **galeri izni hiç istenmeden**
+   * `launchImageLibraryAsync` çağrılıyordu. iOS'ta bu sessizce boş dönüyor:
+   * kullanıcı "Fotoğraf ekle"ye basıyor, hiçbir şey açılmıyor, sebebini
+   * anlamıyor — üstelik 24 saatlik kanıt sayacı işlerken ve parası havuzda
+   * rehinken.
+   */
   async function kanitEkle(disputeId: string) {
-    const izin = await ImagePicker.requestCameraPermissionsAsync();
     const secenekler: ImagePicker.ImagePickerOptions = {
       mediaTypes: ['images'],
       quality: 0.8,
     };
-    const sonuc = izin.granted
-      ? await ImagePicker.launchCameraAsync(secenekler)
-      : await ImagePicker.launchImageLibraryAsync(secenekler);
+
+    const kamera = await ImagePicker.requestCameraPermissionsAsync();
+    let sonuc: ImagePicker.ImagePickerResult;
+
+    if (kamera.granted) {
+      sonuc = await ImagePicker.launchCameraAsync(secenekler);
+    } else {
+      const galeri = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!galeri.granted) {
+        uyar(
+          'İzin gerekli',
+          'Kanıt fotoğrafı eklemek için kamera ya da galeri izni vermen gerekiyor. Telefon ayarlarından ELDENELE için birini açabilirsin.',
+        );
+        return;
+      }
+      sonuc = await ImagePicker.launchImageLibraryAsync(secenekler);
+    }
 
     if (sonuc.canceled || !sonuc.assets?.[0]?.uri) return;
 

@@ -8,6 +8,7 @@ import { ProductCard } from '../../components/ProductCard';
 import { FeaturedCard } from '../../components/FeaturedCard';
 import { ALL_CATEGORIES, CATEGORY_TREE, subsOf } from '../../data/categories';
 import { useProducts } from '../../hooks/useProducts';
+import { aramaEslesir } from '../../lib/arama';
 import { unreadCount } from '../../lib/notifications';
 import { basHarfler, ilkAd, loadProfile } from '../../lib/profile';
 import { colors, elevation, shape } from '../../theme/tokens';
@@ -74,18 +75,19 @@ export default function ShelfScreen() {
   }, []);
   const { products, featured, loading, refreshing, refresh } = useProducts();
 
-  const query = q.toLowerCase().trim();
   /* Alt kategoriler yalnızca bir ana kategori seçiliyken açılır — mimarinin
      kuralı bu. Hepsini birden göstermek altmış iki çip demekti. */
   const altlar = subsOf(active);
 
+  /* Arama `aramaEslesir` üzerinden: `toLowerCase()` Türkçe'yi bozuyordu
+     ("İpekyol" küçültülünce birleşen noktalı bir i çıkıyor ve düz "ipek" ile
+     eşleşmiyor) ve şapkasız yazan kullanıcı hiçbir şey bulamıyordu.
+     Taranan alanlar da genişledi: açıklama ve konum eklendi — "Kadıköy"
+     yazan biri semtindeki ilanları görebilmeli. */
   const visible = products.filter((p) => {
     if (active !== ALL_CATEGORIES && p.category !== active) return false;
     if (activeSub !== ALL_CATEGORIES && p.subCategory !== activeSub) return false;
-    if (!query) return true;
-    return [p.title, p.category, p.subCategory ?? ''].some((a) =>
-      a.toLowerCase().includes(query),
-    );
+    return aramaEslesir(q, [p.title, p.category, p.subCategory, p.location, p.description]);
   });
 
   return (

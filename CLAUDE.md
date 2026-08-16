@@ -202,13 +202,22 @@ Bu ayrım her zaman geçerlidir.
   da yanıt çözümlenemezse kare `pending` kalır — bu "geçti" demek değildir. Hiçbir
   kod yolu kareyi kendiliğinden `approved` yapmaz.
 - **Kareler birbiriyle kıyaslanır, tek tek değil** (2026-08-16). `photo-check`
-  yeni kareyi aynı ilanın **en son onaylanmış açı karesiyle** birlikte modele
-  gönderir ve iki soru daha sorar: aynı ürün mü, farklı bir açı mı. Sebebi:
-  satıcı ürünün sağlam yüzünü beş slotun beşine de çekerse kareler **tek tek
-  kusursuz** görünür, hasar hiç fotoğraflanmaz, iadeyi havuzdan biz öderiz.
-  Kıyas yalnızca `front/back/left/right` için yapılır — `label`, `damage` ve
-  `parts` tanımı gereği yakın çekim ve "aynı ürün mü" sorusuna sağlıklı cevap
-  vermez. Zincir ardışıktır: beşi de aynı yüzse ilk çiftte yakalanır.
+  yeni kareyi aynı ilanın **onaylanmış bütün açı kareleriyle** birlikte modele
+  gönderir ve iki soru daha sorar: aynı ürün mü, **hiçbiriyle** aynı açı değil
+  mi. Sebebi: satıcı ürünün sağlam yüzünü beş slotun beşine de çekerse kareler
+  **tek tek kusursuz** görünür, hasar hiç fotoğraflanmaz, iadeyi havuzdan biz
+  öderiz. Kıyas yalnızca `front/back/left/right` için yapılır — `label`,
+  `damage` ve `parts` tanımı gereği yakın çekim ve "aynı ürün mü" sorusuna
+  sağlıklı cevap vermez.
+  **"Bir öncekiyle" yetmez, denendi:** ilk sürüm yalnızca son kareyle
+  kıyaslıyordu ve A → B → A sırası ardışık her çiftte farklı göründüğü için
+  hiçbir yerde takılmıyordu.
+- **Kıyas kareleri küçültülerek gönderilir.** Dört tam boy fotoğraf tek isteğe
+  sığmaz (kova sınırı kare başına 8 MB, base64 üçte bir daha şişirir).
+  Denetlenen kare 1280 piksel, kıyas kareleri 640 — Supabase depolama
+  dönüşümüyle. Dönüşüm kapatılabilir bir Pro özelliği olduğu için tam boya
+  düşen bir yedek yol ve **8 MB'lık bayt bütçesi** var: bütçe dolarsa kalan
+  kıyas kareleri eklenmez. Kıyasın zayıflaması, isteğin patlamasından iyidir.
 - **Reddedilen kare depoda tutulmaz.** Ret gerekçelerinden biri "kadrajda çocuk
   yüzü var" ve kare eskiden reddedilip kovada kalıyordu: ilan yayına çıkmıyordu
   ama görsel süresiz duruyordu. KVKK'nın sorduğu şey **saklama** — "reddettik"
@@ -225,6 +234,21 @@ Bu ayrım her zaman geçerlidir.
 - **Kıyas ret cümlelerini biz yazarız, model değil.** Modelin serbest cümlesi
   "görseller birbirinden farklı" gibi doğru ama işe yaramaz bir şey olabiliyor.
   Karar modelin, cümle bizim; her seferinde aynı ve ne yapılacağını söylüyor.
+- **Arama Türkçe'ye göre normalize edilir** (`lib/arama.ts`). Düz
+  `toLowerCase()` **kullanılmaz**: `"İpekyol".toLowerCase()` sonucu `i` +
+  birleşen nokta olan iki kod birimi verir, ekranda doğru görünür ama düz
+  `ipek` ile eşleşmez. Ayrıca kimse `çocuk`/`ahşap`/`puşet` yazmıyor —
+  şapkasız yazan kullanıcı hiçbir şey bulamıyordu. Türkçe harfler **elle**
+  indirgeniyor, sonra küçültülüyor; sıra tersine çevrilirse `İ` kurtarılamaz.
+  Unicode `normalize('NFD')` tek başına yetmez: `ı` aksanlı bir `i` değil,
+  ayrı bir harf.
+- **`auth-callback` kimlik bağlantılarının indiği rotadır ve dosyası olmak
+  zorundadır.** `AUTH_ROUTES` içinde sayılıyordu ama dosyası yoktu; OAuth
+  dönüşü `openAuthSessionAsync` ile uygulama içinde yakalandığı için fark
+  edilmemişti. **Şifre sıfırlama bağlantısı doğrudan o rotaya düşüyor.**
+  Sıfırlama oradan `/yeni-sifre`'ye devrediyor — kendi rotası olmasının sebebi
+  teknik: oturum açıldığı anda kapı `AUTH_ROUTES` içindeki her rotayı
+  `/(tabs)`'a atıyor, form orada olsaydı görünür görünmez kaybolurdu.
 
 ## Profil ve satıcı adı
 

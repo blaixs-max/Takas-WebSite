@@ -84,6 +84,12 @@ function RootNavigator() {
     >
       <Stack.Screen name="onboarding" />
       <Stack.Screen name="sign-in" options={{ presentation: 'modal' }} />
+      {/* Kimlik bağlantısının indiği rota ve ondan devredilen şifre formu.
+          `yeni-sifre` bilerek AUTH_ROUTES dışında: oraya gelindiğinde oturum
+          zaten açık ve kapı, AUTH_ROUTES içindeki her rotayı /(tabs)'a atıyor
+          — form orada olsaydı görünür görünmez kaybolurdu. */}
+      <Stack.Screen name="auth-callback" />
+      <Stack.Screen name="yeni-sifre" options={{ presentation: 'card' }} />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="trades" options={{ presentation: 'card' }} />
       <Stack.Screen name="wallet" options={{ presentation: 'card' }} />

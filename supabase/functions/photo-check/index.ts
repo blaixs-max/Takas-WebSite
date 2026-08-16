@@ -9,8 +9,8 @@
  *   - görsel internetten alınmış gibi mi duruyor (stok/ürün fotoğrafı)
  *   - kare istenen açıyı gösteriyor mu (ön kare için ön, etiket için etiket)
  *   - okunabilir mi (bulanık, çok karanlık, ürün kadrajı doldurmuyor)
- *   - **aynı ürün mü** ve **farklı bir açı mı** — bir önceki onaylı kareyle
- *     karşılaştırarak (2026-08-16, aşağıda)
+ *   - **aynı ürün mü** ve **farklı bir açı mı** — o ilanın onaylanmış diğer
+ *     açı kareleriyle karşılaştırarak (2026-08-16, aşağıda)
  *
  * TEMEL KURAL: şüphede kalırsak ONAYLAMAYIZ. Servis erişilemezse ya da yanıt
  * çözümlenemezse kare 'pending' kalır — yayın kapısı 'pending'i geçirmez, ilan
@@ -25,19 +25,32 @@
  * havuzdan biz öderiz.
  *
  * Kusur ancak kareler **birbiriyle** kıyaslanınca ortaya çıkıyor. Bu yüzden
- * yeni kare, aynı ilanın en son onaylanmış açı karesiyle birlikte gönderiliyor
- * ve modele iki soru daha soruluyor: aynı ürün mü, farklı bir açı mı.
+ * yeni kare, aynı ilanın onaylanmış açı kareleriyle birlikte gönderiliyor ve
+ * modele iki soru daha soruluyor: aynı ürün mü, farklı bir açı mı.
  *
- * **Zincirleme yeterli.** Her kare yalnızca bir öncekiyle kıyaslanıyor, hepsiyle
- * değil; çünkü beş karenin beşi de aynı yüzse ardışık her çift de aynı olur ve
- * ilkinde yakalanır. Tek görsel yerine iki görsel göndermek, beş görseli birden
- * göndermekten hem ucuz hem daha güvenilir — modeller ikili karşılaştırmada
- * çoklu eşleştirmeden belirgin biçimde iyi.
+ * **Bir öncekiyle değil, hepsiyle.** İlk sürüm yalnızca en son onaylanmış
+ * kareyle kıyaslıyordu ve bunun bir açığı vardı: satıcı A yüzü → B yüzü →
+ * A yüzü sırasıyla çekerse **ardışık her çift farklı görünür** ve zincir
+ * hiçbir yerde takılmaz. Artık yeni kare, o ilanın onaylanmış bütün açı
+ * kareleriyle birlikte gönderiliyor ve soru "öncekinden farklı mı" değil,
+ * "**hiçbiriyle** aynı değil mi" biçiminde soruluyor.
  *
  * **Yalnızca dört açı slotu kıyaslanıyor** (front/back/left/right). `label`,
  * `damage` ve `parts` tanımı gereği yakın çekim: etiketin makrosu ile ürünün
  * önden görünümü "aynı ürün mü" sorusuna sağlıklı cevap vermez, kıyas orada
- * yanlış ret üretir.
+ * yanlış ret üretir. Yani en fazla üç kıyas karesi oluyor.
+ *
+ * ## Görseller küçültülerek gönderiliyor
+ *
+ * Dört tam boy fotoğraf modele sığmaz: kova sınırı kare başına 8 MB, base64
+ * bunu üçte bir daha şişiriyor. Kareler Supabase'in **depolama dönüşümüyle**
+ * küçültülüyor — denetlenen kare 1280 piksel (bulanıklık ve etiket okunurluğu
+ * için ayrıntı gerekiyor), kıyas kareleri 640 (orada tek soru "aynı şey mi").
+ *
+ * Dönüşüm Pro planın özelliği ve kapanabilir; kapalıysa ya da başarısız olursa
+ * kare **tam boy** indiriliyor. O yüzden bir de **bayt bütçesi** var: toplam
+ * ham veri 8 MB'ı geçerse kalan kıyas kareleri eklenmiyor ve durum log'a
+ * yazılıyor. Yani kötü durumda kıyas zayıflar, istek patlamaz.
  *
  * ## Reddedilen kare depodan silinir
  *
@@ -100,6 +113,20 @@ interface Karar {
   farkliAci?: boolean;
 }
 
+/** İndirilmiş kare. `bayt` ham boyut — bütçe onun üzerinden tutuluyor. */
+interface Gorsel {
+  mime: string;
+  b64: string;
+  bayt: number;
+}
+
+/** Modele kıyas için gönderilen, daha önce onaylanmış kare. */
+interface Kiyas {
+  slot: string;
+  mime: string;
+  b64: string;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
@@ -132,11 +159,9 @@ Deno.serve(async (req) => {
     return json({ photoId: kare.id, status: 'pending', neden: 'ai_yapilandirilmadi' });
   }
 
-  /* Kıyas karesi: aynı ilanın, bu slot dışındaki, en son onaylanmış açı karesi.
-     Slotlar ön → arka → sol → sağ sırasıyla çekildiği için bu pratikte "bir
-     önceki kare" oluyor; kullanıcı adımlar arasında atlarsa da geçerli bir
-     kıyas kalıyor, yalnızca zincirin sırası değişiyor. */
-  let referans: { slot: string; storage_path: string } | null = null;
+  /* Kıyas kareleri: aynı ilanın, bu slot dışındaki, onaylanmış bütün açı
+     kareleri. En yeniden eskiye — bütçe dolarsa düşecek olan, en eski kare. */
+  let referanslar: { slot: string; storage_path: string }[] = [];
   if (ACILAR.includes(kare.slot)) {
     const { data } = await supabase
       .from('product_photos')
@@ -145,39 +170,40 @@ Deno.serve(async (req) => {
       .eq('moderation_status', 'approved')
       .in('slot', ACILAR)
       .neq('slot', kare.slot)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    referans = data ?? null;
+      .order('created_at', { ascending: false });
+    referanslar = data ?? [];
   }
 
-  // Kareleri imzalı bağlantıyla oku: kova özel.
-  const yollar = referans ? [kare.storage_path, referans.storage_path] : [kare.storage_path];
-  const { data: imzali, error: imzaErr } = await supabase.storage
-    .from('listing-photos')
-    .createSignedUrls(yollar, 120);
-
-  const baglanti: Record<string, string> = {};
-  for (const i of imzali ?? []) if (i.path && i.signedUrl) baglanti[i.path] = i.signedUrl;
-
-  if (imzaErr || !baglanti[kare.storage_path]) {
-    console.error('[photo-check] imzalı bağlantı alınamadı', imzaErr?.message);
+  const ana = await kareyiGetir(supabase, kare.storage_path, 1280);
+  if (!ana) {
+    console.error('[photo-check] kare okunamadı', kare.storage_path);
     return json({ photoId: kare.id, status: 'pending', neden: 'gorsel_okunamadi' });
   }
 
-  /* Referansın bağlantısı üretilemediyse kıyas yapılmaz ama inceleme durmaz:
-     tek kare denetimi hâlâ değerli ve kullanıcıyı çözemediğimiz bir sebeple
-     bekletmek yanlış olur. */
-  const referansUrl = referans ? (baglanti[referans.storage_path] ?? null) : null;
+  /* Ham bayt bütçesi. Dönüşüm çalışıyorsa üç kıyas karesi rahat sığar;
+     çalışmıyorsa bir ya da ikisi sığar ve gerisi düşer. Kıyasın zayıflaması,
+     isteğin patlamasından iyidir. */
+  const BUTCE = 8 * 1024 * 1024;
+  let toplam = ana.bayt;
+  const kiyasKareler: Kiyas[] = [];
+
+  for (const r of referanslar) {
+    const g = await kareyiGetir(supabase, r.storage_path, 640);
+    /* Bağlantısı üretilemeyen kıyas karesi inceleme durdurmaz: tek kare
+       denetimi hâlâ değerli ve kullanıcıyı çözemediğimiz bir sebeple
+       bekletmek yanlış olur. */
+    if (!g) continue;
+    if (toplam + g.bayt > BUTCE) {
+      console.warn('[photo-check] bayt bütçesi doldu, kıyas karesi atlandı', r.slot);
+      break;
+    }
+    toplam += g.bayt;
+    kiyasKareler.push({ slot: r.slot, mime: g.mime, b64: g.b64 });
+  }
 
   let karar: Karar | null = null;
   try {
-    karar = await incele(
-      baglanti[kare.storage_path],
-      kare.slot,
-      referansUrl,
-      referansUrl ? referans!.slot : null,
-    );
+    karar = await incele(ana, kare.slot, kiyasKareler);
   } catch (e) {
     console.error('[photo-check] model çağrısı başarısız', String(e));
   }
@@ -195,7 +221,7 @@ Deno.serve(async (req) => {
     karar.ayniUrun === false
       ? 'Bu kare, ilanın diğer kareleriyle aynı ürünü göstermiyor. Aynı ürünü çektiğinden emin ol.'
       : karar.farkliAci === false
-        ? `Bu kareyi bir öncekiyle aynı açıdan çekmişsin. Ürünün ${SLOT_AD[kare.slot]} tarafını çekmen gerekiyor.`
+        ? `Bu kareyi daha önce çektiğin bir kareyle aynı açıdan çekmişsin. Ürünün ${SLOT_AD[kare.slot]} tarafını çekmen gerekiyor.`
         : null;
 
   const uygun = karar.uygun && !kiyasHatasi;
@@ -229,25 +255,15 @@ Deno.serve(async (req) => {
 });
 
 /**
- * Görseli (varsa kıyas karesiyle birlikte) modele gönderir ve kararı çözümler.
+ * Kareyi (varsa kıyas kareleriyle birlikte) modele gönderir ve kararı çözümler.
  *
- * `referansUrl` doluysa istem iki görselli sürüme geçer ve JSON iki alan daha
+ * Kıyas karesi varsa istem çok görselli sürüme geçer ve JSON iki alan daha
  * taşır. Şema `responseSchema` ile zorlanıyor: alan eksik gelirse karar
  * çözümlenemez sayılır ve kare 'pending' kalır — yani eksik alan sessizce
  * "sorun yok" diye okunmaz.
  */
-async function incele(
-  gorselUrl: string,
-  slot: string,
-  referansUrl: string | null,
-  referansSlot: string | null,
-): Promise<Karar | null> {
-  const gorsel = await gorseliAl(gorselUrl);
-  if (!gorsel) return null;
-
-  const referans = referansUrl ? await gorseliAl(referansUrl) : null;
-  const kiyas = Boolean(referans && referansSlot);
-
+async function incele(gorsel: Gorsel, slot: string, kiyasKareler: Kiyas[]): Promise<Karar | null> {
+  const kiyas = kiyasKareler.length > 0;
   const beklenti = SLOT_BEKLENTI[slot] ?? 'ürünün fotoğrafı';
 
   /* Kullanıcıdan gelen hiçbir metin bu isteme girmiyor; yalnızca görseller ve
@@ -263,30 +279,33 @@ async function incele(
   const istem = kiyas
     ? `Bir ikinci el çocuk ürünü ilanının fotoğraflarını denetliyorsun.
 
-Sana iki görsel verildi:
-1. GÖRSEL — bu ilanın daha önce onaylanmış karesi (${SLOT_AD[referansSlot!] ?? referansSlot} açısı). Yalnızca karşılaştırma içindir, denetlenmiyor.
-2. GÖRSEL — şimdi denetlediğin yeni kare. Göstermesi gereken: ${beklenti}.
+Sana bu ilanın daha önce onaylanmış ${kiyasKareler.length} karesi (ÖNCEKİ KARE olarak
+işaretli, açıları: ${kiyasKareler.map((k) => SLOT_AD[k.slot] ?? k.slot).join(', ')}) ve
+ardından denetlenecek YENİ KARE verildi. Önceki kareler yalnızca karşılaştırma
+içindir, denetlenmiyor.
 
-Aşağıdaki denetim YALNIZCA 2. GÖRSEL için geçerlidir.
+YENİ KARE'nin göstermesi gereken: ${beklenti}.
+
+Aşağıdaki denetim YALNIZCA YENİ KARE için geçerlidir.
 
 ${denetim}
 
 Ayrıca iki karşılaştırma sorusunu cevapla:
-- ayniUrun: iki görselde aynı fiziksel ürün mü var? Açı, mesafe, ışık ve arka plan farklı olabilir; bunlara bakma. Başka bir ürünse false.
-- farkliAci: 2. GÖRSEL, 1. GÖRSEL'den anlamlı biçimde farklı bir açıyı mı gösteriyor? Aynı yüzün biraz farklı mesafeden ya da hafif kaydırılmış hâliyse false.
+- ayniUrun: YENİ KARE'deki ürün, önceki karelerdeki ürünle aynı fiziksel ürün mü? Açı, mesafe, ışık ve arka plan farklı olabilir; bunlara bakma. Başka bir ürünse false.
+- farkliAci: YENİ KARE, önceki karelerin HİÇBİRİYLE aynı açıyı göstermiyor mu? Önceki karelerden herhangi biriyle aynı yüzü gösteriyorsa — sadece biraz farklı mesafeden ya da hafif kaydırılmış çekilmişse bile — false ver.
 
-Emin olamadığın yerde ayniUrun için true, farkliAci için true verme — şüphede kalırsan false ver.`
+Emin olamadığın yerde true verme; şüphede kalırsan false ver.`
     : `Bir ikinci el çocuk ürünü ilanının fotoğrafını denetliyorsun.
 Bu karenin göstermesi gereken: ${beklenti}.
 
 ${denetim}`;
 
   const parts: unknown[] = [];
-  if (kiyas) {
-    parts.push({ text: '1. GÖRSEL:' });
-    parts.push({ inline_data: { mime_type: referans!.mime, data: referans!.b64 } });
-    parts.push({ text: '2. GÖRSEL:' });
+  for (const k of kiyasKareler) {
+    parts.push({ text: `ÖNCEKİ KARE (${SLOT_AD[k.slot] ?? k.slot}):` });
+    parts.push({ inline_data: { mime_type: k.mime, data: k.b64 } });
   }
+  if (kiyas) parts.push({ text: 'YENİ KARE:' });
   parts.push({ inline_data: { mime_type: gorsel.mime, data: gorsel.b64 } });
   parts.push({ text: istem });
 
@@ -347,6 +366,40 @@ ${denetim}`;
 }
 
 /**
+ * Depodaki kareyi küçültülmüş hâliyle indirir.
+ *
+ * Önce Supabase'in **depolama dönüşümü** deneniyor (`transform`): kare en
+ * uzun kenarı `genislik` piksel olacak şekilde ölçekleniyor. Bu bir hız
+ * iyileştirmesi değil, sığdırma meselesi — dört tam boy fotoğraf tek isteğe
+ * sığmaz.
+ *
+ * Dönüşüm Pro planın özelliği ve proje ayarından kapatılabiliyor. Kapalıysa
+ * imzalı bağlantı üretilse bile indirme başarısız olur; o durumda kare **tam
+ * boy** indiriliyor. Sessiz bir bozulma değil, ölçülü bir geri düşüş: çağıran
+ * yer bayt sayısına bakıp bütçeyi aşan kıyas karesini zaten atıyor.
+ */
+async function kareyiGetir(
+  supabase: ReturnType<typeof createClient>,
+  path: string,
+  genislik: number,
+): Promise<Gorsel | null> {
+  const { data: kucuk } = await supabase.storage
+    .from('listing-photos')
+    .createSignedUrl(path, 120, {
+      transform: { width: genislik, height: genislik, resize: 'contain' },
+    });
+
+  if (kucuk?.signedUrl) {
+    const g = await gorseliAl(kucuk.signedUrl);
+    if (g) return g;
+    console.warn('[photo-check] dönüşümlü indirme başarısız, tam boya düşülüyor', path);
+  }
+
+  const { data: tam } = await supabase.storage.from('listing-photos').createSignedUrl(path, 120);
+  return tam?.signedUrl ? await gorseliAl(tam.signedUrl) : null;
+}
+
+/**
  * İmzalı bağlantıdan görseli indirip base64'e çevirir.
  *
  * Baytlar 32 KB'lik parçalarla çevriliyor: `String.fromCharCode(...bytes)` tek
@@ -354,7 +407,7 @@ ${denetim}`;
  * için büyük karelerde çağrı yığını taşıyordu. Küçük fotoğraflarda çalışıp
  * büyüğünde patlayan cinsten bir hataydı.
  */
-async function gorseliAl(url: string): Promise<{ mime: string; b64: string } | null> {
+async function gorseliAl(url: string): Promise<Gorsel | null> {
   const r = await fetch(url);
   if (!r.ok) return null;
   const bytes = new Uint8Array(await r.arrayBuffer());
@@ -365,5 +418,9 @@ async function gorseliAl(url: string): Promise<{ mime: string; b64: string } | n
     ham += String.fromCharCode(...bytes.subarray(i, i + parca));
   }
 
-  return { mime: r.headers.get('content-type') ?? 'image/jpeg', b64: btoa(ham) };
+  return {
+    mime: r.headers.get('content-type') ?? 'image/jpeg',
+    b64: btoa(ham),
+    bayt: bytes.length,
+  };
 }
