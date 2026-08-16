@@ -1086,6 +1086,92 @@ doğrulanmaz, Resend doğrulanmadan SMTP tanımlanmaz.
 silinecek — acelesi yok. Not: o projede **Vercel Authentication zaten açık**
 (`all_except_custom_domains`), yani dışarıya açık değil.
 
+## 🧭 Kapsam denetimi — listede hiç olmayanlar (2026-08-16)
+
+Bu bölüm bir tur işi değil, bir **eksik listesi**. Yukarıdaki 45 açık madde
+"başladığımız işlerin kalanı"; aşağıdakiler hiç başlamamış ve çoğu yazılı
+bile değildi. Dördü ölçülerek doğrulandı (kodda arandı, yok).
+
+### A · Mağaza reddi sebebi — bunlar olmadan yayın olmaz
+
+- [ ] **Hesap silme yok.** Kodda hiçbir karşılığı bulunamadı. App Store
+      kuralı 5.1.1(v) açık: hesap açtıran uygulama **uygulama içinden hesap
+      silmeyi** sunmak zorunda. Sert ret sebebi. KVKK'nın silme hakkı da aynı
+      kapıya çıkıyor. Kapalı devre puanla birleşince bir tasarım sorusu var:
+      bakiyesi olan ve **açık takası olan** hesap silinince ne oluyor?
+      Muhtemel kural: açık takas varken silinemez, bakiye sıfırlanır ve bu
+      ekranda önceden söylenir.
+- [ ] **Kullanıcı engelleme yok.** `report_message` var, engelleme yok. App
+      Store kuralı 1.2, kullanıcı içeriği taşıyan uygulamalardan **hem
+      bildirme hem engelleme** istiyor. Mesajlaşma var, yani bu kural bizi
+      kapsıyor.
+- [ ] **Gizlilik politikası için erişilebilir bir URL yok.** Sitede
+      `LegalModal` var ama (a) bir adresi yok — modal, (b) metni kendi
+      söylüyor: "bu web sitesi için geçerli", yani **uygulamayı kapsamıyor.**
+      Mağaza formu kalıcı bir URL istiyor ve o metin uygulamanın gerçekten
+      işlediği veriyi saymalı: kamera, fotoğraf, konum, mesaj, e-posta, puan
+      hareketleri. Site tek sayfa olduğu için `/gizlilik` adresi de yok.
+
+### B · Hukuk (Türkiye) — avukat sorusu, kod sorusu değil
+
+- [ ] **ETBİS kaydı.** Elektronik ticaret bilgi sistemine kayıt, ticari
+      faaliyet yürüten site ve uygulamalar için zorunlu.
+- [ ] **KVKK: aydınlatma metni + açık rıza + VERBİS.** Fotoğraf ve konum
+      işliyoruz; aydınlatma metni ayrı bir belge ve rıza akışı ayrı bir ekran.
+      VERBİS kaydı gerekip gerekmediği veri hacmine bağlı, sorulmalı.
+- [ ] **Mesafeli satış / ön bilgilendirme ve cayma hakkı.** Puan takası
+      "satış" sayılmasa da kargo bedeli gerçek parayla tahsil ediliyor.
+      6502 sayılı kanunun cayma hakkı 14 gün; bizim itiraz penceremiz 48 saat.
+      Bu ikisi çelişiyor olabilir — **kurgu değişebilir, önce sorulmalı.**
+- [ ] **Yaş sınırı.** Kayıt sırasında 18 yaş kontrolü yok. Reşit olmayanla
+      sözleşme kurmak ve onun verisini işlemek ayrı bir sorun.
+
+### C · Ekonomi ve operasyon — en büyük iki risk burada
+
+- [ ] **Puan enflasyonu: değerlemeyi kimse denetlemiyor.** `create_listing`
+      puanı **satıcıdan** alıyor. Kullanılmış bir zıbınayı 5000 puan yazmayı
+      engelleyen bir kural yok. Kapalı devrede bu doğrudan para basmaktır ve
+      birkaç kötü ilan bütün ekonomiyi bozar. "Dinamik puan önerisi" TODO'da
+      tek satır olarak duruyor ama bu bir öneri değil, **tavan/kontrol**
+      meselesi. Yayın öncesi en az kaba bir sınır: kategori × durum × desi
+      bandına göre üst sınır.
+- [ ] **İtiraza bakacak insan yok.** `resolve_dispute` bilerek yalnızca
+      insanda. Operatör olmadan yayına çıkılırsa itirazlar birikir ve **alıcının
+      puanı havuzda donar**. Aynı şey `pending` kare kuyruğu için de geçerli.
+      Bu bir kod maddesi değil, "kim, hangi saatlerde bakıyor" sorusu.
+- [ ] **Kargo maliyeti varsayım.** ₺52 rakamı anlaşma olmadan konuldu. Gerçek
+      tarife ₺75 çıkarsa her takas zarar eder. Anlaşma imzalanana kadar ücret
+      tablosu **varsayım** olarak işaretli kalmalı.
+- [ ] **Soğuk başlangıç coğrafi olarak çözülmeli.** Ülke geneline 15 ilanla
+      açılmak, giren herkesin boş raf görüp bir daha dönmemesi demek. Kampanya
+      puanı arz sorununu çözmüyor. Öneri: **tek ilçede** yoğunluk kurup oradan
+      genişlemek.
+
+### D · Site — pazarlama sitesinin asıl işi yapılmamış
+
+- [ ] **Ölçüm yok.** Analitik hiç kurulu değil; sitenin işe yarayıp
+      yaramadığını bilmiyoruz. Vercel Analytics tek satır ve çerezsiz.
+- [ ] **Tek indekslenebilir adres var.** Site tek sayfa. Oysa edinim kanalı
+      tam olarak burası olurdu: "ikinci el bebek arabası takası" gibi
+      aramalara karşılık gelen kategori sayfaları. Dokuz kategori × birer
+      sayfa, vitrinden beslenir.
+- [ ] **Mağaza karekodları henüz hiçbir yere gitmiyor.** Uygulama yayında
+      olmadığı için `StoreQrCodes` bugün ölü. Yayın günü ilk düzeltilecek şey.
+- [ ] **Siteden uygulamaya süreklilik yok.** Web'de bir ilana bakan kişi
+      uygulamayı açtığında o ilana düşmüyor. Universal Links / App Links
+      kurulursa mağaza yönlendirmesi kayıp olmaktan çıkar.
+
+### E · Teknik borç — sessiz olanlar
+
+- [ ] **Hata izleme yok.** Sentry benzeri hiçbir şey kurulu değil; canlıdaki
+      çökmeleri **göremiyoruz**. Yayın günü en çok ihtiyaç duyulacak şey bu.
+- [ ] **Uygulama tarafında tek bir test yok.** Veri tabanında 18 test var,
+      React Native tarafında sıfır. Takas akışını sessizce bozan bir düzenleme
+      hiçbir yerde yakalanmaz.
+- [ ] **Geri dönüş planı doğrulanmadı.** Kötü bir göç ya da yanlış bir toplu
+      güncelleme sonrası hangi noktaya dönebiliyoruz? Pro planın
+      point-in-time recovery durumu teyit edilmeli — yayından **önce**.
+
 ## 🚀 Yayın (config gerektirir)
 - [ ] Supabase dashboard: Google/Apple provider + redirect `eldenele://auth-callback`
       (şema değişti; bu satır `kidstrade` yazıyordu — yukarıdaki "panelde
