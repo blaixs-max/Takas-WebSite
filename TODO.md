@@ -664,6 +664,28 @@ değiştirilemez.
       (`7 * * * *`) ve `kt-expire-stale-disputes` (`22 * * * *`), ikisi de aktif
 
 ## 🔜 Sonra
+- [x] **Değerleme motoru kuruldu** (2026-08-16). `valuation_settings` +
+      `puan_hesapla()` + `puan_bandi_disinda()`, 8 iddialı test. **1 puan = 1 ₺
+      ikinci el değeri**; durum merdiveni %80 / %70 / %62. Çapa ilk canlı ilan:
+      Süperman figürü sıfır ₺1599, "iyi durumda ₺1000 eder" → 990 puan.
+      Katsayılar tabloda, `admin_degerleme_ayarla()` ile deploy'suz değişiyor.
+      `products`'a `sifir_fiyat`, `degerleme_kaynak`, `degerleme_guven`,
+      `degerleme_model`, `degerleme_at` eklendi — "bu puan nereden çıktı"nın
+      cevabı olmadan hiçbir itiraz çözülemez.
+- [ ] **Değerlemeyi akışa bağla — KALAN İŞ.** Motor hazır ama henüz kimse
+      çağırmıyor. İki parça eksik:
+      1. `listing-value` Edge Function: kareler + başlık + durum → Gemini
+         (Google Search grounding) → sıfır fiyatı + kaynak + güven.
+         Bulamazsa uydurmaz, ilan insan kuyruğuna düşer.
+      2. `create_listing` artık `points` parametresini **almamalı**; puanı
+         `puan_hesapla()` üretmeli. Bu yapılmadan formül anlamsız — istemci
+         hâlâ istediği sayıyı gönderebiliyor.
+- [ ] **Kampanya puanı yeniden değerlendirilmeli.** Ölçek ~420'den ~1000'e
+      çıktı; 250+250 hoş geldin puanı artık ortalama bir ürünün yarısını
+      alıyor, eskiden tamamını alıyordu. Soğuk başlangıçta ilk takası
+      yaptırmak kritik. Öneri: kampanyayı ölçekle (600+600), oranı bozma —
+      "1 puan = 1 ₺" sadeliği kullanıcıya her gün lazım, kampanya rakamı bir
+      kez ayarlanır.
 - [ ] **Ürün Ekle: yapay zekâ değerlemesi** (2026-08-16 kararı). Karar verildi:
       model kareleri okuyup ürünü tanıyacak, **Google Search grounding** ile
       sıfır fiyatını bulacak, beyan edilen durum/hasar ve karelerdeki görünüme

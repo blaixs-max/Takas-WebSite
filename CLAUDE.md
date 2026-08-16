@@ -52,8 +52,8 @@ değildir, uygulama paketine zaten gömülür. `service_role` anahtarı repoda
 **Göçler ve testler yerelde koşturulabilir: `supabase/tests/kosu.sh`.**
 Temiz bir veri tabanı kurar, `00_yerel_kurulum.sql` ile Supabase'e özgü şeyleri
 (auth/storage/cron şemaları, üç rol, `auth.uid()`, **varsayılan yetkiler**)
-taklit eder, bütün göçleri uygular, sonra test paketini koşar. Bugün: 42 göç,
-21 test, sıfır hata.
+taklit eder, bütün göçleri uygular, sonra test paketini koşar. Bugün: 43 göç,
+22 test, sıfır hata.
 
 **Betik "hata yok" derken sözdizimini kastediyor, iddiaları değil.** Sayaç
 psql'in hata verip vermediğine bakıyor; `BEKLENEN` satırları göz kararı
@@ -96,6 +96,44 @@ altındaki dosyayı değiştirmek canlıyı değiştirmez; ayrıca deploy edilir
 `verify_jwt` `config.toml`'daki değeriyle aynı verilir. Yayındaki sürüm
 repodakiyle aynı mı, `get_edge_function` ile okunup doğrulanır — commit'in
 yeşil olması fonksiyonun güncel olduğu anlamına gelmez.
+
+## Değerleme (2026-08-16)
+
+**Puan sunucuda hesaplanır, istemcide değil.** `add-listing.tsx` şunu
+yapıyordu: `BASE = 500` sabit, `× durum katsayısı`, `+ 20 foto bonusu`. Üç
+ayrı kusur: kategoriden habersizdi (ekranda "Kategori taban puanı" yazıyordu
+ama ₺1599'luk figür ile ₺15.000'lik bebek arabası aynı tabanı alıyordu),
+gerçekle bağlantısızdı (ilk canlı ilan 420 puan aldı çünkü 500×0,8+20 öyle
+çıkıyor) ve **denetimsizdi** — `points` parametre olarak geliyordu, formu hiç
+açmadan `points: 50000` göndermek mümkündü.
+
+**Fiyatı model bulur, puana çeviren formül veri tabanında kalır.** Ayrımın
+sebebi: formül deterministik, denetlenebilir ve modeli yeniden çalıştırmadan
+değiştirilebilir olmalı. Model fiyatı söyler, ekonomiyi biz yönetiriz.
+
+**1 puan = 1 ₺ ikinci el değeri.** Kullanıcı "990 puan" gördüğünde "₺990'lık
+bir şey" diye okuyor. Oran `valuation_settings.puan_per_try`.
+
+Durum merdiveni sıfır fiyatının yüzdesi: **Yeni gibi %80, Az kullanılmış %70,
+İyi durumda %62.** Tek gerçek çapa ilk canlı ilan: Süperman figürü, sıfırı
+₺1599, sahibi "iyi durumda ₺1000 eder" dedi → %62. Piyasa bilgisi bizde
+değil, o yüzden tek veri noktasına oturtuldu ve **katsayılar tabloda**:
+bir oranı değiştirmek göç yazmayı gerektirmemeli, değerleme ilk aylarda
+ayarlanacak ve her ayar için deploy beklemek ayarı hiç yapmamak demek.
+
+Üç karar yazılı olmalı çünkü üçü de sezgiye aykırı:
+
+- **Fiyat bulunamazsa puan `null` döner.** Sıfır ya da varsayılan dönseydi,
+  tanınamayan her ürün sessizce yanlış puanla yayına girerdi.
+- **Tanınmayan durum en muhafazakâr banda düşer**, en yükseğe değil.
+- **Hasar şiddeti bilinmiyorsa TAM indirim uygulanır.** Bilinmeyeni satıcının
+  lehine yorumlamak, hasarı gizlemeyi kârlı kılardı.
+- **Tavan aşılırsa değer kırpılmaz, işaretlenir** (`puan_bandi_disinda`).
+  Kırpmak, 50.000'lik bir hatayı sessizce 5.000 yapıp geçirmek olurdu.
+
+**Açık yan etki: kampanya puanı.** Ölçek ~420'den ~1000'e çıktı, yani 250+250
+hoş geldin puanı bir ürünün tamamı yerine yarısını alıyor. Soğuk başlangıçta
+ilk takası yaptırmak kritik; kampanya rakamı ayrı bir karar olarak duruyor.
 
 ## Arka uç kuralları (canlıda öğrenildi)
 
