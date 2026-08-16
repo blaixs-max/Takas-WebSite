@@ -33,6 +33,27 @@ export type UploadResult =
  * Fonksiyon yanıt vermezse `pending` dönüyor: akış durmuyor, kare kuyrukta
  * kalıyor, ekranda "İnceleniyor…" yazıyor ve elle tazeleme düğmesi çıkıyor.
  */
+/**
+ * Depo hatasını kullanıcının yapabileceği bir şeye çevirir.
+ *
+ * Üç sebep gerçekten farklı davranış gerektiriyor: dosya çok büyükse yeniden
+ * çekmek gerekir, yetki hatasında yeniden denemek işe yaramaz, ağ hatasında
+ * yarar. Hepsine aynı cümleyi yazmak, üçünü de yanlış yönlendirmek demek.
+ */
+function yuklemeHatasiniCevir(ham: string): string {
+  const m = ham.toLowerCase();
+  if (m.includes('exceeded the maximum allowed size') || m.includes('payload too large')) {
+    return 'Fotoğraf çok büyük. Biraz daha uzaktan çekip tekrar dene.';
+  }
+  if (m.includes('mime type') || m.includes('invalid_mime')) {
+    return 'Bu dosya biçimi desteklenmiyor. Kamerayla çekilmiş bir kare kullan.';
+  }
+  if (m.includes('row-level security') || m.includes('unauthorized') || m.includes('403')) {
+    return 'Bu kareyi yükleme izni alınamadı. Çıkış yapıp tekrar giriş yapmayı dene.';
+  }
+  return 'Fotoğraf yüklenemedi. Tekrar dene.';
+}
+
 export async function uploadPhoto(
   productId: string,
   slot: PhotoSlot,
@@ -66,7 +87,17 @@ export async function uploadPhoto(
     });
 
   if (yuklemeHatasi) {
-    return { ok: false, message: 'Fotoğraf yüklenemedi. Bağlantınızı kontrol edin.' };
+    /* Eskiden her yükleme hatasına "Bağlantınızı kontrol edin" deniyordu ve
+       bu 2026-08-16'da yarım saat kaybettirdi: gerçek sebep yetki hatasıydı
+       (kovada UPDATE politikası yoktu, yeniden çekim reddediliyordu) ama
+       ekran ağı suçluyordu. Kullanıcıyı çözemeyeceği bir yere bakmaya
+       göndermek, hiçbir şey söylememekten kötü.
+
+       Sebep ayrıştırılıyor, ham mesaj gösterilmiyor: depo hataları İngilizce
+       ve teknik. Tanımadığımız hatada nötr bir cümle kalıyor — ağı suçlamak
+       yerine "tekrar dene". */
+    console.error('[uploadPhoto] depo hatası', yuklemeHatasi.message);
+    return { ok: false, message: yuklemeHatasiniCevir(yuklemeHatasi.message) };
   }
 
   // Aynı slot yeniden çekilirse eski satır değişmeli, ikinci satır oluşmamalı.
