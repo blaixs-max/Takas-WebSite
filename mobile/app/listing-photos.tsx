@@ -74,6 +74,30 @@ export default function ListingPhotos() {
   const tamam = (s: PhotoSlot) =>
     kareler[s] ? kareler[s].moderationStatus !== 'rejected' : Boolean(yerel[s]);
 
+  /**
+   * "Atla" gerçekten bir yere götürmeli.
+   *
+   * Üç durum var ve üçü farklı: gidilecek bir sonraki kare varsa oraya;
+   * yoksa ama eksik bir zorunlu kare kaldıysa ona (kullanıcı sırayı
+   * atlamış olabilir); ikisi de yoksa iş bitmiştir, yayına gönderilir.
+   *
+   * İlk sürüm indeksi sona kadar artırıp orada kelepçeliyordu. Etiket zaten
+   * son slot olduğu için hiçbir şey olmuyor, düğme ölü görünüyordu.
+   */
+  function atlaVeIlerle() {
+    const sonraki = slotlar.findIndex((s, i) => i > aktif && !tamam(s));
+    if (sonraki !== -1) {
+      setAktif(sonraki);
+      return;
+    }
+    const eksikZorunlu = slotlar.findIndex((s) => zorunlu.includes(s) && !tamam(s));
+    if (eksikZorunlu !== -1) {
+      setAktif(eksikZorunlu);
+      return;
+    }
+    if (hepsiVar && !yayinlaniyor) void yayinla();
+  }
+
   const cekilen = zorunlu.filter(tamam).length;
   const hepsiVar = cekilen === zorunlu.length;
 
@@ -218,24 +242,6 @@ export default function ListingPhotos() {
           </View>
         </View>
 
-        {/* Opsiyonel karede açık bir çıkış.
-
-            Rozet tek başına yetmiyordu: "zorunlu değil" yazsa da kullanıcı
-            akışta bir sonraki adıma nasıl geçeceğini bilmiyor ve çekmek
-            zorunda hissediyor. Atlamak bir eylemse düğmesi olmalı.
-
-            Son karedeyse düğme yayına götürüyor — "atla" deyip aynı ekranda
-            kalmak, atlamanın işe yaramadığı izlenimi verirdi. */}
-        {atlanabilir(slot) && !tamam(slot) && (
-          <Pressable
-            style={styles.atla}
-            onPress={() => setAktif((i) => Math.min(i + 1, slotlar.length - 1))}
-            accessibilityRole="button"
-          >
-            <Text style={styles.atlaText}>Etiketim yok, atla</Text>
-            <MaterialIcons name="arrow-forward" size={18} color={colors.primary} />
-          </Pressable>
-        )}
 
         {/* Önizleme.
 
@@ -331,7 +337,22 @@ export default function ListingPhotos() {
               {slotBitti ? 'Yeniden çek' : 'Kamera ile çek'}
             </Text>
           </Pressable>
+
         </View>
+
+        {/* Atlama, çekmenin alternatifi — o yüzden çekim düğmesinin hemen
+            altında, kapsayıcının dışında (kapsayıcı satır düzeninde, içine
+            konsaydı kameranın yanına düşerdi). Rehber kartının altındayken
+            kullanıcı onu düğme değil açıklama sanıyordu.
+
+            Davranışı `atlaVeIlerle`de; ilk sürüm indeksi sona kelepçeliyordu
+            ve etiket zaten son slot olduğu için düğme hiçbir şey yapmıyordu. */}
+        {atlanabilir(slot) && !tamam(slot) && (
+          <Pressable style={styles.atla} onPress={atlaVeIlerle} accessibilityRole="button">
+            <Text style={styles.atlaText}>Etiketim yok, atla</Text>
+            <MaterialIcons name="arrow-forward" size={18} color={colors.primary} />
+          </Pressable>
+        )}
 
         {/* Elle tazeleme yalnızca beklerken anlamlı. */}
         {durum?.moderationStatus === 'pending' && (
