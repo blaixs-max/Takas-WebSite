@@ -1112,12 +1112,20 @@ bile değildi. Dördü ölçülerek doğrulandı (kodda arandı, yok).
 - [ ] **Engellenenler listesi ekranı yok.** Engel kurulabiliyor ama kullanıcı
       kimleri engellediğini göremiyor ve kaldıramıyor. `unblock_user` hazır,
       `user_blocks` kendi satırlarını okumaya açık — eksik olan tek şey ekran.
-- [ ] **Gizlilik politikası için erişilebilir bir URL yok.** Sitede
-      `LegalModal` var ama (a) bir adresi yok — modal, (b) metni kendi
-      söylüyor: "bu web sitesi için geçerli", yani **uygulamayı kapsamıyor.**
-      Mağaza formu kalıcı bir URL istiyor ve o metin uygulamanın gerçekten
-      işlediği veriyi saymalı: kamera, fotoğraf, konum, mesaj, e-posta, puan
-      hareketleri. Site tek sayfa olduğu için `/gizlilik` adresi de yok.
+- [x] **Gizlilik politikası yazıldı ve yayına girdi** (2026-08-16) —
+      `/gizlilik/`, site deposunda `public/gizlilik/index.html`. Tek dosya,
+      derleme yok, React'ten bağımsız: uygulamanın sürümü değişince mağazadaki
+      adres kırılmamalı. Eski modal girdisi kaldırıldı (iletişim adresi de
+      yanlıştı). Metin ölçülerek yazıldı — konum izni istenmediği için
+      "konumunuzu telefondan almıyoruz" denilebildi.
+
+      **İki şey eksik ve ikisi de sende:**
+      - [ ] `destek@eldeneletakas.com` **çalışmıyor.** Metin bu adresi veriyor;
+            GoDaddy e-posta yönlendirmesi kurulmadan mağaza gönderimi yapılmamalı.
+      - [ ] **Hukuki inceleme yapılmadı.** Metin uygulamanın gerçek davranışını
+            doğru anlatıyor; KVKK kapsamında eksiksiz olup olmadığı avukat işi.
+            Aynı turda veri sorumlusunun tüzel kişi adı da netleşmeli — şu an
+            yalnızca marka adı yazıyor.
 
 ### B · Hukuk (Türkiye) — avukat sorusu, kod sorusu değil
 
