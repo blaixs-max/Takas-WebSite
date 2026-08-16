@@ -613,17 +613,41 @@ değiştirilemez.
       `moderatePhoto()`. Canlıda kullanıldı: ilk gerçek ilanın kareleri
       buradan onaylandı. Madde yazıldığı gün doğruydu, sonra yapıldı ve
       güncellenmemiş.
-- [ ] **`AI_VISION_API_KEY` ayarlanması** — anahtar girilene kadar hiçbir kare
-      otomatik onaylanmaz (tasarım gereği güvenli taraf), yani yayın akışı durur.
+- [ ] **`AI_VISION_API_KEY` ayarlanması — ve `photo-check` deploy'u.** Anahtar
+      girilene kadar hiçbir kare otomatik onaylanmaz (tasarım gereği güvenli
+      taraf), yani yayın akışı durur.
 
-      **Aynı turda `photo-check` yeniden deploy edilmeli.** Repodaki sürüm
-      canlıdakinden ileride: silme borcu (`kareyiSil` + `silmeBorcunuBosalt`)
-      eklendi ama fonksiyon deploy edilmedi. Bilerek bekletildi — anahtar
-      yokken fonksiyon zaten hiç karar vermiyor, yani borç yolu canlıda hiç
-      çalışmıyor; 18 KB'lik dosyayı elle kopyalayarak deploy etmek ise
-      repo/canlı ayrışması riski taşıyordu ve bu deponun iki kez yandığı
-      hata tam olarak o. Anahtar girilirken ikisi birlikte yapılır ve
-      `get_edge_function` ile doğrulanır.
+      **Karar verildi: Gemini API, ücretli katman.** Ücretsiz katmanda
+      gönderilen içerik ürün geliştirmede kullanılabiliyor ve bizim
+      gönderdiğimiz şey çocuk yüzü içerdiğinden şüphelenilen fotoğraflar;
+      onları bir eğitim havuzuna sokmak, önlemeye çalıştığımız zarardan büyük.
+      Ücretliye geçince `/gizlilik/` sayfasına "veri eğitimde kullanılmıyor"
+      **yazılabilir** — şu an yazılamaz, ve o cümle anahtarla aynı commit'te
+      gider.
+
+      Ayarlanacak ortam değişkenleri:
+
+      | Env | Değer |
+      |---|---|
+      | `AI_VISION_API_KEY` | ücretli projenin anahtarı |
+      | `AI_VISION_MODEL` | `gemini-2.5-flash` (AI Studio listesinden doğrula) |
+      | `AI_VISION_MODEL_STRICT` | boş bırak — önce Flash'ı ölç |
+      | `AI_VISION_SAATLIK_LIMIT` | 60 (varsayılan, dokunma) |
+
+      **`photo-check` aynı turda deploy edilmeli.** Repodaki sürüm canlıdakinden
+      epeyce ileride: sahiplik kontrolü, oran sınırı, ölçüm, yeniden deneme,
+      zaman aşımı, `sebep` enum'u, ikinci görüş ve silme borcu. Deploy
+      bekletildi çünkü anahtar yokken fonksiyon zaten hiç karar vermiyor ve
+      20 KB'lik dosyayı elle kopyalayarak deploy etmek repo/canlı ayrışması
+      riski taşıyordu — bu deponun iki kez yandığı hata tam olarak o. Deploy
+      sonrası `get_edge_function` ile doğrulanır.
+- [ ] **Flash yeterli mi — bir hafta sonra `admin_foto_denetim_ozeti()` ile
+      karar ver.** Model seçimi tahminle değil sayıyla kapanmalı. Bakılacak
+      iki şey: red sebeplerinin dağılımı (`yanlis_aci` baskınsa çekim ekranının
+      yönlendirmesi zayıf, `stok_gorsel` baskınsa dolandırma denemesi var) ve
+      `AI_VISION_MODEL_STRICT` açıldığında ikinci görüşün reddi ne sıklıkta
+      bozduğu. Bozma oranı yüksekse Flash yanlış reddediyor demektir ve ana
+      modeli yükseltmek gerekir; düşükse Flash yetiyor demektir.
 - [ ] **iyzico sandbox ucundan uca test** — ödeme akışı yazıldı ama gerçek bir
       kartla hiç koşmadı. Sandbox anahtarları olmadan 3D Secure dönüşü, callback
       ve `SHIPPED`'e geçiş doğrulanamıyor
@@ -1049,11 +1073,41 @@ hepsi `approved`. Reddedilmiş kare yok, yani silinecek birikmiş görsel de yok
       Yeniden çekilen kare aynı yola `upsert` edildiği için kendiliğinden
       üzerine yazılıyor — açık olan tek durum, **reddedilip hiç yeniden
       çekilmeyen** kare, yani ilanı yarıda bırakan kullanıcı.
-- [ ] **Model maliyeti ölçülmüyor, sınırı yok.** Beş karenin dördü artık iki
-      görsel taşıyor; ilan başına maliyet hâlâ kuruş mertebesinde ama **ölçülmüş
-      bir rakam yok** ve oran sınırı da yok. Kimlik doğrulaması istiyoruz, yani
-      rastgele biri değil — ama oturum açmış bir kullanıcı arka arkaya kare
-      yükleyerek kotayı yakabilir.
+- [x] **Model maliyeti ölçülüyor, sınırı kondu** (2026-08-16). Ücretli katmana
+      geçme kararıyla birlikte: `photo_check_events` her çağrıyı yazıyor
+      (model, karar, sebep, giriş/çıkış jetonu, süre), `foto_denetim_hakki`
+      kullanıcı başına saatte 60 çağrıyla sınırlıyor, `admin_foto_denetim_ozeti()`
+      kırılımı veriyor. Sınır **kareye değil çağrıya** bakıyor: reddedilen kare
+      yeniden çekilip yeniden gönderiliyor ve her deneme para.
+
+      Çıkış jetonu `totalTokenCount - promptTokenCount` olarak hesaplanıyor,
+      `candidatesTokenCount` ile değil — düşünme jetonları faturaya giriyor ama
+      o alanda sayılmıyor.
+- [x] **Çağıranın kim olduğu doğrulanıyor** (2026-08-16). `verify_jwt = true`
+      yalnızca *birinin* giriş yaptığını kanıtlıyordu; fonksiyon gelen
+      `photoId`'yi sorgusuz işliyor ve `service_role` ile çalıştığı için RLS de
+      devrede değildi. Yani giriş yapmış herkes başkasının karesini inceletip
+      red gerekçesini okuyabiliyor ve hesabın kotasını yakabiliyordu. Artık
+      `auth.getUser(jwt)` ile çözülen çağıran `products.seller_id` ile
+      karşılaştırılıyor; uyuşmazsa **404** (403 demek, geçerli bir kare
+      kimliğini doğrulamak olurdu).
+- [x] **İkinci görüş mekanizması** (2026-08-16). `AI_VISION_MODEL_STRICT`
+      doluysa, **red kararında ve yalnızca güvenlik dışı sebeplerde** daha güçlü
+      modele ikinci kez soruluyor. Kaçırmayı çıkarım anında yakalayamazsın ama
+      yanlış reddi yakalayabilirsin, ve yanlış red dürüst satıcıyı bloke edip
+      arzı öldüren hata. `cocuk_yuzu` ve `arka_plan` dışarıda: o kararı ikinci
+      bir modele bozdurmak, iki modelden gevşek olanını yetkili kılmak olurdu.
+- [x] **Geçici hata ile ret ayrıldı** (2026-08-16). `if (!yanit.ok) return null`
+      tek satırdı; 429 ile gerçek ret aynı muamele görüyordu. Artık 408/429/5xx
+      iki kez yeniden deneniyor (üstel bekleme, `Retry-After`'a uyarak) ve
+      25 sn zaman aşımı var — eskiden model yanıt vermezse istek Edge Function
+      sınırına kadar bekliyordu.
+- [ ] **Cihazda yüz tanıma — asıl yükseltme bu, daha büyük model değil.** Çocuk
+      yüzü kontrolünde tek bir modelin yargısına bağlı kalmak, model ne kadar
+      iyi olursa olsun tek hata modu demek. ML Kit yüz algılama muhakeme
+      yapmıyor, sadece yüz buluyor — **farklı biçimde hata veren iki dedektör,
+      tek bir daha iyi dedektörden güvenli.** Üstelik kare telefondan hiç
+      çıkmadan elenir. Aşağıdaki maddeyle aynı iş.
 - [ ] **Cihazda, deklanşörden önce yüz tanıma.** Görsel hâlâ sunucuya çıkıyor
       (saniyeler için, saklanmadan). Hiç çıkmaması için ML Kit / vision-camera
       gerekiyor → development build → Expo Go biter. Launch öncesi güvenlik

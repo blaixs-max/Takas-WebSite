@@ -52,8 +52,8 @@ değildir, uygulama paketine zaten gömülür. `service_role` anahtarı repoda
 **Göçler ve testler yerelde koşturulabilir: `supabase/tests/kosu.sh`.**
 Temiz bir veri tabanı kurar, `00_yerel_kurulum.sql` ile Supabase'e özgü şeyleri
 (auth/storage/cron şemaları, üç rol, `auth.uid()`, **varsayılan yetkiler**)
-taklit eder, bütün göçleri uygular, sonra test paketini koşar. Bugün: 39 göç,
-20 test, sıfır hata.
+taklit eder, bütün göçleri uygular, sonra test paketini koşar. Bugün: 40 göç,
+21 test, sıfır hata.
 
 **Betik "hata yok" derken sözdizimini kastediyor, iddiaları değil.** Sayaç
 psql'in hata verip vermediğine bakıyor; `BEKLENEN` satırları göz kararı
@@ -315,6 +315,52 @@ Bu ayrım her zaman geçerlidir.
 - **Moderasyonda şüphe onay değildir.** Yapay zekâ erişilemezse, anahtar yoksa ya
   da yanıt çözümlenemezse kare `pending` kalır — bu "geçti" demek değildir. Hiçbir
   kod yolu kareyi kendiliğinden `approved` yapmaz.
+- **Model bir env değeridir, bir karar değil** (2026-08-16). Sağlayıcı Gemini
+  API (ücretli katman — ücretsiz katmanda gönderilen içerik ürün geliştirmede
+  kullanılabiliyor ve bizim gönderdiğimiz şey **çocuk yüzü içerdiğinden
+  şüphelenilen fotoğraflar**; onları bir eğitim havuzuna sokmak, önlemeye
+  çalıştığımız zarardan büyük). Beş ayar:
+
+  | Env | Varsayılan | Ne |
+  |---|---|---|
+  | `AI_VISION_API_KEY` | — | Yoksa hiçbir kare onaylanmaz, insan kuyruğu |
+  | `AI_VISION_BASE_URL` | `…/v1beta` | Vertex'e ya da başkasına geçiş tek satır |
+  | `AI_VISION_MODEL` | `gemini-2.5-flash` | Ana karar |
+  | `AI_VISION_MODEL_STRICT` | boş | İkinci görüş; boşsa mekanizma kapalı |
+  | `AI_VISION_SAATLIK_LIMIT` | 60 | Kullanıcı başına çağrı |
+
+  **Neden Flash, Pro değil:** güvenlik açısından kritik olan kısım (kadrajda
+  çocuk yüzü var mı) algı işi, muhakeme değil — Pro'nun getirdiği uzun zincirli
+  akıl yürütme oraya bir şey katmıyor. Buna karşılık satıcı elinde telefonla
+  kararı bekliyor ve ilan başına 7 kare var; Pro'nun gecikmesi doğrudan terk
+  sebebi. Hangi modelin yettiği **tahminle değil `admin_foto_denetim_ozeti()`
+  ile** kararlaştırılır: ikinci görüşün ne sıklıkta reddi bozduğu, daha güçlü
+  modele geçmenin gerekip gerekmediğini sayıyla söyler. Modelde aşağı inmek
+  veriyle yapılır, yukarı çıkmak da.
+- **İkinci görüş yalnızca reddi bozabilir, onayı değil — ve güvenlik reddini
+  hiç bozamaz.** İki hata simetrik değil: kaçırmayı (çocuk yüzünü görmemek)
+  çıkarım anında yakalayamazsın, kaçırdığını bilmiyorsun. Ama yanlış reddi
+  yakalayabilirsin ve yanlış red dürüst satıcıyı bloke edip arzı öldüren hata.
+  Redler azınlıkta olduğu için maliyet küçük kalıyor.
+  `GUVENLIK_SEBEPLERI` (`cocuk_yuzu`, `arka_plan`) dışarıda: o kararı ikinci
+  bir modele bozdurmak, iki modelden **gevşek olanını** yetkili kılmak olurdu.
+  Bu yüzden `sebep` şemada **enum** — serbest cümle olsaydı model "çocuk yüzü"
+  ile "bebek yüzü" arasında gider gelir ve güvenlik kontrolü sessizce kaçardı.
+- **`verify_jwt` sahiplik doğrulamaz.** `photo-check` bir tur boyunca gelen
+  `photoId`'yi sorgusuz işliyordu; `config.toml`'daki not "kareyi yükleyen
+  kullanıcı çağırır" diyordu ama JWT yalnızca *birinin* giriş yaptığını
+  kanıtlıyor ve fonksiyon `service_role` ile çalıştığı için RLS de devrede
+  değil. Yani giriş yapmış herkes başkasının karesini inceletip red gerekçesini
+  okuyabiliyordu. Artık çağıran `auth.getUser(jwt)` ile çözülüyor ve karenin
+  `products.seller_id`'siyle karşılaştırılıyor. **Yanıt 403 değil 404:**
+  "bu kare var ama senin değil" demek, geçerli bir kare kimliğini doğrulamak
+  olurdu.
+- **Geçici hata ile ret ayrı şeylerdir.** Eskiden `if (!yanit.ok) return null`
+  tek satırdı: 429 (hız sınırı) ile gerçek bir ret aynı muamele görüyor, ikisi
+  de kareyi insan kuyruğuna atıyordu. Bir saniye sonra çalışacak bir istek
+  yüzünden ilan yayına girmemeliydi. Artık 408/429/5xx iki kez, üstel bekleme
+  ve `Retry-After`'a uyarak yeniden deneniyor; zaman aşımı da geçici sayılıyor
+  (modelin yavaş olduğu an, yanlış olduğu an değil).
 - **Kareler birbiriyle kıyaslanır, tek tek değil** (2026-08-16). `photo-check`
   yeni kareyi aynı ilanın **onaylanmış bütün açı kareleriyle** birlikte modele
   gönderir ve iki soru daha sorar: aynı ürün mü, **hiçbiriyle** aynı açı değil

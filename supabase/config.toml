@@ -18,8 +18,14 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.photo-check]
-# Kareyi yükleyen kullanıcı çağırır; oturum zorunlu. Fonksiyon service_role ile
-# çalıştığı için muafiyet verilseydi herkes istediği kareyi inceletebilirdi.
+# Kareyi yükleyen kullanıcı çağırır; oturum zorunlu.
+#
+# DİKKAT: bu satır tek başına yetmiyor ve bir tur boyunca yettiği sanıldı.
+# verify_jwt yalnızca *birinin* giriş yaptığını kanıtlar, gelen photoId'nin
+# sahibi olduğunu değil — üstelik fonksiyon service_role ile çalıştığı için
+# RLS de devrede değil. Sahiplik kontrolü fonksiyonun içinde, auth.getUser()
+# ile çözülen çağıranın products.seller_id ile karşılaştırılmasıyla yapılıyor.
+# İkisi birden gerekli; bu satırı kaldırmak kimliği tamamen düşürür.
 verify_jwt = true
 
 [functions.send-sms]

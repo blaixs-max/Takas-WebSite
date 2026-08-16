@@ -70,7 +70,58 @@ import { corsHeaders, json } from '../_shared/cors.ts';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const AI_KEY = Deno.env.get('AI_VISION_API_KEY') ?? '';
+
+/* Uç nokta env'de: Vertex AI'a ya da başka bir sağlayıcıya geçmek fonksiyonu
+   yeniden yazmak olmasın. Bugün Gemini API kullanılıyor (basit anahtar);
+   KVKK gerekçesiyle Vertex'e (AB bölgesi + DPA) geçilirse buraya bölgesel
+   uç yazılır ve üstüne bir OAuth katmanı gelir. */
+const AI_BASE =
+  Deno.env.get('AI_VISION_BASE_URL') ?? 'https://generativelanguage.googleapis.com/v1beta';
 const AI_MODEL = Deno.env.get('AI_VISION_MODEL') ?? 'gemini-2.5-flash';
+
+/**
+ * İkinci görüş modeli. Boşsa mekanizma kapalı.
+ *
+ * **Yalnızca RED kararında ve yalnızca güvenlik dışı sebeplerde çalışır.**
+ * Gerekçesi iki hatanın simetrik olmaması: kaçırmayı (çocuk yüzünü görmemek)
+ * çıkarım anında yakalayamazsın — kaçırdığını bilmiyorsun. Ama yanlış reddi
+ * yakalayabilirsin, ve yanlış red dürüst satıcıyı bloke edip arzı öldüren
+ * hata. Redler azınlıkta olduğu için maliyet küçük kalıyor.
+ *
+ * Güvenlik reddini bozamamasının sebebi: "çocuk yüzü var" kararını ikinci bir
+ * modele bozdurmak, iki modelden **daha gevşek olanını** yetkili kılmak
+ * demektir. Orada istediğimiz tam tersi.
+ */
+const AI_MODEL_STRICT = Deno.env.get('AI_VISION_MODEL_STRICT') ?? '';
+
+/** Model yanıt vermezse istek bu süre sonunda kesilir. */
+const AI_TIMEOUT_MS = Number(Deno.env.get('AI_VISION_TIMEOUT_MS') ?? 25_000);
+
+/** Kullanıcı başına saatlik denetim çağrısı. */
+const SAATLIK_LIMIT = Number(Deno.env.get('AI_VISION_SAATLIK_LIMIT') ?? 60);
+
+/**
+ * İkinci görüşün **bozamayacağı** red sebepleri.
+ *
+ * Bu ikisi kişisel veri ve içerik güvenliği; kalanlar (yanlış açı, aynı açı,
+ * stok görsel, kalite) ürün kuralı. Ürün kuralında yanılmanın bedeli bir
+ * satıcının canının sıkılması, güvenlikte yanılmanın bedeli bir çocuğun
+ * yüzünün indekslenen bir pazaryerinde yayınlanması.
+ */
+const GUVENLIK_SEBEPLERI = ['cocuk_yuzu', 'arka_plan'];
+
+/** Modelin seçebileceği red sebepleri. Serbest metin sayılamaz, bu sayılır. */
+const SEBEPLER = [
+  'cocuk_yuzu',
+  'arka_plan',
+  'stok_gorsel',
+  'ekran_cekimi',
+  'yanlis_aci',
+  'kalite',
+  'baska_urun',
+  'ayni_aci',
+  'yok',
+];
 
 /** Her slotun modele anlatılması gereken beklentisi. */
 const SLOT_BEKLENTI: Record<string, string> = {
@@ -108,9 +159,19 @@ interface Body {
 interface Karar {
   uygun: boolean;
   gerekce: string;
+  /**
+   * Red sebebinin **sayılabilir** hâli. `gerekce` kullanıcıya gösterilmek
+   * için iyi ama sayılmak için kötü — model her seferinde başka türlü
+   * yazıyor. İkinci görüş mekanizması da buna bağlı: güvenlik sebebiyle
+   * verilen red bozulamıyor, ürün sebebiyle verilen bozulabiliyor. Bu ayrımı
+   * serbest cümle üzerinden yapmak, cümle eşleştirmek olurdu.
+   */
+  sebep: string;
   /** Kıyas yapıldıysa dolu; yapılmadıysa undefined. */
   ayniUrun?: boolean;
   farkliAci?: boolean;
+  /** Fatura ölçümü için; sağlayıcı vermezse boş. */
+  token?: { giris: number; cikis: number } | null;
 }
 
 /** İndirilmiş kare. `bayt` ham boyut — bütçe onun üzerinden tutuluyor. */
@@ -141,13 +202,30 @@ Deno.serve(async (req) => {
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
 
+  /* **Çağıranın kim olduğu doğrulanıyor.**
+     `verify_jwt = true` yalnızca *birinin* giriş yaptığını kanıtlıyor, o
+     karenin sahibi olduğunu değil — ve fonksiyon `service_role` ile çalıştığı
+     için RLS de devrede değil. Bu doğrulama olmadan giriş yapmış herhangi
+     biri başkasının `photoId`'siyle çağırıp o karenin red gerekçesini okur ve
+     hesabın kotasını yakardı. `config.toml`'daki not bunu zaten amaçlıyordu
+     ama JWT tek başına sağlamıyor. */
+  const jwt = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '') ?? '';
+  const { data: oturum } = await supabase.auth.getUser(jwt);
+  const kullanici = oturum?.user;
+  if (!kullanici) return json({ error: 'Oturum bulunamadı' }, 401);
+
   const { data: kare, error: kareErr } = await supabase
     .from('product_photos')
-    .select('id, product_id, slot, storage_path, moderation_status')
+    .select('id, product_id, slot, storage_path, moderation_status, products!inner(seller_id)')
     .eq('id', b.photoId)
     .single();
 
   if (kareErr || !kare) return json({ error: 'Kare bulunamadı' }, 404);
+
+  /* Sahiplik. 404 dönüyoruz, 403 değil: "bu kare var ama senin değil" demek,
+     geçerli bir kare kimliğini doğrulamak olurdu. */
+  const sahip = (kare.products as unknown as { seller_id: string } | null)?.seller_id;
+  if (sahip !== kullanici.id) return json({ error: 'Kare bulunamadı' }, 404);
   if (kare.moderation_status !== 'pending') {
     // İdempotency: aynı kare iki kez incelenmez.
     return json({ photoId: kare.id, status: kare.moderation_status, tekrar: true });
@@ -157,6 +235,25 @@ Deno.serve(async (req) => {
   if (!AI_KEY) {
     console.warn('[photo-check] AI_VISION_API_KEY yok — kare insan kuyruğunda bekliyor');
     return json({ photoId: kare.id, status: 'pending', neden: 'ai_yapilandirilmadi' });
+  }
+
+  /* Oran sınırı. Sınır kareye değil **çağrıya** bakıyor: reddedilen kare
+     yeniden çekilip yeniden gönderiliyor ve her deneme para. Ücretsiz
+     katmanda bu bir gecikmeydi, ücretlide doğrudan fatura. */
+  const { data: hak } = await supabase.rpc('foto_denetim_hakki', {
+    p_user_id: kullanici.id,
+    p_saatlik: SAATLIK_LIMIT,
+  });
+  if (hak === false) {
+    return json(
+      {
+        photoId: kare.id,
+        status: 'pending',
+        neden: 'oran_siniri',
+        gerekce: 'Kısa sürede çok fazla kare gönderildi. Biraz sonra tekrar dene.',
+      },
+      429,
+    );
   }
 
   /* Kıyas kareleri: aynı ilanın, bu slot dışındaki, onaylanmış bütün açı
@@ -201,16 +298,44 @@ Deno.serve(async (req) => {
     kiyasKareler.push({ slot: r.slot, mime: g.mime, b64: g.b64 });
   }
 
+  const basladi = Date.now();
   let karar: Karar | null = null;
   try {
-    karar = await incele(ana, kare.slot, kiyasKareler);
+    karar = await incele(ana, kare.slot, kiyasKareler, AI_MODEL);
   } catch (e) {
     console.error('[photo-check] model çağrısı başarısız', String(e));
   }
 
   // Model yanıt vermediyse ya da yanıtı çözümlenemediyse: 'pending' kalır.
   if (!karar) {
+    await olcumYaz(supabase, kullanici.id, kare.id, AI_MODEL, 'pending', null, false, null, basladi);
     return json({ photoId: kare.id, status: 'pending', neden: 'model_yanit_vermedi' });
+  }
+
+  /* İKİNCİ GÖRÜŞ — yalnızca reddederken, yalnızca güvenlik dışı sebepte.
+     Dürüst bir satıcıyı bloke etmeden önce daha güçlü modele soruyoruz.
+     Güvenlik reddi (çocuk yüzü, arka plan) buraya girmiyor: onu bozdurmak,
+     iki modelden gevşek olanını yetkili kılmak olurdu. */
+  let ikinciGorus = false;
+  let kullanilanModel = AI_MODEL;
+  if (
+    !karar.uygun &&
+    AI_MODEL_STRICT &&
+    AI_MODEL_STRICT !== AI_MODEL &&
+    !GUVENLIK_SEBEPLERI.includes(karar.sebep)
+  ) {
+    try {
+      const ikinci = await incele(ana, kare.slot, kiyasKareler, AI_MODEL_STRICT);
+      if (ikinci) {
+        ikinciGorus = true;
+        kullanilanModel = AI_MODEL_STRICT;
+        karar = ikinci;
+      }
+    } catch (e) {
+      /* İkinci görüş alınamadıysa ilk karar geçerli. Reddi sessizce onaya
+         çevirmek, mekanizmanın hata hâlinde kendini kapatması olurdu. */
+      console.error('[photo-check] ikinci görüş alınamadı', String(e));
+    }
   }
 
   /* Ret gerekçesini kıyas hatalarında biz yazıyoruz, model değil: bu iki cümle
@@ -251,8 +376,54 @@ Deno.serve(async (req) => {
      borcunun arkasında kuyruğa girmemeli. */
   void silmeBorcunuBosalt(supabase);
 
+  await olcumYaz(
+    supabase,
+    kullanici.id,
+    kare.id,
+    kullanilanModel,
+    yeni,
+    uygun ? null : (kiyasHatasi ? (karar.ayniUrun === false ? 'baska_urun' : 'ayni_aci') : karar.sebep),
+    ikinciGorus,
+    karar.token,
+    basladi,
+  );
+
   return json({ photoId: kare.id, status: yeni, gerekce: gerekce ?? '' });
 });
+
+/**
+ * Bir denetim çağrısını kaydeder — maliyet, oran sınırı ve sebep dağılımı.
+ *
+ * Hata yutuluyor: ölçüm yazılamadı diye kullanıcının kararı düşmemeli.
+ * Ölçüm bir yan defter, kararın kendisi değil.
+ */
+async function olcumYaz(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  photoId: string,
+  model: string,
+  karar: string,
+  sebep: string | null,
+  ikinciGorus: boolean,
+  token: { giris: number; cikis: number } | null | undefined,
+  basladi: number,
+): Promise<void> {
+  try {
+    await supabase.rpc('foto_denetim_kaydet', {
+      p_user_id: userId,
+      p_photo_id: photoId,
+      p_model: model,
+      p_karar: karar,
+      p_sebep: sebep,
+      p_ikinci_gorus: ikinciGorus,
+      p_giris_token: token?.giris ?? null,
+      p_cikis_token: token?.cikis ?? null,
+      p_sure_ms: Date.now() - basladi,
+    });
+  } catch (e) {
+    console.error('[photo-check] ölçüm yazılamadı', String(e));
+  }
+}
 
 /**
  * Kareyi depodan siler; olmazsa borcu satıra kaydeder.
@@ -301,6 +472,65 @@ async function silmeBorcunuBosalt(supabase: ReturnType<typeof createClient>): Pr
   }
 }
 
+/** Yeniden denenmeye değer durumlar: geçici, bizim hatamız değil. */
+const GECICI_KODLAR = [408, 429, 500, 502, 503, 504];
+
+/**
+ * Modele istek atar: zaman aşımlı ve geçici hatalarda yeniden denemeli.
+ *
+ * ## Neden gerekli
+ *
+ * Eskiden tek satırdı: `if (!yanit.ok) return null`. Yani 429 (hız sınırı) ile
+ * gerçek bir ret aynı muamele görüyordu ve ikisi de kareyi insan kuyruğuna
+ * atıyordu. Geçici bir hız sınırı, ilanın yayına girmemesi demek olmamalı —
+ * hele ücretli katmanda, hele bir saniye sonra çalışacakken.
+ *
+ * Zaman aşımı da yoktu: model yanıt vermezse istek Edge Function sınırına
+ * kadar bekliyordu ve kullanıcı ekranda kalıyordu.
+ *
+ * İki deneme, üstel bekleme. Sağlayıcı `Retry-After` verirse ona uyuluyor —
+ * kendi tahminimiz onun bildiğinden iyi değil. Daha fazla denemek, elinde
+ * telefonla bekleyen satıcıyı daha da bekletmek olurdu; o noktada kareyi
+ * insan kuyruğuna bırakmak daha dürüst.
+ */
+async function istekAt(url: string, govde: unknown, deneme = 0): Promise<Response | null> {
+  const kesici = new AbortController();
+  const sayac = setTimeout(() => kesici.abort(), AI_TIMEOUT_MS);
+  try {
+    const yanit = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': AI_KEY },
+      body: JSON.stringify(govde),
+      signal: kesici.signal,
+    });
+    if (yanit.ok) return yanit;
+
+    if (GECICI_KODLAR.includes(yanit.status) && deneme < 2) {
+      const bildirilen = Number(yanit.headers.get('Retry-After') ?? 0) * 1000;
+      const bekle = bildirilen > 0 ? Math.min(bildirilen, 8000) : 500 * 2 ** deneme;
+      console.warn(`[photo-check] ${yanit.status} — ${bekle} ms sonra yeniden`);
+      await new Promise((r) => setTimeout(r, bekle));
+      return istekAt(url, govde, deneme + 1);
+    }
+
+    console.error('[photo-check] model reddetti', yanit.status, await yanit.text().catch(() => ''));
+    return null;
+  } catch (e) {
+    /* Zaman aşımı da geçici sayılıyor: modelin yavaş olduğu an, yanlış
+       olduğu an değil. */
+    if (deneme < 2) {
+      const bekle = 500 * 2 ** deneme;
+      console.warn('[photo-check] istek kesildi, yeniden deneniyor', String(e));
+      await new Promise((r) => setTimeout(r, bekle));
+      return istekAt(url, govde, deneme + 1);
+    }
+    console.error('[photo-check] istek başarısız', String(e));
+    return null;
+  } finally {
+    clearTimeout(sayac);
+  }
+}
+
 /**
  * Kareyi (varsa kıyas kareleriyle birlikte) modele gönderir ve kararı çözümler.
  *
@@ -309,7 +539,12 @@ async function silmeBorcunuBosalt(supabase: ReturnType<typeof createClient>): Pr
  * çözümlenemez sayılır ve kare 'pending' kalır — yani eksik alan sessizce
  * "sorun yok" diye okunmaz.
  */
-async function incele(gorsel: Gorsel, slot: string, kiyasKareler: Kiyas[]): Promise<Karar | null> {
+async function incele(
+  gorsel: Gorsel,
+  slot: string,
+  kiyasKareler: Kiyas[],
+  model: string,
+): Promise<Karar | null> {
   const kiyas = kiyasKareler.length > 0;
   const beklenti = SLOT_BEKLENTI[slot] ?? 'ürünün fotoğrafı';
 
@@ -321,7 +556,19 @@ async function incele(gorsel: Gorsel, slot: string, kiyasKareler: Kiyas[]): Prom
 - Görsel stok/katalog fotoğrafı gibi duruyorsa (gerçek ev çekimi değilse)
 - Kare bir ekranın (telefon, bilgisayar, televizyon) ya da basılı bir fotoğrafın fotoğrafıysa — piksel deseni, ekran kenarı, yansıma veya parlaklık dalgalanması varsa
 - Ürün bulanık, çok karanlık ya da kadrajda çok küçükse
-- Kare beklenen açıyı göstermiyorsa`;
+- Kare beklenen açıyı göstermiyorsa
+
+Ayrıca \`sebep\` alanını doldur — hangi maddeden düştüğünü tek bir kodla söyle:
+- cocuk_yuzu ......... kadrajda çocuk yüzü var
+- arka_plan .......... arka planda müstehcen içerik, tanınabilir üçüncü kişi veya uygunsuz ortam
+- stok_gorsel ........ stok/katalog fotoğrafı
+- ekran_cekimi ....... ekranın ya da basılı bir fotoğrafın fotoğrafı
+- kalite ............. bulanık, karanlık ya da ürün çok küçük
+- yanlis_aci ......... beklenen açıyı göstermiyor
+- yok ................ kare uygun
+
+Birden fazlası geçerliyse **listedeki ilk sırada olanı** ver: çocuk yüzü ve
+arka plan, diğerlerinin hepsinden önce gelir.`;
 
   const istem = kiyas
     ? `Bir ikinci el çocuk ürünü ilanının fotoğraflarını denetliyorsun.
@@ -356,43 +603,59 @@ ${denetim}`;
   parts.push({ inline_data: { mime_type: gorsel.mime, data: gorsel.b64 } });
   parts.push({ text: istem });
 
+  /* `sebep` şemada zorunlu ve **enum**: modelin serbest cümlesi kullanıcıya
+     gösterilecek metin, `sebep` ise sayılacak ve ikinci görüş kararını
+     verecek olan alan. Enum olmasaydı model "çocuk yüzü" ile "bebek yüzü"
+     arasında gidip gelirdi ve `GUVENLIK_SEBEPLERI` kontrolü sessizce
+     kaçırırdı — yani güvenlik reddi bozulabilir hâle gelirdi. */
+  const ortakAlanlar = {
+    uygun: { type: 'BOOLEAN' },
+    gerekce: { type: 'STRING' },
+    sebep: { type: 'STRING', enum: SEBEPLER },
+  };
+
   const sema = kiyas
     ? {
         type: 'OBJECT',
         properties: {
-          uygun: { type: 'BOOLEAN' },
-          gerekce: { type: 'STRING' },
+          ...ortakAlanlar,
           ayniUrun: { type: 'BOOLEAN' },
           farkliAci: { type: 'BOOLEAN' },
         },
-        required: ['uygun', 'gerekce', 'ayniUrun', 'farkliAci'],
+        required: ['uygun', 'gerekce', 'sebep', 'ayniUrun', 'farkliAci'],
       }
     : {
         type: 'OBJECT',
-        properties: { uygun: { type: 'BOOLEAN' }, gerekce: { type: 'STRING' } },
-        required: ['uygun', 'gerekce'],
+        properties: ortakAlanlar,
+        required: ['uygun', 'gerekce', 'sebep'],
       };
 
-  const yanit = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${AI_MODEL}:generateContent`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': AI_KEY },
-      body: JSON.stringify({
-        contents: [{ parts }],
-        generationConfig: {
-          temperature: 0,
-          responseMimeType: 'application/json',
-          responseSchema: sema,
-        },
-      }),
+  const yanit = await istekAt(`${AI_BASE}/models/${model}:generateContent`, {
+    contents: [{ parts }],
+    generationConfig: {
+      temperature: 0,
+      responseMimeType: 'application/json',
+      responseSchema: sema,
     },
-  );
+  });
 
-  if (!yanit.ok) return null;
+  if (!yanit) return null;
   const govde = await yanit.json();
   const metin: string | undefined = govde?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!metin) return null;
+
+  const kullanim = govde?.usageMetadata;
+  const token = kullanim
+    ? {
+        giris: Number(kullanim.promptTokenCount ?? 0),
+        /* Düşünme jetonları da faturaya giriyor; `candidatesTokenCount` onları
+           saymıyor. Toplamdan girişi çıkarmak, ödediğimiz çıkışı verir. */
+        cikis: Math.max(
+          0,
+          Number(kullanim.totalTokenCount ?? 0) - Number(kullanim.promptTokenCount ?? 0),
+        ),
+      }
+    : null;
 
   try {
     const c = JSON.parse(metin.replace(/```json|```/g, '').trim());
@@ -401,11 +664,18 @@ ${denetim}`;
       // Kıyas istendi ama cevap gelmedi: onaylamak yerine insana bırakılır.
       return null;
     }
+    /* Tanımadığımız bir sebep gelirse `diger` değil **`cocuk_yuzu` gibi
+       davranmıyoruz ama güvenli tarafta kalıyoruz**: bilinmeyen sebep
+       `GUVENLIK_SEBEPLERI` içinde olmadığı için ikinci görüşe açılır, yani
+       karar daha güçlü modele gider. Sessizce onaya dönmez. */
+    const sebep = typeof c?.sebep === 'string' && SEBEPLER.includes(c.sebep) ? c.sebep : 'diger';
     return {
       uygun: c.uygun,
       gerekce: String(c.gerekce ?? ''),
+      sebep,
       ayniUrun: kiyas ? c.ayniUrun : undefined,
       farkliAci: kiyas ? c.farkliAci : undefined,
+      token,
     };
   } catch {
     return null;
