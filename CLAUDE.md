@@ -767,6 +767,41 @@ gösterilir.
 - İkonlar: `@expo/vector-icons/MaterialIcons`.
 - Para olmayan model: cüzdan anahtarsızken **DEMO** veriye düşer (kırılmaz).
 
+## Puan tavanı yok (2026-08-17)
+
+`valuation_settings.tavan_puan` **null** ve bu bilinçli: platform her fiyat
+aralığındaki ürüne açık. Karar iş tarafına ait ve alındı.
+
+Tavan 5000'ken canlıda üç ilanı sessizce taslakta bıraktı (7600, 7600, 7260 —
+bir bebek dinleme telsizi ve bir hoparlör). Kullanıcı sebebini bilemedi:
+etiketi atlamıştı ve hatanın etiketten geldiğini sandı.
+
+**Kaldırılan şeyin ne olduğu kayda geçsin.** Tavan bir ürün politikası değildi,
+**değerleme hatasına karşı emniyet freniydi**. Model bir ürünü yanlış tanır ya
+da fiyatı yanlış okursa (₺950 yerine ₺95.000) hata doğrudan puana dönüşür;
+puan kapalı devrede para gibi davranır ve basılmış puan geri alınamaz. O hata
+sınıfı ortadan kalkmadı — yalnızca artık **görülmüyor**. Gerekirse sırasıyla:
+engellemeyen bir işaret (yüksek değerlemeyi yönetim ekranında göstermek),
+`degerleme_guven` düşükken insan onayı, kullanıcı başına günlük puan üretim
+sınırı.
+
+**Sınır koyacaksan önce kuyruğu kur.** Eski kurulumun asıl kusuru sayının
+kendisi değildi: hata metni "ilan incelemeye alındı" diyordu ama **hiçbir
+kuyruk yoktu.** İlan taslakta kalıyor, yönetim ekranında görünmüyor, kimse
+bilmiyordu. Sistem yapmadığı bir şeyi söylüyordu — gizlilik metnindeki hatanın
+aynısı. Kolon yorumu bu uyarıyı taşıyor.
+
+**`null`, büyük bir sayı değil.** `999999` de işi görürdü ama o bir sınırdır,
+yalnızca uzaktadır; biri bir gün ona çarpar ve sebebini yine anlamaz. `null`
+"sınır yok" demenin tek dürüst yolu.
+
+`p_puan is null` hâlâ bandın dışı sayılıyor — puanı olmayan ilan yayına
+giremez. O tavanla değil, değerlemenin yapılmış olmasıyla ilgili.
+
+Tavan mekanizmasının kod yolu duruyor ve `puan_sunucuda_test.sql` 7b onu
+sınıyor: biri sınır koyarsa çalışmalı. Ölü bir kontrol, olmayan kontrolden
+kötüdür — var sanılır.
+
 ## Bekleyen kare kullanıcıyı ekranda tutmaz (2026-08-17)
 
 Model bazı karelerde karar veremiyor; o kareler `pending` kalıp yönetim

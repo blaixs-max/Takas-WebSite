@@ -97,26 +97,60 @@ end $$;
 \echo 'BEKLENEN: "piyasa değeri bulunamadı" ile engellendi'
 
 \echo ''
-\echo '=== 7) BANT DIŞI PUAN YAYINA GİREMEZ ==='
+\echo '=== 7) TAVAN YOKKEN YÜKSEK PUAN YAYINA GİRER ==='
+-- 2026-08-17'de tavan kaldırıldı: platform her fiyat aralığındaki ürüne açık.
+-- Önceden bu iddia tersineydi ve canlıda üç ilanı sessizce taslakta bıraktı;
+-- kullanıcı sebebini bilemedi çünkü hiçbir kuyruğa da düşmüyorlardı.
 select id from create_listing('Çok pahalı şey', 'Oyun & Oyuncak', 'Yeni gibi', 'M',
                               p_sub_category => 'Yapı & inşa') \gset b_
 reset role;
 insert into product_photos (product_id, slot, storage_path, moderation_status)
 select :'b_id', s, :'s' || '/' || :'b_id' || '/' || s || '.jpg', 'approved'
   from unnest(array['front','back','left','right']::photo_slot[]) s;
-select points from degerleme_yaz(:'b_id', 100000, 'şüpheli kaynak', 0.40, 'gemini-3.7-flash') \gset x_
+select points from degerleme_yaz(:'b_id', 100000, 'pahalı ürün', 0.90, 'gemini-3.7-flash') \gset x_
+set session role authenticated;
+select set_config('test.uid', :'s', false);
+select bekle_esit('100.000 TL × %80 = 80.000 puan', :x_points, 80000);
+select publish_listing(:'b_id', 'front');
+select bekle_esit('tavan yokken yüksek puanlı ilan yayına girer',
+                  (select status from products where id = :'b_id'), 'ACTIVE');
+
+\echo ''
+\echo '=== 7b) TAVAN KONULURSA MEKANİZMA HÂLÂ ÇALIŞIR ==='
+-- Tavan bugün null ama kod yolu duruyor. Biri ileride sınır koyarsa
+-- çalıştığından emin olalım — ölü bir kontrol, olmayan kontrolden kötüdür
+-- çünkü var sanılır.
+reset role;
+update valuation_settings set tavan_puan = 5000 where id = 1;
+select id from create_listing('Tavanlı deneme', 'Oyun & Oyuncak', 'Yeni gibi', 'M',
+                              p_sub_category => 'Yapı & inşa') \gset t_
+insert into product_photos (product_id, slot, storage_path, moderation_status)
+select :'t_id', s, :'s' || '/' || :'t_id' || '/' || s || '.jpg', 'approved'
+  from unnest(array['front','back','left','right']::photo_slot[]) s;
+select points from degerleme_yaz(:'t_id', 100000, 'pahalı ürün', 0.90, 'gemini-3.7-flash') \gset y_
 set session role authenticated;
 select set_config('test.uid', :'s', false);
 do $$
 declare pid text;
 begin
-  select id into pid from products where title = 'Çok pahalı şey';
+  select id into pid from products where title = 'Tavanlı deneme';
   perform publish_listing(pid, 'front');
-  raise notice 'SONUÇ: HATA — bant dışı puan yayına girdi';
+  raise notice 'SONUÇ: HATA — tavan varken bant dışı puan yayına girdi';
 exception when others then
   raise notice 'SONUÇ: doğru — engellendi (%)', sqlerrm;
 end $$;
-\echo 'BEKLENEN: "olağandışı yüksek" ile engellendi (puan kırpılmadı, işaretlendi)'
+select bekle_esit('tavan varken ilan taslakta kalır',
+                  (select status from products where id = :'t_id'), 'DRAFT');
+-- Tavanı geri kaldır: sonraki testler bugünkü ayarla koşmalı. Doğrulama rol
+-- değişmeden yapılıyor — `valuation_settings` authenticated'e kapalı ve
+-- kapalı olması doğru: puan ayarlarını okuyabilen istemci, ekonomiyi
+-- okuyabilen istemcidir.
+reset role;
+update valuation_settings set tavan_puan = null where id = 1;
+select bekle('tavan yeniden kaldırıldı',
+             (select tavan_puan is null from valuation_settings where id = 1));
+set session role authenticated;
+select set_config('test.uid', :'s', false);
 
 \echo ''
 \echo '=== 8) degerleme_yaz istemciye kapalı ==='
