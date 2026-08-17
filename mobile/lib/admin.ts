@@ -112,6 +112,39 @@ export async function moderatePhoto(
   return { ok: true };
 }
 
+/** Toplu onayın sonucu — kaçı geçti, kaçı takıldı. */
+export interface TopluSonuc {
+  onaylanan: number;
+  basarisiz: number;
+}
+
+/**
+ * Kuyruktaki kareleri toplu onaylar.
+ *
+ * Toplu inceleme akışının karşılığı: model kararsız kaldığında kare `pending`
+ * kalıyor ve kuyruğa düşüyor. Bunlar genelde modelin emin olamadığı sıradan
+ * ürün fotoğrafları; tek tek onaylamak kuyruğu büyüdükçe imkânsızlaşır.
+ *
+ * **Toplu reddetme yok, bilerek.** Onaylamak geri alınabilir bir karar —
+ * yanlış onaylanan kare şikâyetle geri gelir. Reddetmek geri alınamaz:
+ * `admin_moderate_photo` reddedilen kareyi depodan siliyor, kullanıcının
+ * fotoğrafı yok oluyor. Otuz karenin tek dokunuşla silinmesi, yanlış düğmeye
+ * basmanın bedelini kabul edilemez yapardı. Ret tek tek ve gerekçeyle kalıyor.
+ *
+ * Çağrılar sırayla gidiyor, paralel değil: her biri bir yazma işlemi ve
+ * yönetim eylemi denetim kaydına giriyor. Otuz eşzamanlı yazmanın kazandıracağı
+ * saniye, sıranın verdiği öngörülebilirliğe değmez.
+ */
+export async function approvePhotosBulk(photoIds: string[]): Promise<TopluSonuc> {
+  const sonuc: TopluSonuc = { onaylanan: 0, basarisiz: 0 };
+  for (const id of photoIds) {
+    const r = await moderatePhoto(id, true);
+    if (r.ok) sonuc.onaylanan += 1;
+    else sonuc.basarisiz += 1;
+  }
+  return sonuc;
+}
+
 export async function resolveDispute(
   disputeId: string,
   kabul: boolean,

@@ -27,6 +27,7 @@ import {
   loadDisputeQueue,
   loadPhotoQueue,
   loadReportQueue,
+  approvePhotosBulk,
   moderatePhoto,
   nedenEtiketi,
   resolveDispute,
@@ -71,6 +72,7 @@ export default function AdminScreen() {
   const [kampanya, setKampanya] = useState<CampaignStatus | null>(null);
   const [sikayetler, setSikayetler] = useState<ReportQueueRow[]>([]);
   const [yenileniyor, setYenileniyor] = useState(false);
+  const [topluIsliyor, setTopluIsliyor] = useState(false);
   const [islemde, setIslemde] = useState<string | null>(null);
 
   // Gerekçe soran tek bir sayfa: hem kare reddi hem itiraz kararı kullanır.
@@ -117,6 +119,34 @@ export default function AdminScreen() {
       if (ok) await getir();
     })();
   }, [getir]);
+
+  /** Kuyruktaki bütün kareleri onaylar. Geri dönüşü olmayan tarafı yok — ret
+      bu yolla yapılmıyor — ama yine de sayı söylenip onay isteniyor. */
+  function topluOnayla() {
+    const sayi = kareler.length;
+    uyar(
+      `${sayi} kare onaylansın mı?`,
+      'Hepsi yayına uygun sayılacak. Tek tek incelemeden onaylıyorsan, sonradan şikâyetle geri gelebilirler.',
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        {
+          text: 'Onayla',
+          onPress: async () => {
+            setTopluIsliyor(true);
+            const r = await approvePhotosBulk(kareler.map((k) => k.photoId));
+            await getir();
+            setTopluIsliyor(false);
+            uyar(
+              'Toplu onay bitti',
+              r.basarisiz === 0
+                ? `${r.onaylanan} kare onaylandı.`
+                : `${r.onaylanan} kare onaylandı, ${r.basarisiz} tanesi geçmedi. Geçmeyenler kuyrukta duruyor.`,
+            );
+          },
+        },
+      ],
+    );
+  }
 
   async function kareKarari(photoId: string, uygun: boolean, neden?: string) {
     setIslemde(photoId);
@@ -275,6 +305,37 @@ export default function AdminScreen() {
 
         {sekme === 'kare' && kareler.length === 0 && (
           <Bos ikon="check-circle" metin="Bekleyen kare yok. Kuyruk temiz." />
+        )}
+
+        {/* Toplu onay. Kareler artık çekim sırasında değil, hepsi çekildikten
+            sonra toplu inceleniyor; modelin karar veremediği kareler buraya
+            düşüyor ve sayıları hızla büyüyebiliyor. Tek tek onaylamak o
+            noktada kuyruğu tıkar.
+            Karşılığı olan bir "tümünü reddet" **yok** ve olmayacak: onay geri
+            alınabilir, ret geri alınamaz — reddedilen kare depodan siliniyor.
+            Otuz kullanıcının fotoğrafını tek dokunuşla silebilen bir düğme,
+            yanlış basmanın bedelini kabul edilemez yapar. */}
+        {sekme === 'kare' && kareler.length > 1 && (
+          <View style={styles.topluSerit}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.topluBaslik}>{kareler.length} kare bekliyor</Text>
+              <Text style={styles.topluAlt}>
+                Hepsini onaylamadan önce göz gezdir — onay geri alınabilir ama
+                yayına çıkan kare yayına çıkmış olur.
+              </Text>
+            </View>
+            <Pressable
+              style={[styles.topluBtn, topluIsliyor && styles.topluBtnOff]}
+              disabled={topluIsliyor}
+              onPress={topluOnayla}
+            >
+              {topluIsliyor ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.birincilText}>Tümünü onayla</Text>
+              )}
+            </Pressable>
+          </View>
         )}
 
         {sekme === 'kare' &&
@@ -629,6 +690,26 @@ const styles = StyleSheet.create({
   uyari: { fontSize: 12, fontWeight: '600', color: colors.error, marginTop: 9 },
   kanitBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 11 },
   kanitBtnText: { fontSize: 12.5, fontWeight: '700', color: colors.primary },
+  topluSerit: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    marginBottom: 12,
+    borderRadius: shape.lg,
+    backgroundColor: colors.primaryContainer,
+  },
+  topluBaslik: { fontSize: 13.5, fontWeight: '800', color: colors.onSurface },
+  topluAlt: { fontSize: 11.5, fontWeight: '500', color: colors.onSurfaceVariant, marginTop: 3, lineHeight: 16 },
+  topluBtn: {
+    height: 40,
+    paddingHorizontal: 16,
+    borderRadius: shape.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+  },
+  topluBtnOff: { opacity: 0.5 },
   aksiyonlar: { flexDirection: 'row', gap: 10, marginTop: 13 },
   birincil: {
     flex: 1,

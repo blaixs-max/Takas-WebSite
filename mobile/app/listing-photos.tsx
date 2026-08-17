@@ -20,7 +20,7 @@ import {
   gosterilecekSlotlar,
   zorunluSlotlar,
 } from '../data/photoSlots';
-import { PhotoRow, loadPhotos, publishListing, uploadPhoto } from '../lib/photos';
+import { PhotoRow, analizEt, loadPhotos, publishListing, uploadPhoto } from '../lib/photos';
 import { degerlet } from '../lib/listings';
 import { colors, elevation, shape } from '../theme/tokens';
 
@@ -54,6 +54,7 @@ export default function ListingPhotos() {
   const [yukleniyor, setYukleniyor] = useState<PhotoSlot | null>(null);
   const [yayinlaniyor, setYayinlaniyor] = useState(false);
   const [degerleniyor, setDegerleniyor] = useState(false);
+  const [analizEdiliyor, setAnalizEdiliyor] = useState(false);
 
   const tazele = useCallback(async () => {
     if (!id) return;
@@ -164,23 +165,40 @@ export default function ListingPhotos() {
 
     await tazele();
 
-    /* Reddedilen karede sonraki slota GEÇİLMEZ. Kullanıcı hâlâ ürünün
-       başındayken hangi kareyi neden yeniden çekeceğini biliyor olmalı;
-       ilerlemek bu bilgiyi en sona, "Kontrole gönder" hatasına erteler.
-
-       Yerel dosya bilerek tutuluyor: sunucudaki nesne ret kararıyla birlikte
-       siliniyor, yani önizleme başka türlü boşalır ve kullanıcı hangi kareden
-       söz ettiğimizi göremezdi. Kare kendi telefonunda zaten var. */
-    if (cikti.durum === 'rejected') {
-      uyar('Bu kare geçmedi', cikti.gerekce || 'Kareyi yeniden çekmen gerekiyor.');
-      return;
-    }
-
+    /* Çekim sırasında artık **hiçbir kapı yok** — kare yüklendi, sıradakine
+       geçiliyor. Önceden her karede inceleme çalışıyor ve reddedebiliyordu;
+       kullanıcı yedi kez üst üste "bu kare geçmedi" duvarına çarpıyordu ve
+       ürün eklemek bir işlem değil bir sınav gibi okunuyordu.
+       Yönlendirme duruyor: hangi açının çekileceği, çerçeveleme ipucu ve
+       ilerleme çubuğu aynen yerinde. Kalkan şey engel, rehberlik değil. */
     if (aktif < slotlar.length - 1) setAktif(aktif + 1);
   }
 
   async function yayinla() {
     setYayinlaniyor(true);
+
+    /* Toplu analiz burada: bütün kareler çekildi, model hepsini bir arada
+       inceliyor. Çekim akışından buraya taşındı çünkü kare kare engellemek
+       kullanıcıyı yoruyordu; sonuç aynı, zamanlaması farklı.
+
+       Reddedilen varsa yayına gidilmiyor ve hangi karelerin yeniden
+       çekileceği tek seferde söyleniyor — yedi ayrı uyarı yerine bir liste. */
+    setAnalizEdiliyor(true);
+    const analiz = await analizEt(id!);
+    setAnalizEdiliyor(false);
+    await tazele();
+
+    if (analiz.reddedilen > 0) {
+      setYayinlaniyor(false);
+      const liste = analiz.retler
+        .map((r) => `• ${SLOT_INFO[r.slot].baslik}: ${r.gerekce}`)
+        .join('\n');
+      uyar(
+        analiz.reddedilen === 1 ? 'Bir kare geçmedi' : `${analiz.reddedilen} kare geçmedi`,
+        `${liste}\n\nBu kareleri yeniden çekip tekrar gönder.`,
+      );
+      return;
+    }
 
     /* Değerleme yayından hemen önce, burada: modelin ürünü tanıyabilmesi için
        dört açı karesinin onaylanmış olması gerekiyor ve o ancak bu noktada
@@ -211,7 +229,8 @@ export default function ListingPhotos() {
   const durum = kareler[slot];
   /* Gösterilecek kare: bu oturumda çekilen dosya, yoksa sunucudaki. */
   const onizlemeUri = yerel[slot] ?? durum?.url ?? null;
-  /* Bu kare bitti mi — reddedilen bitmiş sayılmaz, yeniden çekilmeli. */
+  /* Bu kare bitti mi. Reddedilen hâlâ bitmiş sayılmıyor — ama ret artık
+     çekim anında değil, toplu analizden sonra oluşuyor. */
   const slotBitti = Boolean(durum) && durum.moderationStatus !== 'rejected';
 
   return (
@@ -391,6 +410,7 @@ export default function ListingPhotos() {
                puanı kendisinin belirlemediğini bir kez daha söylüyor. */
             <>
               <ActivityIndicator color="#fff" />
+              {analizEdiliyor && <Text style={styles.ctaText}>Fotoğraflar inceleniyor…</Text>}
               {degerleniyor && <Text style={styles.ctaText}>Değerleniyor…</Text>}
             </>
           ) : (

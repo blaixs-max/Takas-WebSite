@@ -28,6 +28,18 @@ import { useAuth } from '../../lib/auth';
 import { colors, elevation, shape } from '../../theme/tokens';
 
 const { width: EKRAN_W, height: EKRAN_H } = Dimensions.get('window');
+
+/**
+ * Kapak çerçevesinin en/boy oranı.
+ *
+ * 1.54 (yatay) idi ve `cover` ile birlikte dikey ürün fotoğraflarını
+ * kırpıyordu. `contain`e geçince kırpma bitti ama yatay bir çerçevede dikey
+ * bir fotoğraf iki yanda geniş boşluk bırakıyor. 4/5 hafif dikey: çekilen
+ * kareler dikey olduğu için boşluk küçülüyor, yatay bir ürün de hâlâ tam
+ * sığıyor. Tek bir oran seçmek zorundayız — şerit sayfalı kaydırıyor,
+ * kareden kareye yükseklik değişirse sayfa zıplar.
+ */
+const HERO_ORAN = 4 / 5;
 /**
  * Galerinin başlangıç genişliği: ekran eksi ScrollView'ün 18'lik yan
  * boşlukları. Yatay ScrollView içinde yüzde genişlik çözülmez, kesin sayı
@@ -210,9 +222,20 @@ export default function ProductDetail() {
               <Pressable
                 key={i}
                 onPress={() => setBuyutulmus(true)}
-                style={{ width: heroW, aspectRatio: 1.54 }}
+                style={{ width: heroW, aspectRatio: HERO_ORAN }}
+                accessibilityLabel={`${i + 1}. fotoğrafı büyüt`}
               >
-                <Image source={g} style={{ width: heroW, height: '100%' }} resizeMode="cover" />
+                {/* `cover` değil `contain`: kare ürünün tamamını göstermeli.
+                    Önceki hâlde çerçeve 1.54 yatay, fotoğraflar ise dikey
+                    çekiliyor — `cover` taşan kısmı kırpıyordu ve uzun bir
+                    oyuncakta başı da ayakları da kesiliyordu. Alıcının ilk
+                    gördüğü karede ürünün yarısını göstermek, ilanın kendi
+                    işini baltalar. */}
+                <Image
+                  source={g}
+                  style={{ width: heroW, height: '100%' }}
+                  resizeMode="contain"
+                />
               </Pressable>
             ))}
           </ScrollView>
@@ -254,7 +277,7 @@ export default function ProductDetail() {
         <View style={styles.thumbs}>
           {gallery.map((g, i) => (
             <Pressable key={i} onPress={() => kareyeGit(i)} style={[styles.thumb, i === activeImg && styles.thumbOn]}>
-              <Image source={g} style={styles.thumbImg} resizeMode="cover" />
+              <Image source={g} style={styles.thumbImg} resizeMode="contain" />
             </Pressable>
           ))}
         </View>
@@ -449,7 +472,16 @@ const styles = StyleSheet.create({
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   /* Ölçüldü (`09_05_Urun_Detayi.png`): hero 354×230 pt → oran 1.54.
      Önceki 4/3 kareyi belirgin uzun gösteriyordu. */
-  hero: { borderRadius: shape.xl, overflow: 'hidden', aspectRatio: 1.54, marginBottom: 12, ...elevation.level2 },
+  hero: {
+    borderRadius: shape.xl,
+    overflow: 'hidden',
+    aspectRatio: HERO_ORAN,
+    marginBottom: 12,
+    /* `contain` fotoğrafın kaplamadığı yeri saydam bırakıyor; zemin verilmezse
+       o boşlukta sayfanın krem zemini görünür ve çerçeve dağılır. */
+    backgroundColor: colors.surfaceContainerHighest,
+    ...elevation.level2,
+  },
   cond: {
     position: 'absolute',
     left: 14,
@@ -495,6 +527,8 @@ const styles = StyleSheet.create({
   okSag: { right: 8 },
   tamEkran: { flex: 1, backgroundColor: '#000' },
   tamEkranSayfa: { alignItems: 'center', justifyContent: 'center' },
+  /* Tam ekranda da `contain` — büyütmenin amacı zaten kırpılmamış hâli
+     görmek. `resizeMode` bileşende veriliyor; burada yalnızca ölçü. */
   tamEkranImg: { width: EKRAN_W, height: EKRAN_H },
   kapat: {
     position: 'absolute',
@@ -517,7 +551,19 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.55)',
   },
   thumbs: { flexDirection: 'row', gap: 7, marginBottom: 14 },
-  thumb: { width: 52, height: 52, borderRadius: shape.sm, overflow: 'hidden', borderWidth: 2, borderColor: 'transparent' },
+  /* Küçük kareler de `contain`: şeridin işi hangi açının hangisi olduğunu
+     göstermek ve kırpılmış bir küçük resim tam bunu gizliyordu. Zemin şart —
+     `contain`in bıraktığı boşluk saydam. 52'den 58'e çıktı çünkü kırpma
+     kalkınca görüntü küçülüyor. */
+  thumb: {
+    width: 58,
+    height: 58,
+    borderRadius: shape.sm,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    backgroundColor: colors.surfaceContainerHighest,
+  },
   thumbOn: { borderColor: colors.primary },
   thumbImg: { width: '100%', height: '100%' },
   title: { fontSize: 19.5, fontWeight: '800', lineHeight: 25, letterSpacing: -0.3, color: colors.onSurface },

@@ -114,23 +114,83 @@ export async function uploadPhoto(
 
   const photoId = data.id as string;
 
-  /* İncelemeyi tetikle ve sonucunu bekle. Hata yutuluyor çünkü başarısızlığın
-     sonucu zaten güvenli tarafta: kare 'pending' kalır, yayın kapısı geçirmez,
-     ilan insan kuyruğuna düşer. Yükleme başarılı olduğu için `ok: false`
-     dönmek yanlış olurdu — kare gerçekten yüklendi. */
-  try {
-    const { data: karar } = await supabase.functions.invoke('photo-check', {
-      body: { photoId },
-    });
-    const durum = karar?.status;
-    if (durum === 'approved' || durum === 'rejected' || durum === 'pending') {
-      return { ok: true, photoId, durum, gerekce: karar?.gerekce || undefined };
-    }
-  } catch {
-    // yut: aşağıdaki 'pending' doğru cevap
-  }
-
+  /* **Çekim sırasında inceleme çağrılmıyor** — bilerek.
+     Önceden her kare yüklenir yüklenmez `photo-check` çalışıyor ve
+     reddedebiliyordu. Kullanıcı yedi karenin her birinde tek tek bir kapıya
+     çarpıyordu: çek, bekle, reddedildi, yeniden çek. Ürün eklemek bir işlem
+     değil bir sınav gibi okunuyordu.
+     Artık kare yüklenir ve `pending` kalır; inceleme hepsi çekildikten sonra
+     `analizEt` ile toplu yapılıyor. Güvenlik zayıflamıyor: yayın kapısı hâlâ
+     yalnızca `approved` kareyi geçiriyor, yani incelenmemiş bir ilan vitrine
+     çıkamıyor. Değişen tek şey incelemenin **ne zaman** olduğu. */
   return { ok: true, photoId, durum: 'pending' };
+}
+
+/** Toplu analizin ilan başına sonucu. */
+export interface AnalizSonuc {
+  onaylanan: number;
+  reddedilen: number;
+  /** Model karar veremedi ya da çağrı düştü — insan kuyruğuna gidiyor. */
+  bekleyen: number;
+  /** Reddedilen karelerin slotu ve gerekçesi; ekran bunları yeniden çektiriyor. */
+  retler: { slot: PhotoSlot; gerekce: string }[];
+}
+
+/**
+ * İlanın bekleyen karelerini toplu inceler.
+ *
+ * Kareler paralel gidiyor: yedi kareyi sırayla beklemek, kullanıcıyı tek bir
+ * ilerleme çubuğunun karşısında yedi kat uzun tutardı. `photo-check` kare
+ * başına bağımsız çalışıyor, aralarında sıra bağımlılığı yok.
+ *
+ * Tek tek hatalar yutuluyor ve `bekleyen` sayılıyor — bir karenin çağrısı
+ * düştü diye bütün analizi başarısız saymak, kullanıcıyı yeniden çekime
+ * gönderirdi. Bekleyen kare yayını engelliyor ama ilanı kaybettirmiyor:
+ * yönetim kuyruğunda insan onayına düşüyor.
+ */
+export async function analizEt(productId: string): Promise<AnalizSonuc> {
+  const bos: AnalizSonuc = { onaylanan: 0, reddedilen: 0, bekleyen: 0, retler: [] };
+  if (!supabaseConfigured || !supabase) return bos;
+
+  const { data } = await supabase
+    .from('product_photos')
+    .select('id, slot, moderation_status')
+    .eq('product_id', productId)
+    .eq('moderation_status', 'pending');
+
+  if (!data?.length) return bos;
+
+  const sonuclar = await Promise.all(
+    data.map(async (r) => {
+      const slot = r.slot as PhotoSlot;
+      try {
+        const { data: karar } = await supabase!.functions.invoke('photo-check', {
+          body: { photoId: r.id as string },
+        });
+        const durum = karar?.status;
+        if (durum === 'approved') return { durum: 'approved' as const, slot, gerekce: '' };
+        if (durum === 'rejected') {
+          return {
+            durum: 'rejected' as const,
+            slot,
+            gerekce: (karar?.gerekce as string) || 'Kare geçmedi.',
+          };
+        }
+      } catch {
+        // yut: aşağıdaki 'pending' doğru cevap
+      }
+      return { durum: 'pending' as const, slot, gerekce: '' };
+    }),
+  );
+
+  return {
+    onaylanan: sonuclar.filter((x) => x.durum === 'approved').length,
+    reddedilen: sonuclar.filter((x) => x.durum === 'rejected').length,
+    bekleyen: sonuclar.filter((x) => x.durum === 'pending').length,
+    retler: sonuclar
+      .filter((x) => x.durum === 'rejected')
+      .map((x) => ({ slot: x.slot, gerekce: x.gerekce })),
+  };
 }
 
 export interface PhotoRow {

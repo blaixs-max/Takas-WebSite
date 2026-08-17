@@ -421,7 +421,20 @@ export default function AddListing() {
   }
 
   return (
-    <View style={styles.root}>
+    /* KAV **kökün kendisi**, iç sarmalayıcı değil — ve ofset sıfır.
+       Önceden yalnızca içeriği sarıyordu ve `keyboardVerticalOffset` olarak
+       `insets.top + 60` veriliyordu; bu bir tahmindi ve gerçek değerden
+       küçüktü. KAV kendini olduğundan yukarıda sanınca klavye örtüşmesini
+       fazla hesapladı, eylem çubuğunu fazla ittirdi ve düğme metin
+       kutusunun üstüne bindi — ekranda düğmenin altında boş bir şerit
+       kalıyordu, ittirmenin fazlası tam o kadardı.
+       Kök y=0'dan başladığı için ofset gerçekten sıfır: tahmin edilecek
+       bir şey kalmıyor. */
+    <KeyboardAvoidingView
+      style={styles.root}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
+    >
       <View style={[styles.appbar, { paddingTop: insets.top }]}>
         <Pressable style={styles.iconBtn} onPress={() => (adim === 0 ? birak(() => router.back()) : geri())} hitSlop={8}>
           <MaterialIcons
@@ -454,11 +467,7 @@ export default function AddListing() {
         ))}
       </View>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={insets.top + 60}
-      >
+      <View style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={{ padding: 18, paddingBottom: 28 }}
           showsVerticalScrollIndicator={false}
@@ -795,11 +804,12 @@ export default function AddListing() {
           ) : null}
         </ScrollView>
 
-        {/* Eylem çubuğu KeyboardAvoidingView'ın **içinde** ve mutlak konumlu
-            değil: dışarıdayken klavye açılınca "Devam" düğmesi klavyenin
-            altında kalıyordu. İki ekranda da metin yazılıyor (ürün adı ve
-            hasar notu), yani devam edebilmek için önce klavyeyi kapatmak
-            gerekiyordu. */}
+        {/* Eylem çubuğu akışın içinde ve mutlak konumlu değil: klavye
+            açılınca kök KAV alttan pay veriyor, ScrollView kısalıyor ve çubuk
+            klavyenin hemen üstüne oturuyor. Mutlak konumlansaydı klavyenin
+            altında kalırdı — iki ekranda da metin yazılıyor (ürün adı ve
+            hasar notu), yani devam etmek için önce klavyeyi kapatmak
+            gerekirdi. */}
         <View style={[styles.actionbar, { paddingBottom: insets.bottom + 14 }]}>
           <Pressable
             style={[styles.cta, !ilerleyebilir && styles.ctaOff]}
@@ -830,8 +840,8 @@ export default function AddListing() {
             </Pressable>
           ) : null}
         </View>
-      </KeyboardAvoidingView>
-    </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 

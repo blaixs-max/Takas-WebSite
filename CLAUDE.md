@@ -589,12 +589,40 @@ eski taslak veri tabanında sonsuza kadar kalıyordu.
   (satıcı hangi karenin neden geçmediğini görmeli). Görselin sunucuya **hiç**
   çıkmaması ancak cihazda yüz tanımayla olurdu; o da native modül → development
   build → Expo Go'nun sonu.
-- **Çekim ekranı kararı bekler.** `uploadPhoto` incelemeyi tetikleyip hemen
-  dönmez; sonucu bekler ve reddedilen karede **sonraki slota geçmez**. Eskiden
-  "ateşle ve unut"tu ve ret ancak en sonda "Kontrole gönder"de ortaya çıkıyordu:
-  beş kareyi bitirdiğini sanan kişi başa dönüyordu. "Bu kareyi öncekiyle aynı
-  açıdan çekmişsin" uyarısının işe yaradığı tek an, kullanıcının hâlâ ürünün
-  başında olduğu andır.
+- **İnceleme kare kare değil, en sonda toplu** (2026-08-17). Bir tur boyunca
+  tersiydi: `uploadPhoto` her karede `photo-check`i çağırıp sonucu bekliyor,
+  reddedilen karede sonraki slota geçmiyordu. Gerekçesi sağlamdı — "bu kareyi
+  öncekiyle aynı açıdan çekmişsin" uyarısının işe yaradığı an, kullanıcının
+  hâlâ ürünün başında olduğu andır.
+
+  Uygulamada başka bir şey oldu: kullanıcı yedi karenin her birinde ayrı bir
+  kapıya çarptı. Çek, bekle, reddedildi, yeniden çek — yedi kez. Ürün eklemek
+  bir işlem değil bir sınav gibi okundu ve **asıl kayıp, ilanı hiç
+  tamamlamayan kullanıcıdır**; kimse onu ret ekranında saymıyor.
+
+  Şimdi: `uploadPhoto` kareyi yükler ve `pending` bırakır, hiçbir şey
+  engellemez. `analizEt(productId)` bekleyen kareleri **paralel** inceler ve
+  yayından hemen önce bir kez çalışır. Reddedilen varsa yayına gidilmez ve
+  hepsi **tek listede** söylenir — yedi ayrı uyarı yerine bir ekran.
+
+  **Yönlendirme kalktı sanılmasın:** hangi açının çekileceği, çerçeveleme
+  ipucu, gerekçe cümlesi ve ilerleme çubuğu aynen duruyor. Kalkan şey engel,
+  rehberlik değil.
+
+  **Güvenlik zayıflamıyor.** Yayın kapısı hâlâ yalnızca `approved` kareyi
+  geçiriyor, yani incelenmemiş ilan vitrine çıkamıyor. Değişen tek şey
+  incelemenin ne zaman olduğu — hangi karelerin incelendiği değil.
+
+  Bunun bedeli var ve kabul edildi: ret artık kullanıcı ürünün başından
+  kalktıktan sonra geliyor, yani "aynı açıdan çekmişsin" uyarısı eskisi kadar
+  taze değil. Yedi kapı yerine bir kapı bunu telafi ediyor.
+- **Toplu onay var, toplu ret yok** (`approvePhotosBulk`). Toplu incelemenin
+  doğal sonucu: modelin karar veremediği kareler `pending` kalıp yönetim
+  kuyruğuna düşüyor ve sayıları büyüyor. Onay geri alınabilir — yanlış
+  onaylanan kare şikâyetle geri gelir. Ret geri alınamaz:
+  `admin_moderate_photo` reddedilen kareyi depodan siliyor. Otuz kullanıcının
+  fotoğrafını tek dokunuşla silen bir düğme, yanlış basmanın bedelini kabul
+  edilemez yapar. Ret tek tek ve gerekçeyle kalıyor.
 - **Kıyas ret cümlelerini biz yazarız, model değil.** Modelin serbest cümlesi
   "görseller birbirinden farklı" gibi doğru ama işe yaramaz bir şey olabiliyor.
   Karar modelin, cümle bizim; her seferinde aynı ve ne yapılacağını söylüyor.
