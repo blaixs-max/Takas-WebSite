@@ -233,6 +233,25 @@ Doküman hem mobil hem web için geçerli; `mobile/data/categories.ts` ve
 doküman, sonra iki dosya birlikte güncellenir — ve arka uçtaki
 `product_categories` / `product_sub_categories` tabloları da bir göçle.
 
+**Gizlilik politikası orada duruyor ama bu uygulamayı anlatıyor.**
+`public/gizlilik/index.html` (karşı repo, `/gizlilik/` adresinde) yalnızca
+siteyi değil **buradaki veri akışlarını** kapsıyor — mağaza formunun istediği
+kalıcı URL o, ve `lib/brand.ts` içindeki `GIZLILIK_URL` uygulama içinden aynı
+yere bağlanıyor.
+
+Bu bağ bir kez koptu (2026-08-17). `listing-value` yayına girdi — ilanın
+başlığını, açıklamasını, kategorisini ve durum beyanını bir dil modeline
+gönderiyor — ama değişiklik bu repoda kaldı. Yayındaki politika hâlâ
+"hiçbir metniniz gönderilmez" diyordu, yani **site kendi ürününün yaptığı şey
+hakkında yanlış beyanda bulunuyordu.** İki repo ayrı olduğu için hiçbir
+kontrol bunu yakalamadı.
+
+Kural: **uygulamadan dışarı yeni bir veri akışı çıkıyorsa** (yeni bir Edge
+Function, yeni bir üçüncü taraf çağrısı, modele giden yeni bir alan) karşı
+repodaki politika **aynı turda** güncellenir. Yeni bir dış çağrı eklerken
+sorulacak soru: bu veri kimin sunucusuna gidiyor, ne kadar kalıyor, ve
+politika bunu söylüyor mu.
+
 ## Terimler
 **"Mobil"** dendiğinde kastedilen `mobile/` klasöründeki **Expo uygulamasıdır** —
 kullanıcının elindeki ekranlar. `supabase/` bundan ayrıdır ve "arka uç" diye anılır.
