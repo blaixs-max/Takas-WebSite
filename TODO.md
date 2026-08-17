@@ -613,17 +613,23 @@ değiştirilemez.
       `moderatePhoto()`. Canlıda kullanıldı: ilk gerçek ilanın kareleri
       buradan onaylandı. Madde yazıldığı gün doğruydu, sonra yapıldı ve
       güncellenmemiş.
-- [ ] **`AI_VISION_API_KEY` ayarlanması — ve `photo-check` deploy'u.** Anahtar
-      girilene kadar hiçbir kare otomatik onaylanmaz (tasarım gereği güvenli
-      taraf), yani yayın akışı durur.
+- [x] **`AI_VISION_API_KEY` ayarlandı ve iki fonksiyon yayına alındı**
+      (2026-08-17). `photo-check` sürüm 6, `listing-value` sürüm 1; ikisinin de
+      yayındaki içeriği geri indirilip yereldekiyle karşılaştırıldı.
 
       **Karar verildi: Gemini API, ücretli katman.** Ücretsiz katmanda
       gönderilen içerik ürün geliştirmede kullanılabiliyor ve bizim
       gönderdiğimiz şey çocuk yüzü içerdiğinden şüphelenilen fotoğraflar;
       onları bir eğitim havuzuna sokmak, önlemeye çalıştığımız zarardan büyük.
-      Ücretliye geçince `/gizlilik/` sayfasına "veri eğitimde kullanılmıyor"
-      **yazılabilir** — şu an yazılamaz, ve o cümle anahtarla aynı commit'te
-      gider.
+
+      `/gizlilik/` aynı turda güncellendi ve **üç şey değişti**, biri
+      düzeltmeydi: sayfada "denetime bizim yazdığımız talimat dışında hiçbir
+      metniniz gönderilmez" yazıyordu ve `listing-value` geldiği an bu cümle
+      **yayında yanlış hâle geldi** — değerleme, ilanın başlığını, açıklamasını,
+      kategorisini ve durum beyanını da modele gönderiyor. Artık ayrı bir alt
+      başlık bunu anlatıyor, "Kimlerle paylaşıyoruz" satırı iki amacı birden
+      söylüyor ve ücretli katman sayesinde "veri eğitimde kullanılmaz"
+      yazılabildi.
 
       Ayarlanacak ortam değişkenleri:
 
@@ -1336,7 +1342,11 @@ bile değildi. Dördü ölçülerek doğrulandı (kodda arandı, yok).
       yanlıştı). Metin ölçülerek yazıldı — konum izni istenmediği için
       "konumunuzu telefondan almıyoruz" denilebildi.
 
-      **İki şey eksik ve ikisi de sende:**
+      **Üç şey eksik:**
+      - [ ] **Uygulamada politikaya giden bir bağlantı yok.** Sayfa yayında ve
+            mağaza formunun istediği kalıcı URL var, ama uygulama içinden
+            açılmıyor — `app/security.tsx` ya da `app/help.tsx` altında bir
+            satır yetiyor. Mağaza incelemesi genelde ikisini birden arıyor.
       - [ ] `destek@eldeneletakas.com` **çalışmıyor.** Metin bu adresi veriyor;
             GoDaddy e-posta yönlendirmesi kurulmadan mağaza gönderimi yapılmamalı.
       - [ ] **Hukuki inceleme yapılmadı.** Metin uygulamanın gerçek davranışını
