@@ -78,30 +78,76 @@ end $$;
 \echo '=== 6) Reddedilen kare de geçirmez ==='
 reset role;
 update product_photos set moderation_status = 'approved' where product_id = :'p_id';
+-- Reddedilen kare ZORUNLU slotta: yayın durmalı, kare gerçekten gerekli.
 update product_photos set moderation_status = 'rejected', moderation_reason = 'bulanık'
- where product_id = :'p_id' and slot = 'label';
+ where product_id = :'p_id' and slot = 'back';
 set session role authenticated;
 select set_config('test.uid', :'s', false);
+/* İlan kimliği açıkça veriliyor. Önceden `where status = 'DRAFT' limit 1`
+   yazıyordu ve sırasız bir seçim başka bir taslağı yakalıyordu: test
+   "engellendi" görüp geçiyordu ama gerekçe "eksik kare"ydi, yani reddedilen
+   kare hiç sınanmamıştı. Yanlış sebeple geçen test, olmayan testten kötüdür. */
+select set_config('test.pid', :'p_id', false);
 do $$
-declare pid text;
+declare pid text := current_setting('test.pid');
 begin
-  select id into pid from products where status = 'DRAFT' limit 1;
   perform test_degerle(pid);
   perform publish_listing(pid);
-  raise notice 'SONUÇ: HATA — reddedilen kareyle yayına girdi';
+  raise notice 'SONUÇ: HATA — reddedilen zorunlu kareyle yayına girdi';
 exception when others then
   raise notice 'SONUÇ: doğru — engellendi (%)', sqlerrm;
 end $$;
 
 \echo ''
-\echo '=== 7) Hepsi onaylıysa yayına girer ve kapak işaretlenir ==='
+\echo '=== 6b) ZORUNLU OLMAYAN slottaki ret yayını kilitlemez ==='
+-- Canlıda çıkan çıkmaz (2026-08-17): etiket karesi reddedilince ilan kalıcı
+-- olarak yayına alınamıyordu. Etiket zorunlu değil; "zorunlu değil" demek,
+-- o karenin ilanı kilitleyememesi demek. Kapı artık reddedilmiş zorunsuz
+-- kareyi siliyor — yok sayıp bırakmak, galeriyi silinmiş bir dosyaya
+-- baktırırdı.
 reset role;
 update product_photos set moderation_status = 'approved' where product_id = :'p_id';
+update product_photos set moderation_status = 'rejected', moderation_reason = 'sigara paketi'
+ where product_id = :'p_id' and slot = 'label';
 set session role authenticated;
 select set_config('test.uid', :'s', false);
 select test_degerle(:'p_id');
 select status from publish_listing(:'p_id', 'front');
-select slot, is_cover from product_photos where product_id = :'p_id' and is_cover;
+select count(*) filter (where slot = 'label') as kalan_etiket
+  from product_photos where product_id = :'p_id';
+\echo 'BEKLENEN: ACTIVE, kalan_etiket = 0'
+
+\echo ''
+\echo '=== 6c) Kullanıcı kendi karesini onaylayamaz ==='
+-- UPDATE politikası eklendi (yeniden çekim onsuz 403 veriyordu). Politika
+-- satırı açıyor ama hangi kolonun değişebileceğini söyleyemiyor; sınır
+-- tetikleyicide. Bu iddia düşerse denetimin tamamı süs olur.
+select id from create_listing('Onay denemesi', 'Oyun & Oyuncak', 'İyi durumda', 'S',
+                              p_sub_category => 'Yapı & inşa') \gset o_
+insert into product_photos (product_id, slot, storage_path)
+values (:'o_id', 'front', :'s' || '/' || :'o_id' || '/front.jpg');
+update product_photos set moderation_status = 'approved'
+ where product_id = :'o_id' and slot = 'front';
+select moderation_status as kullanici_yazinca
+  from product_photos where product_id = :'o_id' and slot = 'front';
+\echo 'BEKLENEN: kullanici_yazinca = pending (approved YAZILAMAZ)'
+
+\echo ''
+\echo '=== 7) Hepsi onaylıysa yayına girer ve kapak işaretlenir ==='
+-- Kendi taslağıyla koşuyor: 6b ilanı zaten yayına aldı ve ACTIVE bir ilanı
+-- ikinci kez yayınlamak başka bir kuralın hatasını verirdi.
+select id from create_listing('Kapak denemesi', 'Oyun & Oyuncak', 'İyi durumda', 'S',
+                              p_sub_category => 'Yapı & inşa') \gset k_
+insert into product_photos (product_id, slot, storage_path)
+select :'k_id', s, :'s' || '/' || :'k_id' || '/' || s || '.jpg'
+  from unnest(array['front','back','left','right']::photo_slot[]) s;
+reset role;
+update product_photos set moderation_status = 'approved' where product_id = :'k_id';
+set session role authenticated;
+select set_config('test.uid', :'s', false);
+select test_degerle(:'k_id');
+select status from publish_listing(:'k_id', 'front');
+select slot, is_cover from product_photos where product_id = :'k_id' and is_cover;
 \echo 'BEKLENEN: ACTIVE, kapak front'
 
 \echo ''

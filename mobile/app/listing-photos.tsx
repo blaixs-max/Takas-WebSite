@@ -188,13 +188,18 @@ export default function ListingPhotos() {
     setAnalizEdiliyor(false);
     await tazele();
 
-    if (analiz.reddedilen > 0) {
+    /* Yalnızca **zorunlu** slottaki ret akışı durduruyor. Zorunlu olmayan bir
+       karenin reddi (etiket gibi) yayını engellemiyor: sunucu o satırı yayın
+       anında siliyor. Kullanıcıya "etiketi yeniden çek" dedirtmek, zorunlu
+       olmadığını söyledikten sonra tam tersini istemek olurdu. */
+    const engelleyen = analiz.retler.filter((r) => zorunlu.includes(r.slot));
+    if (engelleyen.length > 0) {
       setYayinlaniyor(false);
-      const liste = analiz.retler
+      const liste = engelleyen
         .map((r) => `• ${SLOT_INFO[r.slot].baslik}: ${r.gerekce}`)
         .join('\n');
       uyar(
-        analiz.reddedilen === 1 ? 'Bir kare geçmedi' : `${analiz.reddedilen} kare geçmedi`,
+        engelleyen.length === 1 ? 'Bir kare geçmedi' : `${engelleyen.length} kare geçmedi`,
         `${liste}\n\nBu kareleri yeniden çekip tekrar gönder.`,
       );
       return;

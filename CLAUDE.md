@@ -616,6 +616,45 @@ eski taslak veri tabanında sonsuza kadar kalıyordu.
   Bunun bedeli var ve kabul edildi: ret artık kullanıcı ürünün başından
   kalktıktan sonra geliyor, yani "aynı açıdan çekmişsin" uyarısı eskisi kadar
   taze değil. Yedi kapı yerine bir kapı bunu telafi ediyor.
+- **Reddedilen kare yeniden çekilebilir — bir tur boyunca çekilemiyordu**
+  (2026-08-17, canlıda bulundu). `product_photos`'ta DELETE, INSERT ve SELECT
+  politikaları vardı, **UPDATE yoktu**. Yeniden çekim
+  `upsert(onConflict: product_id,slot)` yapıyor, çakışmada UPDATE'e düşüyor ve
+  RLS onu **403** ile reddediyordu. Yani istemcideki "yeniden çek" akışı en
+  baştan ölüydü; kimse reddedilen bir kareyi yeniden çekmeyi denemediği için
+  görülmemişti.
+
+  Politika eklendi, ama asıl mesele izin vermek değil **neyin
+  değişebileceğini sınırlamak**: `moderation_status` kullanıcıya açık olsaydı
+  herkes kendi karesini `approved` yapardı. RLS kolon bazında yazmıyor, o
+  yüzden sınır `product_photos_guard_client_update` tetikleyicisinde —
+  kullanıcı bir kareyi güncellediğinde durum zorla `pending`e düşüyor,
+  gerekçe siliniyor, `is_cover` korunuyor. Yeni dosya yeni karardır.
+
+  **Tetikleyici `security invoker` olmak zorunda.** İlk hâli `definer`dı ve
+  kontrol sessizce hiç çalışmadı: definer fonksiyonun içinde `current_user`
+  fonksiyon **sahibine** düşer, asla `authenticated` olmaz, yani her
+  güncelleme erken dönüşten geçerdi. Testte `approved` yazılabildiği görülünce
+  çıktı — `kosu.sh` yalnızca çıkış kodunu görüyor, iddiayı gözle okumak
+  gerekti.
+
+  Ayraç da rol, `auth.uid()` değil: `publish_listing` kapak seçerken
+  `is_cover` güncelliyor ve o güncelleme kullanıcının oturumunda oluyor.
+  `auth.uid() is null` denseydi bütün kareler yayının ortasında `pending`e
+  düşerdi.
+- **Zorunlu olmayan slottaki ret yayını kilitlemez** (aynı gün, aynı çıkmaz).
+  `publish_listing` reddedilen kareleri **bütün** slotlarda sayıyordu. Etiket
+  zorunlu değil; kullanıcı "etiketim yok, atla" dediğinde bile satır tabloda
+  duruyor ve sayıma giriyordu. Zorunlu olmayan bir karenin ilanı kalıcı olarak
+  kilitlemesi, "zorunlu değil" sözünün karşılığı olamaz.
+
+  Kapı artık reddedilmiş zorunsuz kareyi **siliyor**, yok saymıyor: reddedilen
+  karenin dosyası zaten silinmiş, satır kalsaydı yayındaki ilanın galerisi
+  kırık bir görsele bakardı. Zorunlu slottaki ret hâlâ durduruyor.
+
+  İki kusur birlikte çıkışsız bir kilit üretiyordu — ret yayını engelliyor,
+  yeniden çekim 403 veriyor. Tek başına hiçbiri bu kadar kötü değildi;
+  **canlıda ilk gerçek ilan denemesinde** ortaya çıktı.
 - **Toplu onay var, toplu ret yok** (`approvePhotosBulk`). Toplu incelemenin
   doğal sonucu: modelin karar veremediği kareler `pending` kalıp yönetim
   kuyruğuna düşüyor ve sayıları büyüyor. Onay geri alınabilir — yanlış

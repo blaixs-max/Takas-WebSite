@@ -183,13 +183,25 @@ export async function analizEt(productId: string): Promise<AnalizSonuc> {
     }),
   );
 
+  /* Ret listesi bu turda incelenenlerden değil, ilanın **o anki** durumundan
+     okunuyor. Fark şurada: kullanıcı reddedilen kareyi yeniden çekmeden
+     tekrar "Kontrole gönder"e basarsa bekleyen kare yoktur, bu tur hiçbir şey
+     incelemez ve liste boş çıkardı — ekran da yayın kapısının ham hata
+     metnini gösterirdi. Durumu sormak, hatırlamaktan doğru. */
+  const { data: retSatirlari } = await supabase
+    .from('product_photos')
+    .select('slot, moderation_reason')
+    .eq('product_id', productId)
+    .eq('moderation_status', 'rejected');
+
   return {
     onaylanan: sonuclar.filter((x) => x.durum === 'approved').length,
-    reddedilen: sonuclar.filter((x) => x.durum === 'rejected').length,
+    reddedilen: retSatirlari?.length ?? 0,
     bekleyen: sonuclar.filter((x) => x.durum === 'pending').length,
-    retler: sonuclar
-      .filter((x) => x.durum === 'rejected')
-      .map((x) => ({ slot: x.slot, gerekce: x.gerekce })),
+    retler: (retSatirlari ?? []).map((r) => ({
+      slot: r.slot as PhotoSlot,
+      gerekce: (r.moderation_reason as string) || 'Kare geçmedi.',
+    })),
   };
 }
 
