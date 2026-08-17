@@ -389,3 +389,16 @@ export function konumAra(sorgu: string, limit = KONUM_LIMIT): Konum[] {
   bulunan.sort((x, y) => x.puan - y.puan || x.k.etiket.localeCompare(y.k.etiket, 'tr'));
   return bulunan.slice(0, limit).map((b) => b.k);
 }
+
+/**
+ * Saklanan etiketi listedeki kayda geri çevirir.
+ *
+ * Taslak düzenlemede gerekiyor: veri tabanında konum "Kadıköy, İstanbul" gibi
+ * bir dizge olarak duruyor ve ekranın onu seçili göstermesi için kaydın
+ * kendisi lazım. Bulunamazsa `null` — eski serbest metin konumu taşıyan ya da
+ * "Belirtilmedi" olan taslaklar seçimsiz açılıyor ve kullanıcı yeniden seçiyor.
+ */
+export function konumBul(etiket: string | null | undefined): Konum | null {
+  if (!etiket) return null;
+  return KONUMLAR.find((k) => k.etiket === etiket) ?? null;
+}

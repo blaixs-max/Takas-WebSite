@@ -43,6 +43,7 @@ export default function Drafts() {
     tazele();
   }, [tazele]);
 
+  /** Karta dokunmak sıradaki işe götürür: kare çekimi. */
   function ac(d: DraftListing) {
     router.push({
       pathname: '/listing-photos',
@@ -53,6 +54,19 @@ export default function Drafts() {
         title: d.title,
       },
     });
+  }
+
+  /**
+   * Düzenleme, kareden ayrı bir eylem ve ayrı bir düğmesi var.
+   *
+   * Kart dokunuşunu düzenlemeye bağlamak akla yakındı ama yanlış olurdu:
+   * taslakların çoğunda eksik olan şey bilgi değil kare, ve kullanıcıyı her
+   * seferinde altı adımın içinden geçirmek işi uzatırdı. Bir tur boyunca
+   * düzenlemeye giden **hiçbir yol** yoktu — başlığını yanlış yazan
+   * kullanıcının tek çaresi ilanı bırakıp yenisini açmaktı.
+   */
+  function duzenle(d: DraftListing) {
+    router.push({ pathname: '/add-listing', params: { id: d.id } });
   }
 
   return (
@@ -98,6 +112,14 @@ export default function Drafts() {
                   <Text style={styles.title}>{d.title}</Text>
                   <Text style={styles.sub}>{durumMetni(d)}</Text>
                 </View>
+                <Pressable
+                  onPress={() => duzenle(d)}
+                  hitSlop={10}
+                  style={styles.duzenleBtn}
+                  accessibilityLabel={`${d.title} ilanını düzenle`}
+                >
+                  <MaterialIcons name="edit" size={18} color={colors.primary} />
+                </Pressable>
                 <MaterialIcons name="chevron-right" size={22} color={colors.outline} />
               </Pressable>
             ))
@@ -143,6 +165,14 @@ const styles = StyleSheet.create({
     borderRadius: shape.lg,
     backgroundColor: colors.surfaceContainerLowest,
     ...elevation.level1,
+  },
+  duzenleBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: shape.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primaryContainer,
   },
   title: { fontSize: 14, fontWeight: '800', color: colors.onSurface },
   sub: { fontSize: 11.5, fontWeight: '500', color: colors.onSurfaceVariant, marginTop: 3 },

@@ -1100,9 +1100,18 @@ açıklama, ② ana kategori, ③ alt kategori, ④ durum, ⑤ kargo boyutu, ⑥
       `router.back()` çağırıyordu; beş adımı doldurup yanlışlıkla dokunan
       kullanıcı her şeyi kaybediyordu.
 
-**Açık kalan:** taslak ilanı **düzenleme** akışı yok. Sihirbaz yalnızca yeni
-ilan açıyor; yarım kalan taslağa dönen kullanıcı doğrudan kare çekimine
-düşüyor ve başlığını ya da kategorisini değiştiremiyor.
+- [x] **Taslak düzenleme akışı** (2026-08-17). Aynı sihirbaz `?id=` ile
+      düzenleme kipinde açılıyor; `update_listing` göçü yalnızca DRAFT'ı ve
+      yalnızca sahibini kabul ediyor, değerlemeyi besleyen bir alan
+      değiştiyse puanı siliyor. `taslak_duzenleme_test.sql` sekiz iddiayı
+      sabitliyor; en kritiği üçüncüsü — 'Hasarlı' seçip değerlenen kullanıcı
+      'Yeni gibi'ye çevirdiğinde puan silinmezse ya haksız düşük kalır ya da
+      bedava puan basılır.
+
+**Açık kalan:** yayındaki ilanı düzenlemek. Kondisyonu değiştirmek puanı
+değiştirir ve o puanla birinin sepetinde ya da açık takasında olabilir —
+yeniden değerleme mi, yeniden onay mı, açık takaslara ne olacak, hepsi ayrı
+karar. `update_listing` kapıyı kapalı tutuyor ve sebebi hata metninde yazıyor.
 
 ## 📸 Kare denetimi — sahtecilik ve mahremiyet (2026-08-16)
 
@@ -1342,11 +1351,13 @@ bile değildi. Dördü ölçülerek doğrulandı (kodda arandı, yok).
       yanlıştı). Metin ölçülerek yazıldı — konum izni istenmediği için
       "konumunuzu telefondan almıyoruz" denilebildi.
 
-      **Üç şey eksik:**
-      - [ ] **Uygulamada politikaya giden bir bağlantı yok.** Sayfa yayında ve
-            mağaza formunun istediği kalıcı URL var, ama uygulama içinden
-            açılmıyor — `app/security.tsx` ya da `app/help.tsx` altında bir
-            satır yetiyor. Mağaza incelemesi genelde ikisini birden arıyor.
+      - [x] **Uygulamadan bağlantı verildi** (2026-08-17). `app/security.tsx`
+            içindeki "Gizlilik" grubunda bir satır; adres `lib/brand.ts`
+            içindeki `GIZLILIK_URL`'den geliyor, yani mağaza formundaki URL
+            ile aynı yeri gösteriyor. Tarayıcıda açılıyor — uygulama içi bir
+            kopya tutulsaydı iki metin kaçınılmaz olarak ayrışırdı.
+
+      **İki şey eksik ve ikisi de sende:**
       - [ ] `destek@eldeneletakas.com` **çalışmıyor.** Metin bu adresi veriyor;
             GoDaddy e-posta yönlendirmesi kurulmadan mağaza gönderimi yapılmamalı.
       - [ ] **Hukuki inceleme yapılmadı.** Metin uygulamanın gerçek davranışını

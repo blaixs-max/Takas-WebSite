@@ -324,6 +324,49 @@ Kurallar:
   sunucudan daha katı olması bir ürün kararı olurdu. Boş bırakılırsa kartta
   konum satırı hiç çizilmiyor ve ekran bunu açıkça söylüyor.
 
+### Taslak düzenleme (2026-08-17)
+
+**Aynı ekran düzenlemeyi de yapıyor.** `/add-listing?id=<ilan>` sihirbazı
+düzenleme kipinde açıyor: alanlar taslaktan doldurulur, kaydetme
+`create_listing` yerine `update_listing` çağırır. Ayrı bir düzenleme ekranı
+altı adımın altısını da ikinci kez yazmak olurdu ve iki kopya ilk kural
+değişikliğinde ayrışırdı.
+
+Kapattığı çıkmaz: `drafts` ekranından yarım kalan ilana dönen kullanıcı
+doğrudan kare çekimine düşüyordu. Başlığını yanlış yazmışsa ya da kategoriyi
+karıştırmışsa hiçbir yolu yoktu; tek çare ilanı bırakıp yenisini açmaktı ve
+eski taslak veri tabanında sonsuza kadar kalıyordu.
+
+- **`update_listing` yalnızca DRAFT'ı ve yalnızca sahibini kabul ediyor.**
+  Yayındaki ilanın kondisyonunu değiştirmek puanını değiştirir ve o puanla
+  birinin sepetinde ya da açık takasında olabilir; o ayrı bir karar. Sahibi
+  olmayana "senin değil" değil **"bulunamadı"** deniyor — ilki geçerli bir
+  ilan kimliğini doğrulamak olurdu (`photo-check`teki 404 ile aynı gerekçe).
+- **Değerlemeyi besleyen alan değişirse puan siliniyor.** Fonksiyonun asıl işi
+  bu. `listing-value` ilan başına bir kez çalışıyor ve `degerleme_at` doluysa
+  geri dönüyor; damga silinmeseydi 'Hasarlı' seçip değerlenen kullanıcı
+  'Yeni gibi'ye çevirip eski düşük puanla kalırdı — ya da tersi, ki o yönü
+  **bedava puan** demek. Kapalı devrede yanlış puan basılmış paradır.
+  Bayatlatan alanlar: başlık, açıklama, kategori, alt kategori, kondisyon,
+  hasar. Konum ve desi kademesi listede yok — ikisi de modele hiç gitmiyor.
+  Karşılaştırma `is distinct from` ile: `<>` null'da null döner ve açıklamayı
+  sonradan dolduran kullanıcının değerlemesi sıfırlanmazdı.
+- **Hasar notu açıklamadan geri ayrılıyor.** Not `description` içinde sabit
+  `Hasar: ` önekiyle duruyor; düzenleme kipi onu ayırıp kendi kutusuna
+  koyuyor. Ayırmasaydı her kaydetmede açıklamaya bir "Hasar: …" satırı daha
+  eklenirdi.
+- **Kart dokunuşu kareye, kalem düğmesi düzenlemeye gidiyor.** Taslakların
+  çoğunda eksik olan bilgi değil kare; kart dokunuşunu düzenlemeye bağlamak
+  kullanıcıyı her seferinde altı adımın içinden geçirirdi.
+- **Değişmemişse çıkarken sorulmuyor.** `birak` yalnızca "başlık boş mu" diye
+  bakıyordu; düzenlemede başlık zaten dolu geldiği için hiçbir şeye
+  dokunmadan çıkana da soruluyordu. Her seferinde çıkan bir onay okunmaz
+  hâle gelir. Karar artık formun imzasını ilk hâliyle karşılaştırıyor.
+- **Düzenlemede kaydetme son adımı beklemiyor.** Bütün adımlar geçerliyse
+  "Değişiklikleri kaydet" bulunulan adımda çıkıyor — tek kelimelik bir
+  düzeltme için altı adımı yeniden geçmek anlamsız. Yeni ilanda çıkmıyor;
+  orada adımların sırayla dolması akışın kendisi.
+
 ## Kritik iş kuralları (mimariyi belirler)
 - **Güvenli havuz = PUAN tutar, gerçek para DEĞİL.** Escrow kendi çift girişli
   defterimizdedir (`wallets` + `wallet_entries`), PSP escrow'u kullanılmaz.

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,6 +11,7 @@ import { uyar } from '../components/Dialog';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { GIZLILIK_URL } from '../lib/brand';
 import { useAuth } from '../lib/auth';
 import { supabase, supabaseConfigured } from '../lib/supabase';
 import { colors, elevation, shape } from '../theme/tokens';
@@ -205,6 +207,25 @@ export default function Security() {
               <Text style={styles.rowSub}>Engellediğin kişileri gör, engeli kaldır</Text>
             </View>
             <MaterialIcons name="chevron-right" size={20} color={colors.outline} />
+          </Pressable>
+
+          {/* Politika uygulama içinden de açılabilmeli. Sayfa yayındaydı ve
+              mağaza formunun istediği kalıcı URL vardı, ama uygulamanın
+              hiçbir yerinden bağlanmıyordu — mağaza incelemesi ikisini birden
+              arıyor, ve KVKK aydınlatması ulaşılabilir olmadıkça yapılmış
+              sayılmaz. Tarayıcıda açılıyor, uygulama içi bir kopya
+              tutulmuyor: iki metin kaçınılmaz olarak ayrışırdı. */}
+          <Pressable style={styles.row} onPress={() => void Linking.openURL(GIZLILIK_URL)}>
+            <View style={styles.ic}>
+              <MaterialIcons name="privacy-tip" size={20} color={colors.onSurfaceVariant} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowTitle}>Gizlilik politikası</Text>
+              <Text style={styles.rowSub}>
+                Hangi veriyi neden işliyoruz, ne kadar saklıyoruz
+              </Text>
+            </View>
+            <MaterialIcons name="open-in-new" size={18} color={colors.outline} />
           </Pressable>
         </View>
 

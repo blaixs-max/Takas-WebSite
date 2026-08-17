@@ -60,6 +60,19 @@ export const PAYMENT_RETURN_URL = `${APP_SCHEME}://payment-result`;
  */
 export const WEB_URL = 'https://takas-site.vercel.app';
 
+/**
+ * Gizlilik politikasının kalıcı adresi.
+ *
+ * `WEB_URL`'den türetiliyor ama ayrı bir sabit, çünkü işi ayrı: mağaza formu
+ * bu URL'i istiyor ve uygulamanın içinden de açılıyor. İkisinin aynı yeri
+ * göstermesi şart — mağazadaki adres ile uygulamadaki bağlantı ayrışırsa
+ * kullanıcı iki farklı metin okur.
+ *
+ * Sondaki eğik çizgi bilerek: sayfa `public/gizlilik/index.html` olarak
+ * duruyor ve dizin adresi olmadan yönlendirmeye takılır.
+ */
+export const GIZLILIK_URL = `${WEB_URL}/gizlilik/`;
+
 /** Ürün paylaşımının gövdesi. */
 export function productShareText(p: { title: string; points: number }): string {
   return `${p.title} — ${p.points} Takas Puanı 🧸\n${BRAND}'de takasta. Uygulamayı indir: ${WEB_URL}`;

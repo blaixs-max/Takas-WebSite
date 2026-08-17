@@ -57,6 +57,106 @@ export async function createListing(l: NewListing): Promise<CreateResult> {
   return { ok: true, id: row.id as string };
 }
 
+/**
+ * Taslak ilanı düzenlemek için okur.
+ *
+ * `loadDrafts` liste için yeterli olanı veriyor (başlık, kare sayacı); form
+ * bundan fazlasını istiyor. Ayrı bir çağrı, çünkü liste ekranında yedi alanı
+ * daha çekmek her açılışta boşa trafik olurdu.
+ *
+ * RLS kendi ilanlarınızı okumaya izin veriyor; sahiplik kontrolü ayrıca
+ * `update_listing` içinde de var — okuma izni ile yazma izni ayrı sorular.
+ */
+export async function loadDraftForEdit(id: string): Promise<EditableListing | null> {
+  if (!supabaseConfigured || !supabase) return null;
+  const { data, error } = await supabase
+    .from('products')
+    .select('id, title, description, category, sub_category, condition, size_class, location, has_damage, is_set, status')
+    .eq('id', id)
+    .single();
+
+  if (error || !data) return null;
+  const r = data as unknown as EditableRow;
+  if (r.status !== 'DRAFT') return null;
+
+  return {
+    id: r.id,
+    title: r.title,
+    /* "Belirtilmedi" bir konum değil, `create_listing`'in boş konuma yazdığı
+       dolgu. Forma öyle taşınsaydı kullanıcı onu kendi yazdığı bir şey sanıp
+       silmeye çalışırdı. */
+    location: r.location === 'Belirtilmedi' ? null : r.location,
+    description: r.description,
+    category: r.category,
+    subCategory: r.sub_category,
+    condition: r.condition as Condition,
+    sizeClass: r.size_class as SizeClass,
+    hasDamage: Boolean(r.has_damage),
+    isSet: Boolean(r.is_set),
+  };
+}
+
+export interface EditableListing {
+  id: string;
+  title: string;
+  description: string | null;
+  category: string;
+  subCategory: string | null;
+  condition: Condition;
+  sizeClass: SizeClass;
+  location: string | null;
+  hasDamage: boolean;
+  isSet: boolean;
+}
+
+interface EditableRow {
+  id: string;
+  title: string;
+  description: string | null;
+  category: string;
+  sub_category: string | null;
+  condition: string;
+  size_class: string;
+  location: string;
+  has_damage: boolean;
+  is_set: boolean;
+  status: string;
+}
+
+/**
+ * Taslak ilanı günceller.
+ *
+ * `createListing` ile aynı gövdeyi alıyor ama ayrı bir RPC çağırıyor:
+ * `update_listing` yalnızca DRAFT'ı ve yalnızca sahibini kabul ediyor, ve
+ * **değerlemeyi besleyen bir alan değiştiyse puanı siliyor**. Yani kondisyonunu
+ * değiştiren kullanıcının ilanı yeniden değerlenmek zorunda kalıyor; eski
+ * beyanın puanıyla yayına giremiyor.
+ */
+export async function updateListing(id: string, l: NewListing): Promise<CreateResult> {
+  if (!supabaseConfigured || !supabase) {
+    return { ok: false, message: 'Sunucu bağlantısı yok. Anahtarlar tanımlı değil.' };
+  }
+
+  const { data, error } = await supabase.rpc('update_listing', {
+    p_product_id: id,
+    p_title: l.title,
+    p_category: l.category,
+    p_sub_category: l.subCategory,
+    p_condition: l.condition,
+    p_size_class: l.sizeClass,
+    p_location: l.location ?? 'Belirtilmedi',
+    p_description: l.description ?? null,
+    p_has_damage: l.hasDamage ?? false,
+    p_is_set: l.isSet ?? false,
+  });
+
+  if (error) return { ok: false, message: cevir(error.message) };
+
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row?.id) return { ok: false, message: 'İlan güncellendi ama kimliği alınamadı.' };
+  return { ok: true, id: row.id as string };
+}
+
 export interface DegerlemeSonuc {
   bulundu: boolean;
   urun?: string;
@@ -109,6 +209,10 @@ function cevir(mesaj: string): string {
     return 'Bu ürünün piyasa değeri bulunamadı. İlan incelemeye alındı, sana haber vereceğiz.';
   if (mesaj.includes('olağandışı yüksek'))
     return 'Hesaplanan değer olağandışı yüksek çıktı. İlan incelemeye alındı.';
+  if (mesaj.includes('ilan bulunamadı'))
+    return 'Bu ilan bulunamadı. Taslaklar listesini yenileyip tekrar dene.';
+  if (mesaj.includes('yayındaki ilan düzenlenemez'))
+    return 'Bu ilan yayında; yayındaki ilanlar düzenlenemiyor.';
   return 'İlan kaydedilemedi. Bağlantınızı kontrol edip tekrar deneyin.';
 }
 

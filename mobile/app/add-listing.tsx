@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   BackHandler,
@@ -14,14 +14,14 @@ import {
 } from 'react-native';
 import { uyar } from '../components/Dialog';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Condition } from '../data/products';
 import { CATEGORY_TREE, Category, SubCategory, subsOf } from '../data/categories';
 import { SIZE_CLASSES, SIZE_INFO, SizeClass } from '../data/sizeClasses';
-import { KONUM_LIMIT, Konum, konumAra } from '../data/konumlar';
+import { KONUM_LIMIT, Konum, konumAra, konumBul } from '../data/konumlar';
 import { KutuCizimi } from '../components/KutuCizimi';
-import { createListing } from '../lib/listings';
+import { createListing, loadDraftForEdit, updateListing } from '../lib/listings';
 import { useAuth } from '../lib/auth';
 import { colors, elevation, shape } from '../theme/tokens';
 
@@ -48,6 +48,18 @@ import { colors, elevation, shape } from '../theme/tokens';
  * serileştirilip çözülür, geri gidince bir kısmı kaybolurdu. Sihirbaz tek
  * bileşende duruyor, `adim` bir sayı; geri gitmek durumu hiç kaybetmiyor.
  * Bunun bedeli donanım geri tuşunu elle yakalamak (aşağıda) — ucuz bir bedel.
+ *
+ * ## Aynı ekran taslak düzenlemeyi de yapıyor
+ *
+ * `?id=` ile açılırsa sihirbaz **düzenleme kipine** geçiyor: alanlar taslaktan
+ * doldurulur ve kaydetme `create_listing` yerine `update_listing` çağırır.
+ * Ayrı bir düzenleme ekranı yazmak, altı adımın altısını da ikinci kez yazmak
+ * olurdu — ve iki kopya ilk kural değişikliğinde ayrışırdı.
+ *
+ * Düzenleme kipi bir çıkmazı kapatıyor: yarım kalan ilana `drafts` üzerinden
+ * dönen kullanıcı doğrudan kare çekimine düşüyordu. Başlığını yanlış yazmışsa
+ * ya da kategoriyi karıştırmışsa hiçbir yolu yoktu; tek çare ilanı bırakıp
+ * yenisini açmaktı ve eski taslak veri tabanında sonsuza kadar kalıyordu.
  */
 
 /**
@@ -75,13 +87,31 @@ const ADIM_BASLIK = [
 ];
 const ADIM_SAYISI = ADIM_BASLIK.length;
 
+/**
+ * Hasar notunun açıklama içindeki sabit öneki.
+ *
+ * Ayrı bir kolon açmak daha temiz durur ama işe yaramaz: hem alıcının gördüğü
+ * metin hem değerleme modelinin okuduğu alan `description`, ayrı tutulsa da
+ * birleştirilerek verilecekti. Önek sabit çünkü düzenleme kipi metni geri
+ * ayırmak zorunda — sabit olmasaydı her kaydetmede açıklamaya bir "Hasar: ..."
+ * satırı daha eklenirdi.
+ */
+const HASAR_ONEK = 'Hasar: ';
+
 export default function AddListing() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
   const { width } = useWindowDimensions();
 
+  /* `?id=` varsa düzenleme kipi. `duzenlenenId` sabit tutuluyor: yükleme
+     bittikten sonra parametre değişmeyecek ama kip kararı her render'da
+     yeniden okunmamalı. */
+  const { id: duzenlenenId } = useLocalSearchParams<{ id?: string }>();
+  const duzenleme = Boolean(duzenlenenId);
+
   const [adim, setAdim] = useState(0);
+  const [taslakYukleniyor, setTaslakYukleniyor] = useState(duzenleme);
 
   const [title, setTitle] = useState('');
   const [aciklama, setAciklama] = useState('');
@@ -114,6 +144,81 @@ export default function AddListing() {
     setCategory(c);
     setAdim(2);
   };
+
+  /**
+   * Düzenleme kipinde taslağı okuyup formu doldurur.
+   *
+   * Yükleme bitene kadar ekran boş bir göstergeyle bekliyor: yarısı dolu bir
+   * form göstermek, kullanıcının doldurulmuş alanı kendi yazdığı sanmasına ve
+   * üstüne yazmasına yol açardı.
+   *
+   * Taslak okunamazsa (silinmiş, yayına geçmiş ya da başkasının) uyarı verilip
+   * geri dönülüyor — boş bir formda kalmak, kullanıcının düzenlediğini sanıp
+   * ikinci bir ilan açmasıyla biterdi.
+   */
+  useEffect(() => {
+    if (!duzenlenenId) return;
+    let iptal = false;
+    (async () => {
+      const t = await loadDraftForEdit(duzenlenenId);
+      if (iptal) return;
+      if (!t) {
+        setTaslakYukleniyor(false);
+        uyar('Taslak açılamadı', 'İlan bulunamadı ya da artık yayında.', [
+          { text: 'Tamam', onPress: () => router.back() },
+        ]);
+        return;
+      }
+      setTitle(t.title);
+      setCategory(t.category as Category);
+      setSubCategory(t.subCategory as SubCategory | null);
+      setCondition(t.condition);
+      setSizeClass(t.sizeClass);
+      setIsSet(t.isSet);
+      setKonum(konumBul(t.location));
+      /* Hasar notu açıklamanın içinde sabit bir önekle duruyor; forma geri
+         alırken ikisi yeniden ayrılıyor. Ayrılmasaydı kullanıcı kaydettikçe
+         "Hasar: ..." satırı açıklamaya bir kez daha eklenirdi. */
+      const ham = t.description ?? '';
+      const yer = ham.indexOf(HASAR_ONEK);
+      if (t.condition === 'Hasarlı' && yer !== -1) {
+        setAciklama(ham.slice(0, yer).trim());
+        setHasarNotu(ham.slice(yer + HASAR_ONEK.length).trim());
+      } else {
+        setAciklama(ham);
+      }
+      setTaslakYukleniyor(false);
+    })();
+    return () => {
+      iptal = true;
+    };
+  }, [duzenlenenId, router]);
+
+  /**
+   * Formun anlık imzası — "değişti mi" sorusunun tek cevabı.
+   *
+   * Düzenleme kipinde gerekiyor: `birak` yalnızca "başlık boş mu" diye
+   * bakıyordu ve taslak açıldığında başlık zaten dolu olduğu için, hiçbir şeye
+   * dokunmadan çıkan kullanıcıya da "girdiğin bilgiler kaydedilmeyecek" diye
+   * soruluyordu. Sormayan bir onay kadar kötü olmasa da, her seferinde çıkan
+   * bir onay okunmaz hâle gelir.
+   */
+  const imza = JSON.stringify([
+    title.trim(),
+    aciklama.trim(),
+    category,
+    subCategory,
+    condition,
+    hasarNotu.trim(),
+    isSet,
+    sizeClass,
+    konum?.etiket ?? null,
+  ]);
+  const ilkImza = useRef<string | null>(null);
+  /* Yeni ilanda ilk hâl boş formdur ve `useState` ilk render'da onu üretiyor;
+     düzenlemede taslak yüklendikten sonra damgalanıyor (aşağıdaki efektte). */
+  if (ilkImza.current === null && !taslakYukleniyor) ilkImza.current = imza;
+  const degisti = ilkImza.current !== null && ilkImza.current !== imza;
 
   const konumSonuclari = useMemo(() => konumAra(konumSorgu), [konumSorgu]);
 
@@ -153,6 +258,13 @@ export default function AddListing() {
   const sonAdim = adim === ADIM_SAYISI - 1;
   const ilerleyebilir = adimTamam(adim) && !saving;
 
+  /* Düzenlemede her adım zaten dolu geliyor; tek kelimelik bir düzeltme için
+     altı adımı yeniden geçirmek anlamsız. Bütün adımlar geçerliyse kaydetme
+     bulunulan adımdan yapılabiliyor. Yeni ilanda bu düğme çıkmıyor — orada
+     adımların sırayla dolması akışın kendisi. */
+  const hepsiGecerli = ADIM_BASLIK.every((_, i) => adimTamam(i));
+  const buradanKaydet = duzenleme && degisti && hepsiGecerli && !sonAdim && !saving;
+
   /**
    * Ekranı bırakır — girilen bilgi varsa önce sorar.
    *
@@ -167,16 +279,22 @@ export default function AddListing() {
    */
   const birak = useCallback(
     (git: () => void) => {
-      if (adim === 0 && title.trim() === '') {
+      if (!degisti) {
         git();
         return;
       }
-      uyar('İlanı bırak', 'Girdiğin bilgiler kaydedilmeyecek.', [
-        { text: 'Devam et', style: 'cancel' },
-        { text: 'Bırak', style: 'destructive', onPress: git },
-      ]);
+      uyar(
+        duzenleme ? 'Değişiklikleri bırak' : 'İlanı bırak',
+        duzenleme
+          ? 'Yaptığın değişiklikler kaydedilmeyecek.'
+          : 'Girdiğin bilgiler kaydedilmeyecek.',
+        [
+          { text: 'Devam et', style: 'cancel' },
+          { text: 'Bırak', style: 'destructive', onPress: git },
+        ],
+      );
     },
-    [adim, title],
+    [degisti, duzenleme],
   );
 
   const geri = useCallback(() => {
@@ -246,12 +364,11 @@ export default function AddListing() {
        gördüğü metin hem de değerleme modelinin okuduğu alan `description`;
        ayrı tutulsa da ikisine birleştirilerek verilecekti. "Hasar:" öneki
        bilerek sabit — metni sonradan ayırmak gerekirse tutamak orada. */
-    const tamAciklama = [aciklama.trim(), hasDamage ? `Hasar: ${hasarNotu.trim()}` : '']
+    const tamAciklama = [aciklama.trim(), hasDamage ? HASAR_ONEK + hasarNotu.trim() : '']
       .filter(Boolean)
       .join('\n\n');
 
-    setSaving(true);
-    const sonuc = await createListing({
+    const govde = {
       title: title.trim(),
       category,
       subCategory,
@@ -261,15 +378,25 @@ export default function AddListing() {
       description: tamAciklama || undefined,
       hasDamage,
       isSet,
-    });
+    };
+
+    setSaving(true);
+    /* Aynı gövde, iki farklı RPC. `update_listing` yalnızca DRAFT'ı ve
+       yalnızca sahibini kabul ediyor; değerlemeyi besleyen bir alan
+       değiştiyse puanı da siliyor, yani ilan yeniden değerlenmeden yayına
+       giremiyor. */
+    const sonuc = duzenlenenId
+      ? await updateListing(duzenlenenId, govde)
+      : await createListing(govde);
     setSaving(false);
 
     if (!sonuc.ok) {
-      uyar('İlan kaydedilemedi', sonuc.message);
+      uyar(duzenleme ? 'İlan güncellenemedi' : 'İlan kaydedilemedi', sonuc.message);
       return;
     }
-    // İlan taslak olarak açıldı. Yayına girmesi için kareler gerekiyor;
-    // kullanıcıyı doğrudan çekim akışına alıyoruz.
+    /* İki kipte de çıkış aynı yere: ilan hâlâ taslak ve yayına girmesi için
+       kareler gerekiyor. Düzenlemeden `drafts`a dönmek daha "beklenen" durur
+       ama kullanıcıyı bir liste ekranında bırakır; sıradaki iş kare çekimi. */
     router.replace({
       pathname: '/listing-photos',
       params: {
@@ -279,6 +406,18 @@ export default function AddListing() {
         title: title.trim(),
       },
     });
+  }
+
+  /* Taslak okunana kadar form çizilmiyor. Yarısı dolu bir form göstermek,
+     kullanıcının doldurulmuş alanı kendi yazdığı sanmasına ve üstüne
+     yazmasına yol açardı. */
+  if (taslakYukleniyor) {
+    return (
+      <View style={[styles.root, styles.merkez]}>
+        <ActivityIndicator color={colors.primary} />
+        <Text style={styles.yukleniyorText}>Taslak açılıyor…</Text>
+      </View>
+    );
   }
 
   return (
@@ -292,14 +431,16 @@ export default function AddListing() {
           />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Text style={styles.appTitle}>Ürün ekle</Text>
+          <Text style={styles.appTitle}>{duzenleme ? 'İlanı düzenle' : 'Ürün ekle'}</Text>
           <Text style={styles.appAlt}>
             Adım {adim + 1}/{ADIM_SAYISI} · {ADIM_BASLIK[adim]}
           </Text>
         </View>
-        <Pressable onPress={() => birak(() => router.replace('/drafts'))} hitSlop={8}>
-          <Text style={styles.draft}>Taslaklar</Text>
-        </Pressable>
+        {duzenleme ? null : (
+          <Pressable onPress={() => birak(() => router.replace('/drafts'))} hitSlop={8}>
+            <Text style={styles.draft}>Taslaklar</Text>
+          </Pressable>
+        )}
       </View>
 
       {/* Adım çubuğu artık üç sabit parça değil, altı gerçek adım. Tamamlanan
@@ -670,7 +811,9 @@ export default function AddListing() {
             ) : (
               <>
                 {sonAdim ? <MaterialIcons name="photo-camera" size={20} color="#fff" /> : null}
-                <Text style={styles.ctaText}>{sonAdim ? 'Devam et: Fotoğraflar' : 'Devam'}</Text>
+                <Text style={styles.ctaText}>
+                  {sonAdim ? (duzenleme ? 'Kaydet ve devam et' : 'Devam et: Fotoğraflar') : 'Devam'}
+                </Text>
               </>
             )}
           </Pressable>
@@ -681,6 +824,11 @@ export default function AddListing() {
           {sonAdim && ilerleyebilir && !konum ? (
             <Text style={styles.ctaHint}>Konum seçmezsen ilanında konum satırı görünmez.</Text>
           ) : null}
+          {buradanKaydet ? (
+            <Pressable style={styles.ikincil} onPress={() => void rafaEkle()}>
+              <Text style={styles.ikincilText}>Değişiklikleri kaydet</Text>
+            </Pressable>
+          ) : null}
         </View>
       </KeyboardAvoidingView>
     </View>
@@ -689,6 +837,8 @@ export default function AddListing() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
+  merkez: { alignItems: 'center', justifyContent: 'center', gap: 12 },
+  yukleniyorText: { fontSize: 13, fontWeight: '600', color: colors.onSurfaceVariant },
   appbar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingBottom: 4 },
   appTitle: { fontSize: 15, fontWeight: '800', paddingLeft: 8, color: colors.onSurface },
   appAlt: { fontSize: 11.5, fontWeight: '600', paddingLeft: 8, color: colors.onSurfaceVariant, marginTop: 1 },
@@ -828,5 +978,7 @@ const styles = StyleSheet.create({
   },
   ctaText: { color: '#fff', fontWeight: '700', fontSize: 15 },
   ctaOff: { opacity: 0.45 },
+  ikincil: { alignItems: 'center', justifyContent: 'center', height: 44, marginTop: 4 },
+  ikincilText: { color: colors.primary, fontWeight: '700', fontSize: 14 },
   ctaHint: { textAlign: 'center', color: colors.onSurfaceVariant, fontSize: 12, fontWeight: '500', marginTop: 8 },
 });
