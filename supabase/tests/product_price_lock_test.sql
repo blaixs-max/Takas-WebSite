@@ -47,8 +47,8 @@ end $$;
 
 \echo ''
 \echo '=== 3) RPC ile fiyat AŞAĞI çekilebilir ==='
-select points as yeni_puan from set_product_points('test-urun', 200);
-\echo 'BEKLENEN: 200'
+select bekle_esit('RPC fiyatı aşağı çekebilir',
+                  (select points from set_product_points('test-urun', 200)), 200);
 
 \echo ''
 \echo '=== 4) RPC ile fiyat YUKARI çekilemez ==='
@@ -74,5 +74,9 @@ end $$;
 reset role;
 \echo ''
 \echo '=== 6) Son durum ==='
-select id, points, ai_suggested_points, status from products where id = 'test-urun';
-\echo 'BEKLENEN: points 200, ai_suggested_points 260, status ACTIVE'
+select bekle_esit('son puan 200',
+                  (select points from products where id = 'test-urun'), 200);
+select bekle_esit('AI önerisi 260 olarak korunur',
+                  (select ai_suggested_points from products where id = 'test-urun'), 260);
+select bekle_esit('durum ACTIVE kalır',
+                  (select status from products where id = 'test-urun'), 'ACTIVE');

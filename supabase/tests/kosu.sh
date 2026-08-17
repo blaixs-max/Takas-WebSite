@@ -42,6 +42,17 @@ echo "  göç: $goc_ok başarılı, $goc_hata hatalı"
 echo "▸ test yardımcıları"
 "${PSQL[@]}" -d "$DB" -f "$KOK/supabase/tests/01_test_yardimcilari.sql" >/dev/null || exit 1
 
+# İddia kapsaması. `bekle`/`bekle_esit` çağrısı makine denetimli bir iddiadır;
+# `BEKLENEN:` satırı ise yalnızca ekrana yazılıp insana bırakılmıştır.
+#
+# Bu ayrım 2026-08-17'de pahalıya patladı: bir tetikleyici yanlışlıkla
+# `security definer` yazıldı, kontrol hiç çalışmadı, kullanıcı kendi karesini
+# onaylayabilir hâle geldi — ve paket yine "24 test geçti" dedi. Bu satır o
+# boşluğun büyüklüğünü her koşuda görünür tutuyor; sessizce unutulmasın.
+denetimli=$(grep -ho "bekle_esit\?(" "$KOK"/supabase/tests/*_test.sql | wc -l)
+elle=$(grep -h "BEKLENEN" "$KOK"/supabase/tests/*_test.sql | wc -l)
+echo "▸ iddialar: $denetimli makine denetimli, $elle hâlâ göz kontrolünde"
+
 echo "▸ testler"
 t_ok=0; t_hata=0
 for f in "$KOK"/supabase/tests/*_test.sql; do

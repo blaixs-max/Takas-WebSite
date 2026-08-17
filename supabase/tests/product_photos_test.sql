@@ -20,8 +20,8 @@ select set_config('test.uid', :'s', false);
 \echo ''
 \echo '=== 1) Yeni ilan TASLAK açılır, vitrine çıkmaz ==='
 select id, status from create_listing('Ahşap tren', 'Oyun & Oyuncak', 'Az kullanılmış', 'M', p_sub_category => 'Yapı & inşa') \gset p_
-select status from products where id = :'p_id';
-\echo 'BEKLENEN: DRAFT'
+select bekle_esit('yeni ilan DRAFT açılır',
+                  (select status from products where id = :'p_id'), 'DRAFT');
 
 \echo ''
 \echo '=== 2) Beş zorunlu kare — hasarsız, set değil ==='
@@ -32,9 +32,10 @@ select status from products where id = :'p_id';
 -- roldeydi. Çağrılar yetkili rolde yapılıyor, ilan oluşturma ve yayına alma
 -- adımları `authenticated` olarak kalıyor.
 reset role;
-select array_to_string(required_slots(:'p_id'), ', ') as zorunlu;
+select bekle_esit('beyansız ilanda zorunlu slotlar',
+                  array_to_string(required_slots(:'p_id'), ', '),
+                  'front, back, left, right');
 set session role authenticated;
-\echo 'BEKLENEN: front, back, left, right, label'
 
 \echo ''
 \echo '=== 3) Kare eksikken yayına alınamaz ==='
@@ -57,9 +58,11 @@ insert into product_photos (product_id, slot, storage_path) values
   (:'p_id', 'left',  :'s' || '/' || :'p_id' || '/left.jpg'),
   (:'p_id', 'right', :'s' || '/' || :'p_id' || '/right.jpg'),
   (:'p_id', 'label', :'s' || '/' || :'p_id' || '/label.jpg');
-select count(*) as kare, count(*) filter (where moderation_status='pending') as bekleyen
-  from product_photos where product_id = :'p_id';
-\echo 'BEKLENEN: 5 kare, 5 bekleyen'
+select bekle_esit('beş kare yüklendi',
+                  (select count(*) from product_photos where product_id = :'p_id'), 5::bigint);
+select bekle_esit('hepsi incelemeyi bekliyor',
+                  (select count(*) from product_photos
+                    where product_id = :'p_id' and moderation_status = 'pending'), 5::bigint);
 
 \echo ''
 \echo '=== 5) BEKLEYEN MODERASYON OTOMATİK ONAY DEĞİLDİR ==='
@@ -113,9 +116,11 @@ set session role authenticated;
 select set_config('test.uid', :'s', false);
 select test_degerle(:'p_id');
 select status from publish_listing(:'p_id', 'front');
-select count(*) filter (where slot = 'label') as kalan_etiket
-  from product_photos where product_id = :'p_id';
-\echo 'BEKLENEN: ACTIVE, kalan_etiket = 0'
+select bekle_esit('zorunsuz slottaki ret yayını kilitlemez',
+                  (select status from products where id = :'p_id'), 'ACTIVE');
+select bekle_esit('reddedilen zorunsuz kare satırı silinir',
+                  (select count(*) from product_photos
+                    where product_id = :'p_id' and slot = 'label'), 0::bigint);
 
 \echo ''
 \echo '=== 6c) Kullanıcı kendi karesini onaylayamaz ==='
@@ -128,27 +133,33 @@ insert into product_photos (product_id, slot, storage_path)
 values (:'o_id', 'front', :'s' || '/' || :'o_id' || '/front.jpg');
 update product_photos set moderation_status = 'approved'
  where product_id = :'o_id' and slot = 'front';
-select moderation_status as kullanici_yazinca
-  from product_photos where product_id = :'o_id' and slot = 'front';
-\echo 'BEKLENEN: kullanici_yazinca = pending (approved YAZILAMAZ)'
+/* Paketin kör noktasının saklandığı iddia. Tetikleyici bir tur boyunca
+   `security definer` yazıldığı için hiç çalışmadı ve burası `approved`
+   döndürdü; sonuç ekrana basılıp geçildiği için kimse görmedi. */
+select bekle_esit('kullanıcı kendi karesini onaylayamaz',
+                  (select moderation_status from product_photos
+                    where product_id = :'o_id' and slot = 'front'), 'pending');
 
 \echo ''
 \echo '=== 7) Hepsi onaylıysa yayına girer ve kapak işaretlenir ==='
 -- Kendi taslağıyla koşuyor: 6b ilanı zaten yayına aldı ve ACTIVE bir ilanı
 -- ikinci kez yayınlamak başka bir kuralın hatasını verirdi.
 select id from create_listing('Kapak denemesi', 'Oyun & Oyuncak', 'İyi durumda', 'S',
-                              p_sub_category => 'Yapı & inşa') \gset k_
+                              p_sub_category => 'Yapı & inşa') \gset kap_
 insert into product_photos (product_id, slot, storage_path)
-select :'k_id', s, :'s' || '/' || :'k_id' || '/' || s || '.jpg'
+select :'kap_id', s, :'s' || '/' || :'kap_id' || '/' || s || '.jpg'
   from unnest(array['front','back','left','right']::photo_slot[]) s;
 reset role;
-update product_photos set moderation_status = 'approved' where product_id = :'k_id';
+update product_photos set moderation_status = 'approved' where product_id = :'kap_id';
 set session role authenticated;
 select set_config('test.uid', :'s', false);
-select test_degerle(:'k_id');
-select status from publish_listing(:'k_id', 'front');
-select slot, is_cover from product_photos where product_id = :'k_id' and is_cover;
-\echo 'BEKLENEN: ACTIVE, kapak front'
+select test_degerle(:'kap_id');
+select status from publish_listing(:'kap_id', 'front');
+select bekle_esit('hepsi onaylıysa yayına girer',
+                  (select status from products where id = :'kap_id'), 'ACTIVE');
+select bekle_esit('kapak front işaretlenir',
+                  (select slot::text from product_photos
+                    where product_id = :'kap_id' and is_cover), 'front');
 
 \echo ''
 \echo '=== 8) Hasar beyanı altıncı kareyi zorunlu yapar ==='
@@ -159,18 +170,20 @@ select id from create_listing('Hasarlı ürün', 'Oyun & Oyuncak', 'İyi durumda
 create temp table if not exists t_ids (ad text primary key, deger text);
 insert into t_ids values ('hasarli', :'h_id') on conflict (ad) do update set deger = excluded.deger;
 reset role;
-select array_to_string(required_slots(:'h_id'), ', ') as zorunlu;
+select bekle_esit('hasar beyanı damage karesini zorunlu yapar',
+                  array_to_string(required_slots(:'h_id'), ', '),
+                  'front, back, left, right, damage');
 set session role authenticated;
-\echo 'BEKLENEN: front, back, left, right, label, damage'
 
 \echo ''
 \echo '=== 9) Set beyanı yedinci kareyi zorunlu yapar ==='
 select id from create_listing('Set ürün', 'Oyun & Oyuncak', 'İyi durumda', 'S',
                               'Kadıköy', null, false, true, p_sub_category => 'Yapı & inşa') \gset k_
 reset role;
-select array_to_string(required_slots(:'k_id'), ', ') as zorunlu;
+select bekle_esit('set beyanı parts karesini zorunlu yapar',
+                  array_to_string(required_slots(:'k_id'), ', '),
+                  'front, back, left, right, parts');
 set session role authenticated;
-\echo 'BEKLENEN: front, back, left, right, label, parts'
 
 \echo ''
 \echo '=== 10) Başkasının ilanı yayına alınamaz ==='
@@ -191,8 +204,18 @@ end $$;
 \echo ''
 \echo '=== 11) Taslak ilan vitrinde görünmez ==='
 select set_config('test.uid', :'s', false);
-select count(*) as vitrinde from products where status = 'ACTIVE' and seller_id = :'s';
-select count(*) as taslak from products where status = 'DRAFT' and seller_id = :'s';
-\echo 'BEKLENEN: vitrinde 1, taslak 2'
+/* Sayıya değil kimliğe bağlanıyor. Önceki hâli "vitrinde 1, taslak 2" diye
+   sayıyordu; testler tek veri tabanını paylaştığı için sayı önceki dosyalar
+   ilan açtıkça kayıyordu ve gerçek 6'ya çıkmıştı. Kimse görmedi, çünkü
+   karşılaştırılmıyordu. Bir testin iddiası, kendi kurduğu duruma bağlı
+   olmalı — başka dosyaların kaç ilan açtığına değil. */
+select id from create_listing('Vitrin dışı taslak', 'Oyun & Oyuncak', 'İyi durumda', 'S',
+                              p_sub_category => 'Yapı & inşa') \gset v_
+select bekle('yeni taslak vitrinde görünmez',
+             not exists (select 1 from products
+                          where id = :'v_id' and status = 'ACTIVE'));
+select bekle('yayına alınan ilan vitrinde görünür',
+             exists (select 1 from products
+                      where id = :'kap_id' and status = 'ACTIVE'));
 
 reset role;

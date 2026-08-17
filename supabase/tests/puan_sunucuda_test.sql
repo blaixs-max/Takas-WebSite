@@ -24,19 +24,19 @@ select set_config('test.uid', :'s', false);
 \echo '=== 1) ESKİ İMZA YOK ==='
 -- Puanlı çağrı artık bulunmamalı. Bulunursa güncel olmayan istemci eski yolu
 -- kullanmaya devam eder ve denetim hiç devreye girmez.
-select count(*) = 0 as eski_imza_dusuruldu
-  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
- where n.nspname = 'public' and p.proname = 'create_listing'
-   and pg_get_function_identity_arguments(p.oid) like '%integer%';
-\echo 'BEKLENEN: eski_imza_dusuruldu = t'
+select bekle('puanı istemciden alan eski imza düşürüldü',
+             (select count(*) = 0
+                from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+               where n.nspname = 'public' and p.proname = 'create_listing'
+                 and pg_get_function_identity_arguments(p.oid) like '%integer%'));
 
 \echo ''
 \echo '=== 2) Yeni ilan puansız doğuyor ==='
 select id, points is null as puan_bos, degerleme_at is null as degerleme_yok
   from create_listing('Ahşap tren seti', 'Oyun & Oyuncak', 'İyi durumda', 'M',
                       p_sub_category => 'Yapı & inşa') \gset y_
-select :'y_puan_bos' = 't' as puansiz_dogdu;
-\echo 'BEKLENEN: puansiz_dogdu = t'
+select bekle_esit('ilan puansız doğar', :'y_puan_bos'::text, 't');
+select bekle_esit('ilan değerlemesiz doğar', :'y_degerleme_yok'::text, 't');
 
 \echo ''
 \echo '=== 3) Kareler tamam ama değerleme yok — YAYIN REDDEDİLİR ==='
@@ -62,16 +62,15 @@ end $$;
 reset role;
 select points, sifir_fiyat, degerleme_guven
   from degerleme_yaz(:'y_id', 1599, 'trendyol.com/superman-figur', 0.86, 'gemini-3.7-flash') \gset d_
-select :d_points = 990 as puan_dogru;
-\echo 'BEKLENEN: puan_dogru = t (1599 × %62 = 990)'
+-- 1599 × %62 = 990. Sabit sayı bilerek: formül değişirse bu test düşmeli.
+select bekle_esit('İyi durumda oranı puanı doğru veriyor', :d_points, 990);
 
 \echo ''
 \echo '=== 5) Değerlemeden sonra yayın geçiyor ==='
 set session role authenticated;
 select set_config('test.uid', :'s', false);
 select status from publish_listing(:'y_id', 'front') \gset p_
-select :'p_status' = 'ACTIVE' as yayina_girdi;
-\echo 'BEKLENEN: yayina_girdi = t'
+select bekle_esit('değerlenmiş ilan yayına girer', :'p_status'::text, 'ACTIVE');
 
 \echo ''
 \echo '=== 6) FİYAT BULUNAMAYAN İLAN YAYINA GİREMEZ ==='

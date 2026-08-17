@@ -38,3 +38,46 @@ end; $$;
    orada verilen yetki hemen siliniyordu. Bu dosya göçlerden SONRA uygulanıyor,
    yani sıra kritik ve `kosu.sh` onu koruyor. */
 grant execute on function public.test_degerle(text, integer) to authenticated;
+
+-- ============================================================================
+-- İddia yardımcıları — testler kendi kendini denetlesin
+-- ============================================================================
+--
+-- 2026-08-17'de bu paketin kör noktası pahalıya patladı. `product_photos`
+-- tetikleyicisi yanlışlıkla `security definer` yazılmıştı ve kontrol **hiç
+-- çalışmıyordu**: kullanıcı kendi karesini `approved` yapabiliyordu. Paket
+-- yine "24 test geçti" dedi.
+--
+-- Sebep: testler iddiayı `\echo 'BEKLENEN: pending'` diye yazıp sonucu ekrana
+-- basıyor, ikisini **karşılaştırmıyor**. `kosu.sh` de yalnızca psql'in çıkış
+-- kodunu görüyor. Yani "geçti" demek "çökmeden sonuna kadar gitti" demekti,
+-- "doğru sonucu verdi" demek değil. Sınav kâğıdını okumadan, teslim edildiği
+-- için geçmiş saymak.
+--
+-- Bu iki fonksiyon iddiayı makineye devrediyor: tutmazsa exception, exception
+-- olunca `ON_ERROR_STOP=1` dosyayı düşürür ve `kosu.sh` testi başarısız sayar.
+
+/** Koşul yanlışsa testi düşürür. */
+create or replace function public.bekle(aciklama text, kosul boolean)
+returns void language plpgsql as $$
+begin
+  /* `is not true` bilerek: `null` da düşmeli. Bir iddia "ne doğru ne yanlış"
+     çıkıyorsa sorgu düşündüğün şeyi ölçmüyordur ve sessizce geçmesi, yanlış
+     çıkmasından kötüdür. */
+  if kosul is not true then
+    raise exception 'İDDİA DÜŞTÜ: %  (sonuç: %)', aciklama, coalesce(kosul::text, 'null');
+  end if;
+end; $$;
+
+/** İki değer eşit değilse testi düşürür; farkı da yazar. */
+create or replace function public.bekle_esit(aciklama text, gercek anyelement, beklenen anyelement)
+returns void language plpgsql as $$
+begin
+  if gercek is distinct from beklenen then
+    raise exception 'İDDİA DÜŞTÜ: %  (beklenen: %, gerçek: %)',
+      aciklama, coalesce(beklenen::text, 'null'), coalesce(gercek::text, 'null');
+  end if;
+end; $$;
+
+grant execute on function public.bekle(text, boolean) to authenticated;
+grant execute on function public.bekle_esit(text, anyelement, anyelement) to authenticated;

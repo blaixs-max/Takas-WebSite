@@ -767,6 +767,43 @@ gösterilir.
 - İkonlar: `@expo/vector-icons/MaterialIcons`.
 - Para olmayan model: cüzdan anahtarsızken **DEMO** veriye düşer (kırılmaz).
 
+## Testlerin kör noktası ve `bekle()` (2026-08-17)
+
+Test paketi bir tur boyunca **yanlış sonucu geçer saydı.** `product_photos`
+tetikleyicisi yanlışlıkla `security definer` yazılmıştı; kontrol hiç
+çalışmıyordu ve kullanıcı kendi karesini `approved` yapabiliyordu. `kosu.sh`
+yine "24 test geçti" dedi.
+
+Sebep testlerin biçimiydi: iddia `\echo 'BEKLENEN: pending'` diye yazılıp
+sonuç ekrana basılıyor, ikisi **karşılaştırılmıyordu**. `kosu.sh` yalnızca
+psql'in çıkış kodunu görüyor, yani "geçti" = "çökmeden sonuna kadar gitti".
+
+`01_test_yardimcilari.sql` içinde iki yardımcı var:
+
+- `bekle(aciklama, kosul)` — koşul doğru değilse exception. `is not true`
+  bilerek: `null` da düşer, çünkü "ne doğru ne yanlış" çıkan bir iddia
+  ölçtüğünü sandığın şeyi ölçmüyordur.
+- `bekle_esit(aciklama, gercek, beklenen)` — farkı da yazar.
+
+`ON_ERROR_STOP=1` sayesinde exception dosyayı düşürür ve test başarısız
+sayılır. **Yeni iddialar bunlarla yazılır**, `\echo` ile değil.
+
+`kosu.sh` her koşuda kaç iddianın makine denetimli olduğunu yazıyor. Sayı
+kasıtlı olarak görünür: dönüşüm yarım ve yarım olduğu unutulmasın.
+
+**Dönüştürürken dört yanlış beklenti çıktı** — hepsi "geçiyordu":
+
+| Nerede | Yazan | Gerçek |
+|---|---|---|
+| zorunlu slotlar | `front, back, left, right, label` | `label` **hiç zorunlu değil** |
+| hasar beyanı | `… label, damage` | `front, back, left, right, damage` |
+| set beyanı | `… label, parts` | `front, back, left, right, parts` |
+| vitrin sayımı | `vitrinde 1, taslak 2` | 6 — testler tek veri tabanını paylaşıyor |
+
+Sonuncusu ayrı bir ders: **bir testin iddiası kendi kurduğu duruma bağlı
+olmalı.** Global sayım, başka dosyalar ilan açtıkça kayar. O iddia artık
+kimliğe bakıyor, sayıya değil.
+
 ## Komutlar
 ```bash
 # Mobil
