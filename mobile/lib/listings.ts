@@ -69,10 +69,19 @@ export async function createListing(l: NewListing): Promise<CreateResult> {
  */
 export async function loadDraftForEdit(id: string): Promise<EditableListing | null> {
   if (!supabaseConfigured || !supabase) return null;
+  /* Sahiplik filtresi burada da açık: `update_listing` zaten yabancıyı
+     reddediyor ama o yazma tarafı. Bu okuma tarafı ve yönetici politikası
+     yüzünden başkasının taslağı forma doldurulabilirdi — kaydetmeye
+     çalışınca hata alırdı, ama o ana kadar başkasının ilanını okumuş olurdu. */
+  const { data: oturum } = await supabase.auth.getUser();
+  const uid = oturum?.user?.id;
+  if (!uid) return null;
+
   const { data, error } = await supabase
     .from('products')
     .select('id, title, description, category, sub_category, condition, size_class, location, has_damage, is_set, status')
     .eq('id', id)
+    .eq('seller_id', uid)
     .single();
 
   if (error || !data) return null;
@@ -262,10 +271,26 @@ export interface DraftListing {
 export async function loadDrafts(): Promise<DraftListing[]> {
   if (!supabaseConfigured || !supabase) return [];
 
+  /* **`seller_id` filtresi şart** — RLS'e bırakılamaz.
+     Bu sorgu bir tur boyunca filtresizdi ve kapsamı RLS'e güveniyordu. Normal
+     kullanıcıda çalışıyordu, çünkü "kendi ilanlarını gör" politikası zaten
+     daraltıyor. Ama `products` üzerinde bir de "yönetici tüm ilanları görür"
+     politikası var (yönetim ekranı onsuz çalışmaz) ve yönetici hesabıyla
+     girildiğinde bu ekran **bütün kullanıcıların taslaklarını** listeledi:
+     dokuz ilan göründü, dokuzu da başkalarınındı.
+
+     Ders: RLS bir **güvenlik sınırı** — neyi görmeye hakkın var. Sorgu
+     filtresi ise **niyet** — neyi görmek istiyorsun. İkisi aynı şey değil ve
+     birini öbürünün yerine kullanmak, yetkisi genişleyen ilk hesapta kırılır. */
+  const { data: oturum } = await supabase.auth.getUser();
+  const uid = oturum?.user?.id;
+  if (!uid) return [];
+
   const { data, error } = await supabase
     .from('products')
     .select('id, title, points, has_damage, is_set, product_photos(slot, moderation_status)')
     .eq('status', 'DRAFT')
+    .eq('seller_id', uid)
     .order('created_at', { ascending: false });
 
   if (error || !data) return [];

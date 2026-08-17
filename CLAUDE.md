@@ -802,6 +802,25 @@ Tavan mekanizmasının kod yolu duruyor ve `puan_sunucuda_test.sql` 7b onu
 sınıyor: biri sınır koyarsa çalışmalı. Ölü bir kontrol, olmayan kontrolden
 kötüdür — var sanılır.
 
+## RLS güvenlik sınırıdır, sorgu filtresi değil (2026-08-17)
+
+`loadDrafts` bir tur boyunca filtresizdi: `status = 'DRAFT'` diyor, kapsamı
+RLS'e bırakıyordu. Normal kullanıcıda doğru çalıştı — "kendi ilanlarını gör"
+politikası zaten daraltıyor. Ama `products` üzerinde bir de **"yönetici tüm
+ilanları görür"** politikası var ve yönetici hesabıyla girildiğinde kişisel
+"Taslak ilanlar" ekranı **bütün kullanıcıların taslaklarını** listeledi:
+dokuz ilan göründü, dokuzu da başkalarınındı.
+
+Yönetici politikası doğru ve gerekli — yönetim ekranı onsuz çalışmaz. Hata
+sorgudaydı.
+
+**Kural: "benim şeylerim" sorgusu `seller_id`'yi açıkça filtreler.** RLS neyi
+görmeye *hakkın* olduğunu söyler; sorgu filtresi neyi görmek *istediğini*
+söyler. İkisi aynı şey değil ve birini öbürünün yerine kullanmak, yetkisi
+genişleyen ilk hesapta kırılır. `loadDraftForEdit` de aynı gerekçeyle
+filtreleniyor: yazma tarafını `update_listing` koruyor ama okuma tarafı
+korumasızdı.
+
 ## Taban puan 50 — kelepçe, kapı değil (2026-08-17)
 
 `valuation_settings.taban_puan = 50` ve tavanın **tersi** biçimde çalışıyor:
