@@ -205,17 +205,44 @@ export default function ListingPhotos() {
       return;
     }
 
-    /* Değerleme yayından hemen önce, burada: modelin ürünü tanıyabilmesi için
-       dört açı karesinin onaylanmış olması gerekiyor ve o ancak bu noktada
-       kesin. Daha erken çağırsaydık kareler eksikken tanıma denenir, "ürün
-       bulunamadı" çıkar ve ilan boşuna insan kuyruğuna düşerdi.
+    /* Değerleme **bekleyen kare kontrolünden önce** çalışıyor ve bu sıra
+       kritik. Kullanıcı bekleyen kare varken ekrandan çıkıyor; ilanı sonra
+       yönetici onayı yayına alacak. Ama otomatik yayın bir Edge Function
+       çağıramaz — değerlemesi olmayan ilan onaylansa bile yayına giremez ve
+       taslakta sonsuza kadar kalırdı.
 
-       Sonucuna bakıp akışı durdurmuyoruz: değerleme başarısızsa yayın kapısı
-       zaten geçirmeyecek ve aşağıdaki hata kullanıcıya ne olduğunu söyleyecek.
-       Burada ayrıca kontrol etmek, aynı kararı iki yerde vermek olurdu. */
+       Burada çağırmak işe yarıyor çünkü `listing-value` onaylı kare sayısına
+       takılmıyor: dördün üçü onaylıysa da ürünü tanıyor. Hiçbiri onaylı
+       değilse değerleme başarısız olur ve ilan taslaklarda kalır — kullanıcı
+       oradan tekrar deneyebilir.
+
+       Sonucuna bakıp akışı durdurmuyoruz: başarısızsa yayın kapısı zaten
+       geçirmez. Burada ayrıca kontrol etmek aynı kararı iki yerde vermek
+       olurdu. */
     setDegerleniyor(true);
     await degerlet(id!);
     setDegerleniyor(false);
+
+    /* **Bekleyen kare kullanıcıyı ekranda tutmuyor.** Model bazı karelerde
+       karar veremiyor; o kareler yönetim kuyruğuna düşüyor ve insan onayı
+       saatler sürebilir. Eskiden yayın kapısı "kareler hâlâ inceleniyor,
+       birazdan tekrar deneyin" diyordu — kullanıcının elinde yapacak bir şey
+       yokken onu fotoğraf ekranına geri çağıran bir cümle.
+
+       Artık ilan taslakta kalıyor, kullanıcı çıkıyor, ve son kare onaylandığı
+       an sunucu ilanı kendisi yayına alıp bildirim gönderiyor
+       (`product_photos_karar_sonrasi` tetikleyicisi). */
+    if (analiz.bekleyen > 0) {
+      setYayinlaniyor(false);
+      uyar(
+        'İlanın incelemeye alındı',
+        analiz.bekleyen === 1
+          ? 'Bir fotoğrafın kontrol ediliyor. Onaylanınca ilanın kendiliğinden yayına girecek ve sana bildirim göndereceğiz — burada beklemene gerek yok.'
+          : `${analiz.bekleyen} fotoğrafın kontrol ediliyor. Onaylanınca ilanın kendiliğinden yayına girecek ve sana bildirim göndereceğiz — burada beklemene gerek yok.`,
+        [{ text: 'Tamam', onPress: () => router.replace('/') }],
+      );
+      return;
+    }
 
     // Kapak: kullanıcı seçmediyse ön görünüm. Hangi kare kapak olursa olsun
     // ürünün durumu kapağın üzerinde rozet olarak görünür.

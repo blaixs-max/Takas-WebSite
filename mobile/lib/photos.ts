@@ -263,7 +263,12 @@ export async function publishListing(
 function cevir(mesaj: string): string {
   if (mesaj.includes('eksik kare')) return 'Zorunlu karelerden bazıları eksik.';
   if (mesaj.includes('hâlâ inceleniyor')) {
-    return 'Kareler inceleniyor. Birkaç saniye sonra tekrar deneyin.';
+    /* "Birkaç saniye sonra tekrar deneyin" artık yanlış: bekleyen kare insan
+       onayına düşüyor ve o saatler sürebilir. Ekran bu yola normalde hiç
+       girmiyor — bekleyen kare varken kullanıcıyı çıkarıyoruz. Buraya ancak
+       yarış durumunda düşülür (kullanıcı gönderirken yönetici kareyi
+       incelemeye geri almışsa), o yüzden mesaj bekletmiyor. */
+    return 'İlanın incelemede. Onaylanınca kendiliğinden yayına girecek, sana bildireceğiz.';
   }
   if (mesaj.includes('moderasyondan geçmeyen')) {
     return 'Bir kare incelemeden geçmedi. İşaretli kareyi yeniden çekin.';

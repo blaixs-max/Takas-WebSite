@@ -767,6 +767,45 @@ gösterilir.
 - İkonlar: `@expo/vector-icons/MaterialIcons`.
 - Para olmayan model: cüzdan anahtarsızken **DEMO** veriye düşer (kırılmaz).
 
+## Bekleyen kare kullanıcıyı ekranda tutmaz (2026-08-17)
+
+Model bazı karelerde karar veremiyor; o kareler `pending` kalıp yönetim
+kuyruğuna düşüyor. Yayın kapısı ise "kareler hâlâ inceleniyor, birazdan
+tekrar deneyin" diyordu — kullanıcının elinde yapacak bir şey yokken onu
+fotoğraf ekranına geri çağıran bir cümle. İnsan onayı dakikalar değil
+saatler sürebilir. Kullanıcının hatası olmayan bir gecikme, kullanıcının işi
+hâline geliyordu.
+
+Artık: ilan taslakta kalır, kullanıcı **çıkar**, son kare onaylandığı an
+sunucu ilanı kendisi yayına alır ve bildirim gider
+(`product_photos_karar_sonrasi` tetikleyicisi → `ilan_otomatik_yayina_al`).
+
+- **Yayın kapısının gövdesi tek yerde: `ilan_yayina_al`.** Yedi kontrol var
+  (eksik kare, ret, bekleyen, değerleme, puan, bant, kapak) ve iki kopya
+  tutmak ilk kural değişikliğinde ayrışmayı garanti ederdi — ayrışan taraf
+  **kontrolsüz yayın** olurdu. `publish_listing` sahipliği doğrulayıp gövdeyi
+  çağırıyor; otomatik yol sahipliği doğrulamıyor (kullanıcı orada değil) ama
+  **diğer altı kontrolün hiçbirini atlamıyor**. Atlasaydı "bir kare onaylandı"
+  ile "ilan yayına hazır" aynı şey sanılırdı; değil.
+- **Gövdenin yetkisi kimseye verilmez.** `ilan_yayina_al` sahiplik
+  doğrulamıyor; `authenticated`e açık olsaydı herkes herkesin taslağını yayına
+  alabilirdi. Test bunu ayrıca sınıyor.
+- **Değerleme kullanıcı çıkmadan önce çalışır.** Otomatik yayın bir Edge
+  Function çağıramaz; değerlemesi olmayan ilan onaylansa bile yayına giremez
+  ve taslakta sonsuza kadar kalırdı. `listing-value` onaylı kare sayısına
+  takılmıyor — dördün üçü onaylıysa da ürünü tanıyor — o yüzden bekleyen kare
+  varken de çağrılabiliyor. Hiçbiri onaylı değilse değerleme başarısız olur ve
+  ilan taslaklarda kalır; oradan tekrar denenebilir.
+- **Yeniden giriş kilidi şart.** Otomatik yayın `is_cover` güncelliyor, o da
+  tetikleyiciyi yeniden ateşler; `kt.otomatik_yayin` bayrağı döngüyü kesiyor.
+- **Zorunsuz karenin reddi bildirim üretmez.** Yayını durdurmuyor (kapı onu
+  siliyor), yani kullanıcıdan istenecek bir şey yok — bildirim göndermek onu
+  boşuna geri çağırmak olurdu. Zorunlu slottaki ret bildiriliyor, çünkü
+  kullanıcı artık ekranda beklemiyor ve başka türlü öğrenemez.
+
+`listing.published` ve `photo.rejected` bildirim türleri uygulamanın
+`gorunum()` eşlemesinde **zaten vardı**; sunucu tarafı hiç göndermiyormuş.
+
 ## Testlerin kör noktası ve `bekle()` (2026-08-17)
 
 Test paketi bir tur boyunca **yanlış sonucu geçer saydı.** `product_photos`
