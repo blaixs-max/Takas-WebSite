@@ -1,6 +1,7 @@
 import { Condition } from '../data/products';
 import { Category, SubCategory } from '../data/categories';
 import { SizeClass } from '../data/sizeClasses';
+import { PhotoSlot, zorunluSlotlar } from '../data/photoSlots';
 import { supabase, supabaseConfigured } from './supabase';
 
 export interface NewListing {
@@ -144,6 +145,15 @@ export async function loadDrafts(): Promise<DraftListing[]> {
 
   return (data as unknown as DraftRow[]).map((r) => {
     const kareler = r.product_photos ?? [];
+    /* Sayaç `zorunluSlotlar`dan geliyor, elle yazılmış bir sayıdan değil.
+       Burada "5 + hasar + set" yazıyordu ve etiket karesi opsiyonel olunca
+       (2026-08-16) iki yerden birden yanlışa düştü: payda bir fazlaydı, ve
+       etiket karesini çeken kullanıcı payı da şişirdiği için taslak listesi
+       "6/5 kare çekildi" diyordu. Payda ile pay artık aynı kümeyi sayıyor. */
+    const gerekli = zorunluSlotlar(Boolean(r.has_damage), Boolean(r.is_set));
+    const gerekliCekilen = kareler.filter(
+      (k) => k.moderation_status !== 'rejected' && gerekli.includes(k.slot as PhotoSlot),
+    );
     return {
       id: r.id,
       title: r.title,
@@ -151,8 +161,8 @@ export async function loadDrafts(): Promise<DraftListing[]> {
       hasDamage: Boolean(r.has_damage),
       isSet: Boolean(r.is_set),
       // Reddedilen kare çekilmiş sayılmaz; yeniden çekilmesi gerekiyor.
-      cekilenKare: kareler.filter((k) => k.moderation_status !== 'rejected').length,
-      gerekenKare: 5 + (r.has_damage ? 1 : 0) + (r.is_set ? 1 : 0),
+      cekilenKare: gerekliCekilen.length,
+      gerekenKare: gerekli.length,
       bekleyenKare: kareler.filter((k) => k.moderation_status === 'pending').length,
       reddedilenKare: kareler.filter((k) => k.moderation_status === 'rejected').length,
     };

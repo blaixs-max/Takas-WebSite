@@ -1,6 +1,6 @@
 # ELDENELE — Yol Haritası / TODO
 
-Son güncelleme: 2026-08-16 · Branch: `main`
+Son güncelleme: 2026-08-17 · Branch: `main`
 
 ## 🟢 Supabase artık gerçek
 
@@ -1054,10 +1054,56 @@ RLS kapalı tablo 0, `authenticated` yazma yetkisi yalnızca gerçekten yazdığ
 - [ ] Bulguların her biri ya kapatılır ya da "kabul edildi, gerekçesi şu"
       diye yazılır. Sessizce bırakılan bulgu yok.
 
+## 🧭 İlan sihirbazı (2026-08-17)
+
+İlan ekleme tek kaydırmalı formdu; artık **altı adım**: ① ad + isteğe bağlı
+açıklama, ② ana kategori, ③ alt kategori, ④ durum, ⑤ kargo boyutu, ⑥ konum.
+
+- [x] **Adımlara bölündü.** Tek formun iki somut kusuru vardı: alt kategori
+      dokuz ana kategorinin sarılmış çip satırının altında kalıyor ve
+      seçilmeden devam edilemediği hâlde görülmüyordu ("devam" düğmesi sebebini
+      söylemeden kapalı duruyordu); boyut seçimine ayrılmış bir yer yoktu.
+      Düğmenin altındaki ipucu artık genel bir cümle değil, o adımın eksiğini
+      söylüyor.
+- [x] **Tek rota korundu.** Altı ayrı ekran, form durumunu rota
+      parametrelerine taşımayı gerektirirdi. Bedeli `BackHandler` ile donanım
+      geri tuşunu yakalamak; yakalanmasaydı üçüncü adımdaki kullanıcı geri
+      tuşuna basınca doldurduğu her şeyi kaybederdi.
+- [x] **Hiçbir adım önceden seçili gelmiyor.** Ana kategori "Oyun & Oyuncak"
+      ile açılıyordu ve ilanların çoğu orada toplanıyordu.
+- [x] **Kondisyon dört seçenekli ve iyiden kötüye sıralı;** hasar beyanı ayrı
+      onay kutusu olmaktan çıkıp kondisyonun kendisi oldu. İkisi ayrıyken
+      "Yeni gibi" + "hasar var" gibi çelişkiler mümkündü.
+- [x] **'Hasarlı' beyansız geçmiyor** — en az 10 karakterlik hasar notu
+      zorunlu, `description`'a sabit `Hasar:` önekiyle ayrı paragraf olarak
+      giriyor. Yakın çekim karesi zaten `required_slots()` üzerinden zorunlu.
+- [x] **Kargo kademeleri teknik çizimle** (`components/KutuCizimi.tsx`,
+      `react-native-svg`). Ölçüler `data/sizeClasses.ts` içinde ve hepsi
+      `en×boy×yükseklik/3000` ile kendi kademesinin tavanına oturuyor. Bütün
+      kutular tek ölçekle çiziliyor — ayrı ölçeklerde XS ile XXL aynı
+      büyüklükte görünürdü.
+- [x] **Konum listeden seçiliyor** — `data/konumlar.ts`, 81 il / 973 ilçe, PTT
+      posta kodu veri kümesinden türetildi. Arama Türkçeye duyarsız
+      ("kadikoy" → Kadıköy). Saklanan biçim "İlçe, İl"; 51 ilde "Merkez" adında
+      bir ilçe var ve tek başına anlamsız. Mahalle dosyaya hiç girmiyor.
+- [x] **Taslak sayacı `zorunluSlotlar`dan okuyor.** `loadDrafts` içinde
+      "5 + hasar + set" diye elle yazılmış bir payda vardı; etiket opsiyonel
+      olunca hem payda bir fazla kaldı hem de etiketi çeken kullanıcıya
+      "6/5 kare çekildi" dedi.
+- [x] **"Taslaklar" ve kapatma çarpısı artık soruyor.** İkisi de doğrudan
+      `router.back()` çağırıyordu; beş adımı doldurup yanlışlıkla dokunan
+      kullanıcı her şeyi kaybediyordu.
+
+**Açık kalan:** taslak ilanı **düzenleme** akışı yok. Sihirbaz yalnızca yeni
+ilan açıyor; yarım kalan taslağa dönen kullanıcı doğrudan kare çekimine
+düşüyor ve başlığını ya da kategorisini değiştiremiyor.
+
 ## 📸 Kare denetimi — sahtecilik ve mahremiyet (2026-08-16)
 
-`photo-check` **canlıda: sürüm 3, ACTIVE, `verify_jwt = true`.** Yayındaki dosya
-içeriği repodakiyle birebir doğrulandı.
+`photo-check` **canlıda: sürüm 6, ACTIVE, `verify_jwt = true`.** Yayındaki dosya
+içeriği repodakiyle birebir doğrulandı (2026-08-17: 31.634 bayt, diff temiz).
+`listing-value` de yayında — sürüm 1, ACTIVE, `verify_jwt = true`, 12.620 bayt,
+aynı şekilde geri indirilip karşılaştırıldı. Beş Edge Function'ın hepsi ACTIVE.
 
 **Bu turda yapıldı:**
 
@@ -1081,8 +1127,7 @@ içeriği repodakiyle birebir doğrulandı.
       Zamana bağlı süpürücü (pg_cron + pg_net) bilerek kurulmadı: veri
       tabanına yeni bir sır sokardı ve yükleme dururken yeni borç oluşmuyor.
       Birikirse `admin_silme_borcu_sayisi()` görünür kılıyor; o zaman
-      süpürücü gerekir. **Fonksiyon henüz deploy edilmedi** — anahtar
-      maddesine bağlandı.
+      süpürücü gerekir. **Yayında** (sürüm 6, 2026-08-17).
 - [x] **Çekim ekranı kararı bekliyor**, reddedilen karede sonraki slota geçmiyor.
 - [x] Ekrandan/basılı fotoğraftan çekim istem maddesine eklendi.
 - [x] `String.fromCharCode(...bytes)` parçalı çevrime alındı — kova sınırı 8 MB

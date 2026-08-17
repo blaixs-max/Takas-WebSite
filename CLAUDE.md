@@ -257,17 +257,72 @@ Bu ayrım her zaman geçerlidir.
 - Kategoriler: `data/categories.ts` — **9 ana + 62 alt kategori**, ikon
   eşlemeli. Her ürün tam olarak bir ana ve bir alt kategoriye aittir; "Tümü"
   kategori değil, süzgecin kapalı hâlidir. Ürün görselleri `data/productImages.ts`.
-- İlan açma iki adımdır: `add-listing` (beyanlar + desi) → `listing-photos`
-  (kareler + kontrole gönderme). **Kareler yalnızca kamerayla çekilir** —
-  galeriden seçmek 2026-08-14'te kaldırıldı. Bu bir sadeleştirme değil,
-  sahteciliğe karşı bir kapı: galeri açıkken satıcı üreticinin stok
+- İlan açma iki adımdır: `add-listing` (altı adımlık sihirbaz) →
+  `listing-photos` (kareler + kontrole gönderme). **Kareler yalnızca kamerayla
+  çekilir** — galeriden seçmek 2026-08-14'te kaldırıldı. Bu bir sadeleştirme
+  değil, sahteciliğe karşı bir kapı: galeri açıkken satıcı üreticinin stok
   fotoğrafını ya da başka bir ilanın karesini yükleyebiliyordu ve ikinci elde
   alıcının tek dayanağı fotoğraf. Galeri izinleri `app.json`'da duruyor ama
   yalnızca **itiraz kanıtı** için (`app/trades.tsx`) — orada alıcı hasarı
-  kutuyu açarken çekmiş olabilir. **Beş kare her ilanda zorunlu**, altıncısı
-  hasar beyan edilmişse ve yedincisi ürün setse isteniyor — sayaç bu yüzden
-  çoğu ilanda 0/5 diyor. Arayüzde "yedi" yazmak yanlış; tek doğruluk kaynağı
-  veri tabanındaki `required_slots()`, `data/photoSlots.ts` onun aynası.
+  kutuyu açarken çekmiş olabilir. **Dört kare her ilanda zorunlu** (ön, arka,
+  sol, sağ); etiket karesi opsiyonel, hasar karesi 'Hasarlı' seçilmişse ve
+  parça karesi ürün setse isteniyor. Arayüzde "yedi" ya da "beş" yazmak
+  yanlış; tek doğruluk kaynağı veri tabanındaki `required_slots()`,
+  `data/photoSlots.ts` onun aynası ve **sayaçlar da o aynadan okur** —
+  `loadDrafts` içinde "5 + hasar + set" diye elle yazılmış bir payda vardı ve
+  etiket opsiyonel olunca hem payda bir fazla kaldı hem de etiketi çeken
+  kullanıcıya "6/5 kare çekildi" dedi.
+
+## İlan sihirbazı (2026-08-17)
+
+`add-listing.tsx` **tek kaydırmalı form değil, altı adım**: ① ad + isteğe
+bağlı açıklama, ② ana kategori, ③ alt kategori, ④ durum, ⑤ kargo boyutu,
+⑥ konum. Her ekranda tek soru var, cevaplanmadan ilerlenmiyor ve **neden**
+ilerlenmediği düğmenin altında yazıyor.
+
+Tek formun iki somut kusuru vardı. Alt kategori, dokuz ana kategorinin
+sarılmış çip satırının altında kalıyor ve seçilmeden devam edilemediği hâlde
+görülmüyordu — "devam" düğmesi sebebini söylemeden kapalı duruyordu. Boyut
+seçimi de altı harften ibaretti (XS…XXL) ve o karara ayrılmış bir yer yoktu.
+
+Kurallar:
+
+- **Tek rota, altı rota değil.** Her adımı ayrı ekran yapmak form durumunu
+  rota parametrelerine taşımayı gerektirirdi; geri gidince bir kısmı
+  kaybolurdu. Bedeli donanım geri tuşunu elle yakalamak (`BackHandler`) —
+  yakalanmazsa üçüncü adımdaki kullanıcı geri tuşuna basınca her şeyi
+  kaybeder.
+- **Hiçbir adım önceden seçili gelmez.** Ana kategori "Oyun & Oyuncak" ile
+  geliyordu ve ilanların çoğu orada toplanıyordu. Sihirbazda önceden seçili
+  gelen adım, atlanan adımdır.
+- **Hasar beyanı ayrı bir onay kutusu değil, kondisyonun kendisi.** İkisi
+  ayrıyken çelişebiliyorlardı ("Yeni gibi" + "hasar var"). `create_listing`
+  zaten 'Hasarlı' seçilince `has_damage`i zorla true yapıyor; arayüzün bundan
+  farklı bir şey göstermesi kullanıcıya yalan söylemek olurdu.
+- **'Hasarlı' beyansız geçmiyor.** En az 10 karakterlik bir hasar notu
+  zorunlu. Not `description`'a ayrı bir paragraf olarak, sabit `Hasar:`
+  önekiyle giriyor — ayrı bir kolon daha temiz durur ama işe yaramaz: hem
+  alıcının gördüğü metin hem değerleme modelinin okuduğu alan `description`,
+  ayrı tutulsa da birleştirilerek verilecekti.
+- **Kargo kademeleri çizimle gösteriliyor** (`components/KutuCizimi.tsx`,
+  `react-native-svg`). Desi türetilmiş bir birim; kimse elindeki kutunun kaç
+  desi olduğunu bilmiyor. Ölçüler `data/sizeClasses.ts` içinde ve hepsi
+  `en×boy×yükseklik/3000` kuralıyla kendi kademesinin tavanına oturuyor
+  (20×15×10 = 1 desi, 30×20×15 = 3, 40×30×25 = 10, 50×40×30 = 20,
+  60×50×30 = 30). **Bütün kutular tek ölçekle çiziliyor** — her biri kendi
+  tuvaline sığdırılsaydı XS ile XXL aynı büyüklükte görünür ve çizimin tek
+  işi olan "benimki hangisi" sorusu cevapsız kalırdı.
+- **Konum serbest metin değil, listeden seçim.** `data/konumlar.ts` — 81 il,
+  973 ilçe, PTT posta kodu veri kümesinden türetildi. Önceden "kadıköy",
+  "Kadikoy", "İstanbul/Kadıköy" hepsi ayrı değer olarak yazılıyordu; konum bir
+  süzgeç girdisi ve süzgeç ancak değerler tekilse çalışır. Saklanan biçim
+  **"İlçe, İl"** ("Kadıköy, İstanbul") — 51 ilde "Merkez" adında bir ilçe var
+  ve tek başına "Merkez" bir bilgi değil. Arama Türkçeye duyarsız
+  ("kadikoy" → Kadıköy); mahalle bu dosyaya hiç girmiyor, çünkü site açık web
+  ve indeksleniyor.
+- **Konum zorunlu değil.** `create_listing` opsiyonel kabul ediyor; arayüzün
+  sunucudan daha katı olması bir ürün kararı olurdu. Boş bırakılırsa kartta
+  konum satırı hiç çizilmiyor ve ekran bunu açıkça söylüyor.
 
 ## Kritik iş kuralları (mimariyi belirler)
 - **Güvenli havuz = PUAN tutar, gerçek para DEĞİL.** Escrow kendi çift girişli
