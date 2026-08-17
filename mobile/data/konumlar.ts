@@ -351,15 +351,27 @@ const ANAHTARLAR = KONUMLAR.map((k) => ({
 }));
 
 /**
+ * Bir aramada gösterilen en fazla sonuç.
+ *
+ * Dışa açık, çünkü **sessiz kırpma yalan söyler**: "merkez" yazan kullanıcı 51
+ * ilçeden 40'ını görür ve kendi ilçesi listede yokmuş gibi durur. Ekran bu
+ * sayıya bakıp "daralt" uyarısı çiziyor; iki yerde iki ayrı sabit olsaydı
+ * biri değişince uyarı yanlış eşikte çıkardı.
+ */
+export const KONUM_LIMIT = 40;
+
+/**
  * Konum arar. Boş sorguda en kalabalık illerin ilçeleri değil, **hiçbir şey**
  * dönmüyor: hazır bir liste göstermek, kullanıcının kendi ilçesini aramak
  * yerine ilk gördüğünü seçmesine yol açardı.
  *
  * Sıralama üç kademeli — ilçe adının başına uyanlar, ilin başına uyanlar,
  * sonra içinde geçenler. "kadi" yazınca Kadıköy ilk sırada olmalı; aynı
- * harfleri içinde barındıran uzak bir ilçe önüne geçmemeli.
+ * harfleri içinde barındıran uzak bir ilçe önüne geçmemeli. İl önekinin de
+ * sayması şart: 51 ilde "Merkez" adında bir ilçe var ve o kullanıcıların tek
+ * makul araması kendi illerinin adı.
  */
-export function konumAra(sorgu: string, limit = 40): Konum[] {
+export function konumAra(sorgu: string, limit = KONUM_LIMIT): Konum[] {
   const q = anahtar(sorgu.trim());
   if (q.length < 2) return [];
 
@@ -376,15 +388,4 @@ export function konumAra(sorgu: string, limit = 40): Konum[] {
 
   bulunan.sort((x, y) => x.puan - y.puan || x.k.etiket.localeCompare(y.k.etiket, 'tr'));
   return bulunan.slice(0, limit).map((b) => b.k);
-}
-
-/**
- * Etiket gerçekten listeden mi geliyor?
- *
- * Arayüz yalnızca listeden seçtiriyor, ama bu kontrol taslak ilanların eski
- * serbest metin konumlarını da kapsıyor: geçersizse ekran seçimi boş
- * gösteriyor ve kullanıcıyı yeniden seçmeye zorluyor.
- */
-export function konumGecerli(etiket: string): boolean {
-  return KONUMLAR.some((k) => k.etiket === etiket);
 }

@@ -19,7 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Condition } from '../data/products';
 import { CATEGORY_TREE, Category, SubCategory, subsOf } from '../data/categories';
 import { SIZE_CLASSES, SIZE_INFO, SizeClass } from '../data/sizeClasses';
-import { Konum, konumAra } from '../data/konumlar';
+import { KONUM_LIMIT, Konum, konumAra } from '../data/konumlar';
 import { KutuCizimi } from '../components/KutuCizimi';
 import { createListing } from '../lib/listings';
 import { useAuth } from '../lib/auth';
@@ -153,40 +153,55 @@ export default function AddListing() {
   const sonAdim = adim === ADIM_SAYISI - 1;
   const ilerleyebilir = adimTamam(adim) && !saving;
 
-  const geri = useCallback(() => {
-    if (adim > 0) {
-      setAdim((a) => a - 1);
-      return true;
-    }
-    return false;
-  }, [adim]);
-
-  /* Donanım geri tuşu adımlar arasında geziniyor, ekranı kapatmıyor.
-     Yakalanmasaydı üçüncü adımdaki kullanıcı geri tuşuna basınca doldurduğu
-     her şeyi kaybederdi — ve bunu ancak kaybettikten sonra öğrenirdi. */
-  useEffect(() => {
-    const abone = BackHandler.addEventListener('hardwareBackPress', geri);
-    return () => abone.remove();
-  }, [geri]);
-
   /**
    * Ekranı bırakır — girilen bilgi varsa önce sorar.
    *
-   * Hem kapatma çarpısı hem "Taslaklar" bağlantısı buradan geçiyor. Önceden
-   * ikisi de doğrudan `router.back()` çağırıyordu: beş adımı doldurup yanlışlıkla
-   * "Taslaklar"a dokunan kullanıcı her şeyi kaybediyordu ve kaybettiğini
-   * ancak geri dönünce görüyordu.
+   * Hem kapatma çarpısı, hem donanım geri tuşu, hem de "Taslaklar" bağlantısı
+   * buradan geçiyor. Önceden hepsi doğrudan `router.back()` çağırıyordu: beş
+   * adımı doldurup yanlışlıkla "Taslaklar"a dokunan kullanıcı her şeyi
+   * kaybediyordu ve kaybettiğini ancak geri dönünce görüyordu.
+   *
+   * `useCallback` ve bağımlılıkları önemli: geri tuşu dinleyicisi bu
+   * fonksiyonu kapatıyor ve `title` bayat kalırsa "başlık boş mu" kontrolü
+   * eski değeri okur — yani tam da korumaya çalıştığı veriyi es geçer.
    */
-  function birak(git: () => void) {
-    if (adim === 0 && title.trim() === '') {
-      git();
-      return;
-    }
-    uyar('İlanı bırak', 'Girdiğin bilgiler kaydedilmeyecek.', [
-      { text: 'Devam et', style: 'cancel' },
-      { text: 'Bırak', style: 'destructive', onPress: git },
-    ]);
-  }
+  const birak = useCallback(
+    (git: () => void) => {
+      if (adim === 0 && title.trim() === '') {
+        git();
+        return;
+      }
+      uyar('İlanı bırak', 'Girdiğin bilgiler kaydedilmeyecek.', [
+        { text: 'Devam et', style: 'cancel' },
+        { text: 'Bırak', style: 'destructive', onPress: git },
+      ]);
+    },
+    [adim, title],
+  );
+
+  const geri = useCallback(() => {
+    setAdim((a) => Math.max(0, a - 1));
+  }, []);
+
+  /* Donanım geri tuşu adımlar arasında geziniyor, ekranı kapatmıyor.
+     Yakalanmasaydı üçüncü adımdaki kullanıcı geri tuşuna basınca doldurduğu
+     her şeyi kaybederdi — ve bunu ancak kaybettikten sonra öğrenirdi.
+
+     İlk adımda `true` dönmek de bilinçli: orada geri tuşu ekranı kapatmalı
+     ama **sormadan değil**. `false` döndürüp sistemin kapatmasına izin
+     verseydik, başlığı yazmış kullanıcı tek dokunuşla her şeyi kaybederdi —
+     ve çarpı düğmesi soruyorken geri tuşunun sormaması tutarsız olurdu. */
+  useEffect(() => {
+    const abone = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (adim > 0) {
+        geri();
+      } else {
+        birak(() => router.back());
+      }
+      return true;
+    });
+    return () => abone.remove();
+  }, [adim, geri, birak, router]);
 
   /** O adımda neyin eksik olduğunu söyleyen tek cümle. */
   function ipucu(i: number): string {
@@ -269,7 +284,7 @@ export default function AddListing() {
   return (
     <View style={styles.root}>
       <View style={[styles.appbar, { paddingTop: insets.top }]}>
-        <Pressable style={styles.iconBtn} onPress={adim === 0 ? () => birak(() => router.back()) : geri} hitSlop={8}>
+        <Pressable style={styles.iconBtn} onPress={() => (adim === 0 ? birak(() => router.back()) : geri())} hitSlop={8}>
           <MaterialIcons
             name={adim === 0 ? 'close' : 'arrow-back'}
             size={24}
@@ -304,7 +319,7 @@ export default function AddListing() {
         keyboardVerticalOffset={insets.top + 60}
       >
         <ScrollView
-          contentContainerStyle={{ padding: 18, paddingBottom: 130 }}
+          contentContainerStyle={{ padding: 18, paddingBottom: 28 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
@@ -597,6 +612,16 @@ export default function AddListing() {
                     </Text>
                   ) : null}
 
+                  {/* Kırpıldıysa söyleniyor. "merkez" yazan kullanıcı 51
+                      ilçeden 40'ını görüyor ve sessiz kalınsaydı kendi ilçesi
+                      listede yokmuş gibi dururdu. */}
+                  {konumSonuclari.length >= KONUM_LIMIT ? (
+                    <Text style={styles.bosSonuc}>
+                      Çok fazla eşleşme var; ilk {KONUM_LIMIT} tanesi gösteriliyor. İlinin
+                      adını yazarak daraltabilirsin.
+                    </Text>
+                  ) : null}
+
                   {konumSonuclari.map((k) => (
                     <Pressable
                       key={k.etiket}
@@ -628,29 +653,36 @@ export default function AddListing() {
             </>
           ) : null}
         </ScrollView>
-      </KeyboardAvoidingView>
 
-      <View style={[styles.actionbar, { paddingBottom: insets.bottom + 14 }]}>
-        <Pressable style={[styles.cta, !ilerleyebilir && styles.ctaOff]} disabled={!ilerleyebilir} onPress={ileri}>
-          {saving ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              {sonAdim ? <MaterialIcons name="photo-camera" size={20} color="#fff" /> : null}
-              <Text style={styles.ctaText}>
-                {sonAdim ? 'Devam et: Fotoğraflar' : 'Devam'}
-              </Text>
-            </>
-          )}
-        </Pressable>
-        {/* İpucu artık tek bir genel cümle değil, o adıma ait eksiği söylüyor.
-            Eskiden "başlık, kategori ve ürün durumunu seç" yazıyordu ve
-            kullanıcı hangisinin eksik olduğunu deneyerek buluyordu. */}
-        {!ilerleyebilir && !saving ? <Text style={styles.ctaHint}>{ipucu(adim)}</Text> : null}
-        {sonAdim && ilerleyebilir && !konum ? (
-          <Text style={styles.ctaHint}>Konum seçmezsen ilanında konum satırı görünmez.</Text>
-        ) : null}
-      </View>
+        {/* Eylem çubuğu KeyboardAvoidingView'ın **içinde** ve mutlak konumlu
+            değil: dışarıdayken klavye açılınca "Devam" düğmesi klavyenin
+            altında kalıyordu. İki ekranda da metin yazılıyor (ürün adı ve
+            hasar notu), yani devam edebilmek için önce klavyeyi kapatmak
+            gerekiyordu. */}
+        <View style={[styles.actionbar, { paddingBottom: insets.bottom + 14 }]}>
+          <Pressable
+            style={[styles.cta, !ilerleyebilir && styles.ctaOff]}
+            disabled={!ilerleyebilir}
+            onPress={ileri}
+          >
+            {saving ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                {sonAdim ? <MaterialIcons name="photo-camera" size={20} color="#fff" /> : null}
+                <Text style={styles.ctaText}>{sonAdim ? 'Devam et: Fotoğraflar' : 'Devam'}</Text>
+              </>
+            )}
+          </Pressable>
+          {/* İpucu artık tek bir genel cümle değil, o adıma ait eksiği söylüyor.
+              Eskiden "başlık, kategori ve ürün durumunu seç" yazıyordu ve
+              kullanıcı hangisinin eksik olduğunu deneyerek buluyordu. */}
+          {!ilerleyebilir && !saving ? <Text style={styles.ctaHint}>{ipucu(adim)}</Text> : null}
+          {sonAdim && ilerleyebilir && !konum ? (
+            <Text style={styles.ctaHint}>Konum seçmezsen ilanında konum satırı görünmez.</Text>
+          ) : null}
+        </View>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -783,15 +815,7 @@ const styles = StyleSheet.create({
   degerlemeBaslik: { fontSize: 13.5, fontWeight: '800', color: colors.onSurface },
   degerlemeMetin: { fontSize: 12.5, lineHeight: 19, color: colors.onSurfaceVariant, fontWeight: '500', marginTop: 5 },
 
-  actionbar: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: 18,
-    paddingTop: 14,
-    backgroundColor: colors.surfaceContainer,
-  },
+  actionbar: { paddingHorizontal: 18, paddingTop: 14, backgroundColor: colors.surfaceContainer },
   cta: {
     flexDirection: 'row',
     alignItems: 'center',
