@@ -52,7 +52,7 @@ değildir, uygulama paketine zaten gömülür. `service_role` anahtarı repoda
 **Göçler ve testler yerelde koşturulabilir: `supabase/tests/kosu.sh`.**
 Temiz bir veri tabanı kurar, `00_yerel_kurulum.sql` ile Supabase'e özgü şeyleri
 (auth/storage/cron şemaları, üç rol, `auth.uid()`, **varsayılan yetkiler**)
-taklit eder, bütün göçleri uygular, sonra test paketini koşar. Bugün: 44 göç,
+taklit eder, bütün göçleri uygular, sonra test paketini koşar. Bugün: 45 göç,
 23 test, sıfır hata.
 
 **Betik "hata yok" derken sözdizimini kastediyor, iddiaları değil.** Sayaç
@@ -156,6 +156,29 @@ mesajlaşma. Yardımcı onların konusuna dönmesini sağlıyor ve gerçek form�
 bilerek atlıyor; formülün kendi testleri var. Sıra kritik: `rpc_grants_final`
 bütün fonksiyonlardan EXECUTE'u geri alıyor, yardımcı göçlerden önce
 oluşturulsaydı yetkisi hemen silinirdi.
+
+**Dört kondisyon var, hasar ayrı bir kutu değil** (2026-08-16). 'Yeni gibi',
+'Az kullanılmış', 'İyi durumda', **'Hasarlı'**. Hasar eskiden bağımsız bir
+anahtardı ve iki sorun üretiyordu: "Yeni gibi ama hasarlı" gibi çelişkili
+beyan mümkündü, ve kutu kondisyon çiplerinin altında küçük kaldığı için
+satıcı çoğu zaman fark etmiyordu — beyan edilmeyen hasar, alıcının itirazı ve
+havuzdan ödediğimiz iade demek.
+
+'Hasarlı' seçilince `has_damage` **sunucuda** zorla true oluyor. İstemciye
+bırakılsaydı kondisyon 'Hasarlı' gelip bayrak false gelebilir, hasar karesi
+istenmez ve hasarlı ürün fotoğrafsız yayına girerdi. Bayrak true olunca
+`required_slots()` hasar karesini zaten istiyor — yani "hasarlı seçildiyse
+fotoğraf zorunlu" kuralı yeni kod gerektirmedi.
+
+**Hasarda oran sabit değil, şiddete göre geziniyor:**
+
+    oran = oran_iyi_durumda − (oran_iyi_durumda − oran_hasarli) × şiddet
+
+Sebebi: 'Hasarlı' tek bir şey değil — köşesi çizilmiş bir kutu ile tekerleği
+kırık bir araba aynı kelimeyle beyan ediliyor. Sabit oran ikisinden birine
+haksızlık ederdi. Şiddeti model karelerden okuyor; bilinmiyorsa 1 alınıyor.
+Ek `hasar_indirimi` bu yolda **uygulanmıyor** — oran zaten hasarı fiyatlıyor,
+ikisi birden aynı kusuru iki kez cezalandırmak olurdu.
 
 **Açık yan etki: kampanya puanı.** Ölçek ~420'den ~1000'e çıktı, yani 250+250
 hoş geldin puanı bir ürünün tamamı yerine yarısını alıyor. Soğuk başlangıçta

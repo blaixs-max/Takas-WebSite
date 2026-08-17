@@ -85,3 +85,25 @@ select puan_hesapla(1599, 'İyi durumda') as yeni_puan,
        puan_hesapla(1599, 'İyi durumda') between 780 and 820 as ayar_islendi;
 update valuation_settings set oran_iyi_durumda = 0.62 where id = 1;
 \echo 'BEKLENEN: ayar_islendi = t (~800), sonra eski değere döndü'
+
+\echo ''
+\echo '=== 9) HASARLI KONDİSYONU — ŞİDDETE GÖRE GEZİNİYOR ==='
+-- 'Hasarlı' tek bir şey değil: köşesi çizilmiş kutu ile tekerleği kırık araba
+-- aynı kelimeyle beyan ediliyor. Sabit oran ikisinden birine haksızlık ederdi.
+select puan_hesapla(1599, 'Hasarlı', true, 0.0) as hafif,
+       puan_hesapla(1599, 'Hasarlı', true, 0.5) as orta,
+       puan_hesapla(1599, 'Hasarlı', true, 1.0) as agir;
+select puan_hesapla(1599, 'Hasarlı', true, 0.0) > puan_hesapla(1599, 'Hasarlı', true, 1.0) as siddet_isliyor,
+       puan_hesapla(1599, 'Hasarlı', true, 0.0) = puan_hesapla(1599, 'İyi durumda') as sifir_siddet_iyi_duruma_esit,
+       puan_hesapla(1599, 'Hasarlı', true, 1.0) < puan_hesapla(1599, 'İyi durumda') as agir_daha_dusuk;
+\echo 'BEKLENEN: üçü de t — şiddet 0 iyi duruma eşit, şiddet 1 hasarlı bandında'
+
+\echo ''
+\echo '=== 10) Hasar iki kez cezalandırılmıyor ==='
+-- 'Hasarlı' oranı zaten hasarı fiyatlıyor; üstüne `hasar_indirimi` de
+-- uygulansaydı aynı kusur iki kez düşülürdü.
+select puan_hesapla(1599, 'Hasarlı', true, 1.0) as hasarli_puan,
+       round(1599 * (select oran_hasarli from valuation_settings) / 10) * 10 as beklenen,
+       puan_hesapla(1599, 'Hasarlı', true, 1.0)
+         = (round(1599 * (select oran_hasarli from valuation_settings) / 10) * 10)::integer as cift_ceza_yok;
+\echo 'BEKLENEN: cift_ceza_yok = t'

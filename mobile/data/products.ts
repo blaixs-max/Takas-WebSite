@@ -2,7 +2,7 @@ import { ImageSourcePropType } from 'react-native';
 import { EMPTY_IMAGE, resolveImage, resolveGallery } from './productImages';
 import { Category, SubCategory } from './categories';
 
-export type Condition = 'İyi durumda' | 'Az kullanılmış' | 'Yeni gibi';
+export type Condition = 'İyi durumda' | 'Az kullanılmış' | 'Yeni gibi' | 'Hasarlı';
 export type { Category, SubCategory };
 
 export interface Product {
@@ -132,8 +132,14 @@ export function rowToProduct(
  * seçilince beş kategori boş dönüyordu. Tasarımın vitrininde bir puset ve bir
  * kitap seti var — ikisi de eklendi, fotoğrafları da tasarım paketinden.
  *
- * `condition` üç değerle sınırlı (`products` CHECK kısıtı): 'İyi durumda',
- * 'Az kullanılmış', 'Yeni gibi'. Tasarımın "Çok iyi"si bizde yok — kullanıcı
+ * `condition` dört değerle sınırlı (`products` CHECK kısıtı): 'Yeni gibi',
+ * 'Az kullanılmış', 'İyi durumda', 'Hasarlı'. Dördüncüsü 2026-08-16'da geldi:
+ * hasar eskiden ayrı bir onay kutusuydu ve iki sorun üretiyordu — "Yeni gibi
+ * ama hasarlı" gibi çelişkili beyan mümkündü, ve kutu kondisyon çiplerinin
+ * altında küçük kaldığı için satıcı çoğu zaman fark etmiyordu. Beyan
+ * edilmeyen hasar, alıcının itirazı ve havuzdan ödediğimiz iade demek.
+ * 'Hasarlı' seçilince `has_damage` sunucuda zorla true oluyor, o da hasar
+ * karesini zorunlu kılıyor. Tasarımın "Çok iyi"si bizde yok — kullanıcı
  * kararıyla durumlar bizim üçlümüz kalıyor.
  */
 export const DEMO_PRODUCTS: Product[] = [
