@@ -802,6 +802,40 @@ Tavan mekanizmasının kod yolu duruyor ve `puan_sunucuda_test.sql` 7b onu
 sınıyor: biri sınır koyarsa çalışmalı. Ölü bir kontrol, olmayan kontrolden
 kötüdür — var sanılır.
 
+## Taban puan 50 — kelepçe, kapı değil (2026-08-17)
+
+`valuation_settings.taban_puan = 50` ve tavanın **tersi** biçimde çalışıyor:
+tavan bir kapıydı (aşarsan yayına giremezsin), taban bir kelepçe (altında
+kalırsan sessizce yükseltilirsin). Kimseyi durdurmuyor.
+
+Yaklaşık **80 TL'nin altındaki her ürün 50 puan alıyor**: 25 TL'lik bir
+oyuncak 16 puan hak ederken 50 puanla listeleniyor.
+
+**Tavan kaldırıldıktan sonra taban, puanın yoktan var olduğu tek yer.**
+10 TL'lik yirmi ürün 200 TL karşılığında 1000 puan üretir. Bu bilinerek
+korunuyor — "her ilanın bir taban değeri olsun" bir ürün kararı.
+
+**Kullanıcı artık bunu görüyor** (`products.taban_uygulandi`). Yayın ya da
+inceleme mesajının sonuna bir cümle ekleniyor: "Bu ürünün hesaplanan değeri en
+düşük ilan değerinin altında kaldı; ilanın taban puan olan 50 puanla
+listelendi." Engellenmiyor — değerleme ancak bütün kareler çekildikten sonra
+çalışıyor, yani oradaki bir duvar kullanıcının emeğini çöpe atardı. Tavanda
+tam olarak bu yaşandı.
+
+**İşaret kolonda tutuluyor, anlık hesaplanmıyor.** "Puan 50'ye eşitse taban
+uygulanmıştır" çıkarımı yanlış olurdu: 80 TL'lik ürün de tam 50 puan eder ve
+orada yükseltme yoktur. Ayrıca oranlar ya da taban değişirse geçmiş ilanlar
+bugünkü ayarla yeniden yorumlanmamalı.
+
+**Oran seçimi `puan_orani`'na çıkarıldı.** `degerleme_yaz` ham değeri
+hesaplayabilmek için aynı orana ihtiyaç duyuyordu; mantığı ikinci kez yazmak
+ilk oran değişikliğinde ayrışma demekti.
+
+**`create or replace` varsayılan kaldıramaz.** `degerleme_yaz` ve
+`puan_hesapla` güncellenirken imzadaki varsayılanların birebir kopyalanması
+gerekti (`p_hasar_siddeti default 1.0` gibi); `drop` etmek çağıranları
+kırardı.
+
 ## Bekleyen kare kullanıcıyı ekranda tutmaz (2026-08-17)
 
 Model bazı karelerde karar veremiyor; o kareler `pending` kalıp yönetim

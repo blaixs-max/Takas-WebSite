@@ -32,6 +32,16 @@ import { colors, elevation, shape } from '../theme/tokens';
  * o kararı sunucu veriyor, buradaki kontrol yalnızca kullanıcıyı boşuna
  * bekletmemek için.
  */
+/**
+ * Taban puan — yalnızca kullanıcıya gösterilen metin için.
+ *
+ * Gerçek taban `valuation_settings.taban_puan` (sunucu) ve hesap orada
+ * yapılıyor; buradaki sayı hiçbir karara girmiyor. Ayarı değiştirirsen bu
+ * cümle de güncellenmeli — istemciye ayar tablosunu açmak, ekonomiyi
+ * istemciye açmak olurdu.
+ */
+const TABAN_PUAN = 50;
+
 export default function ListingPhotos() {
   const { id, hasDamage, isSet, title } = useLocalSearchParams<{
     id: string;
@@ -220,8 +230,20 @@ export default function ListingPhotos() {
        geçirmez. Burada ayrıca kontrol etmek aynı kararı iki yerde vermek
        olurdu. */
     setDegerleniyor(true);
-    await degerlet(id!);
+    const degerleme = await degerlet(id!);
     setDegerleniyor(false);
+
+    /* Taban uygulandıysa kullanıcıya söylenir — engellenmez.
+       Taban (50 puan) bir kelepçe: hesaplanan değer altında kalırsa puan
+       sessizce yükseliyordu ve satıcı ilanının neden "50 puan" dediğini
+       hiçbir yerde okumuyordu. Rakam açıklanmazsa keyfî görünür ve
+       değerlemeye güven aşınır.
+       Engellemek seçenek değildi: değerleme ancak bütün kareler çekildikten
+       sonra çalışıyor, yani buradaki bir duvar kullanıcının emeğini çöpe
+       atardı — bugün tavanda yaşananın aynısı. */
+    const tabanNotu = degerleme.tabanUygulandi
+      ? `\n\nBu ürünün hesaplanan değeri en düşük ilan değerinin altında kaldı; ilanın taban puan olan ${TABAN_PUAN} puanla listelendi.`
+      : '';
 
     /* **Bekleyen kare kullanıcıyı ekranda tutmuyor.** Model bazı karelerde
        karar veremiyor; o kareler yönetim kuyruğuna düşüyor ve insan onayı
@@ -236,9 +258,10 @@ export default function ListingPhotos() {
       setYayinlaniyor(false);
       uyar(
         'İlanın incelemeye alındı',
-        analiz.bekleyen === 1
+        (analiz.bekleyen === 1
           ? 'Bir fotoğrafın kontrol ediliyor. Onaylanınca ilanın kendiliğinden yayına girecek ve sana bildirim göndereceğiz — burada beklemene gerek yok.'
-          : `${analiz.bekleyen} fotoğrafın kontrol ediliyor. Onaylanınca ilanın kendiliğinden yayına girecek ve sana bildirim göndereceğiz — burada beklemene gerek yok.`,
+          : `${analiz.bekleyen} fotoğrafın kontrol ediliyor. Onaylanınca ilanın kendiliğinden yayına girecek ve sana bildirim göndereceğiz — burada beklemene gerek yok.`) +
+          tabanNotu,
         [{ text: 'Tamam', onPress: () => router.replace('/') }],
       );
       return;
@@ -253,7 +276,7 @@ export default function ListingPhotos() {
       await tazele();
       return;
     }
-    uyar('İlan yayında', `${title ?? 'İlanın'} rafa eklendi.`, [
+    uyar('İlan yayında', `${title ?? 'İlanın'} rafa eklendi.${tabanNotu}`, [
       { text: 'Tamam', onPress: () => router.replace('/') },
     ]);
   }

@@ -162,6 +162,14 @@ export interface DegerlemeSonuc {
   urun?: string;
   sifirFiyat?: number | null;
   puan?: number | null;
+  /**
+   * Hesaplanan puan taban puanın altında kalıp yükseltildi mi.
+   *
+   * Puanın 50 olmasından çıkarılamaz: 80 TL'lik bir ürün de tam 50 puan eder
+   * ama orada yükseltme yoktur. Ayrımı yapan tek şey sunucunun değerleme
+   * anında koyduğu işaret.
+   */
+  tabanUygulandi?: boolean;
 }
 
 /**
@@ -182,11 +190,26 @@ export async function degerlet(productId: string): Promise<DegerlemeSonuc> {
       body: { productId },
     });
     if (error) return { bulundu: false };
+
+    /* Taban işareti Edge Function'ın döndürdüğü gövdede yok; satırdan
+       okunuyor. Fonksiyonu yeniden yayınlamamak için böyle: işaret zaten
+       `degerleme_yaz` tarafından ürüne yazılıyor ve kullanıcı kendi ilanını
+       okuyabiliyor. Okunamazsa `undefined` kalır ve ekran hiçbir şey
+       söylemez — yanlış bir şey söylemektense susmak doğru. */
+    let tabanUygulandi: boolean | undefined;
+    const { data: satir } = await supabase
+      .from('products')
+      .select('taban_uygulandi')
+      .eq('id', productId)
+      .single();
+    if (satir) tabanUygulandi = Boolean(satir.taban_uygulandi);
+
     return {
       bulundu: data?.bulundu === true || data?.tekrar === true,
       urun: data?.urun,
       sifirFiyat: data?.sifirFiyat ?? null,
       puan: data?.puan ?? null,
+      tabanUygulandi,
     };
   } catch {
     return { bulundu: false };

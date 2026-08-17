@@ -160,3 +160,38 @@ select has_function_privilege('authenticated', p.oid, 'execute') as authenticate
   from pg_proc p join pg_namespace n on n.oid = p.pronamespace
  where n.nspname = 'public' and p.proname = 'degerleme_yaz';
 \echo 'BEKLENEN: ikisi de f — puanı yazabilen istemci, puanı seçebilir demektir'
+
+\echo ''
+\echo '=== 9) TABAN UYGULANINCA İŞARETLENİR ==='
+-- Taban (50) bir kelepçe: hesaplanan puan altında kalırsa sessizce yükseltir.
+-- Satıcı ilanının neden 50 puan dediğini bilmeli, yoksa rakam keyfî görünür.
+-- İşaret puanın 50 olmasından çıkarılamaz — 80 TL'lik ürün de tam 50 eder ama
+-- orada yükseltme yoktur; ayrımı yapan tek şey bu kolon.
+reset role;
+select id from create_listing('Ucuz oyuncak', 'Oyun & Oyuncak', 'İyi durumda', 'S',
+                              p_sub_category => 'Yapı & inşa') \gset u_
+select points from degerleme_yaz(:'u_id', 25, 'test', 0.9, 'test') \gset uc_
+select bekle_esit('25 TL tabana yükseltilir', :uc_points, 50);
+select bekle('taban işareti konur',
+             (select taban_uygulandi from products where id = :'u_id'));
+
+\echo ''
+\echo '=== 9b) TAM TABANDA İŞARET KONMAZ ==='
+-- 80 TL × %62 = 49,6 → 50. Yuvarlamayla tabana ulaşıyor, yükseltilmiyor.
+select id from create_listing('Tam tabanda', 'Oyun & Oyuncak', 'İyi durumda', 'S',
+                              p_sub_category => 'Yapı & inşa') \gset tt_
+select points from degerleme_yaz(:'tt_id', 81, 'test', 0.9, 'test') \gset tp_
+select bekle_esit('81 TL zaten 50 puan eder', :tp_points, 50);
+select bekle('yükseltme olmadığı için işaret konmaz',
+             (select not taban_uygulandi from products where id = :'tt_id'));
+
+\echo ''
+\echo '=== 9c) TABAN ÜSTÜ ÜRÜNDE İŞARET YOK ==='
+select id from create_listing('Normal ürün', 'Oyun & Oyuncak', 'İyi durumda', 'S',
+                              p_sub_category => 'Yapı & inşa') \gset n_
+select points from degerleme_yaz(:'n_id', 1000, 'test', 0.9, 'test') \gset np_
+select bekle_esit('1000 TL × %62 = 620 puan', :np_points, 620);
+select bekle('taban devreye girmedi',
+             (select not taban_uygulandi from products where id = :'n_id'));
+set session role authenticated;
+select set_config('test.uid', :'s', false);
