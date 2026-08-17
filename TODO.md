@@ -673,6 +673,39 @@ değiştirilemez.
 - [x] **pg_cron doğrulaması** — canlıda bakıldı: `kt-expire-stale-trades`
       (`7 * * * *`) ve `kt-expire-stale-disputes` (`22 * * * *`), ikisi de aktif
 
+## 🧪 Vercel AI Gateway — A/B testi (2026-08-17 · beklemede)
+
+Gemini 3.7 Flash, AI Gateway üzerinde **31 Aralık 2026'ya kadar %50 indirimli**.
+Şu an iki Edge Function da Google'a doğrudan gidiyor (`x-goog-api-key`).
+
+**Karar A/B testine bırakıldı.** Test edilirken bilinmesi gerekenler:
+
+- [ ] **Arama aracı geçiyor mu — tek kritik soru.** `listing-value`
+      `googleSearch` grounding kullanıyor; termosun 1750 TL'sini gerçekten
+      Akakçe/Trendyol'a bakarak buldu. Gateway sağlayıcıları ortak arayüzde
+      topluyor ve Google'a özel bu aracın geçip geçmediği **doğrulanmadı**.
+      Geçmezse değerleme internete bakmayı bırakır, modelin ezberinden fiyat
+      söyler — kodun kendi yorumuyla "eski fiyat üreteci" olur. İndirimden
+      pahalıya gelir.
+- [ ] **Bölerek başla.** Çağrıların **~%83'ü** `photo-check` (termos ilanında
+      5 çağrıya 1). O fonksiyon arama kullanmıyor, yani risksiz ve indirimin
+      neredeyse tamamını taşıyor. `listing-value` doğrudan kalabilir.
+- [ ] **İndirim BYOK'ta geçerli mi?** Duyuru "kendi anahtarınla platform ücreti
+      almayız" diyor; %50 muhtemelen Vercel'den token alınca geçerli. Kendi
+      Google anahtarınla gidersen Google'a tam fiyat ödersin. Netleşmeden
+      tasarruf hesabı yapılmasın.
+- [ ] **Gizlilik metni aynı turda güncellenir.** Gateway yeni bir üçüncü taraf:
+      çocuk fotoğrafları Vercel altyapısından da geçer. `/gizlilik/` şu an
+      yalnızca Google'ı ve iyzico'yu sayıyor. Bu tam olarak 2026-08-17'de iki
+      kez düzelttiğimiz hata. Sıfır Veri Saklama işe yarar ama **açık olduğu
+      doğrulanıp metne yazılmalı**.
+
+Asıl kazanç indirim olmayabilir: Gateway'in **yeniden deneme ve yedek modele
+geçiş**i, Google takıldığında karenin `pending` kalıp onay kuyruğunu şişirmesini
+önler.
+
+Kaynak: `vercel.com/changelog/gemini-3-7-flash-now-available-on-ai-gateway-for-50-off`
+
 ## 🔜 Sonra
 - [x] **Değerleme motoru kuruldu** (2026-08-16). `valuation_settings` +
       `puan_hesapla()` + `puan_bandi_disinda()`, 8 iddialı test. **1 puan = 1 ₺
