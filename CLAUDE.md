@@ -1166,10 +1166,14 @@ npm start                             # geliştirme (Expo Go) — TÜNEL varsay�
 # npm run start:yerel  → aynı Wi-Fi (LAN); yalnızca kendi telefonunla hızlı
 #
 # TÜNEL DÜŞERSE ("Cannot read properties of undefined (reading 'body')"):
-# ngrok'un paylaşımlı hesabı sınıra dayanmıştır. `.env`e iki satır ekle —
-# gerekçesi `mobile/.env.example` içinde yazılı:
+# ngrok'un paylaşımlı hesabı sınıra dayanmıştır. Önce TEKRAR DENE — geçici.
+# Israr ederse `.env`de tek satır (gerekçesi `mobile/.env.example` içinde):
 #   EXPO_FORCE_WEBCONTAINER_ENV=1   → ngrok yerine @expo/ws-tunnel
-#   EXPO_TUNNEL_SUBDOMAIN=eldenele-test → adres sabitlenir, karekod değişmez
+# Karekod akışı bundan etkilenmiyor; yalnızca tünel servisi değişiyor.
+#
+# Sabit tünel adresi (`EXPO_TUNNEL_SUBDOMAIN`) bilerek KULLANILMIYOR —
+# kullanıcı kararı karekoddan yana (2026-08-18). Bağlantı göndermek yerine
+# karekod okutmak, teknolojiden anlamayan test kullanıcısı için daha kolay.
 EXPO_NO_TELEMETRY=1 CI=1 npx expo export --platform web   # derleme doğrulama
 
 # Arka uç testleri (yerel geçici Postgres): migration'ları sırayla uygula,
