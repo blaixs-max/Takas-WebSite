@@ -29,14 +29,34 @@ repodaki `/gizlilik/` (profil fotoğrafı denetimi, kayıtlı adresler, galeri
 izni, hesap silme listesi). Sonuncusu kural gereği: uygulamadan dışarı yeni
 bir veri akışı çıkıyorsa o sayfa aynı turda güncellenir.
 
-### Yayına alınacak (panel/CLI gerekiyor)
+### Yayına alındı (2026-08-18)
 
-- [ ] Üç göç canlıya: `20260818060000_ilan_silme.sql`,
-      `20260818070000_adres_defteri.sql`, `20260818080000_profil_fotografi.sql`
-- [ ] `npx supabase functions deploy avatar-check --project-ref fauhxnbxwcpsdfcvfodz`
-- [ ] `avatars` kovasının panelde göründüğünü doğrula (göç oluşturuyor)
-- [ ] Uygulamada tek tur: taslak sil · adres ekle/düzenle/sil · avatar yükle
-      (biri kabul, biri ret) · filtre paneli
+- [x] `avatar-check` v1 ACTIVE (kullanıcı dağıttı)
+- [x] Üç göç canlıda: `ilan_silme`, `adres_defteri`, `profil_fotografi`
+
+      **Bir tur boşa gitti ve dersi kayda değer:** fonksiyon dağıtıldı, göçler
+      dağıtılmadı sanıldı — ikisi ayrı komut. Arada kalan sürede `avatar-check`
+      yayındaydı ama dayandığı kolonlar yoktu; çağrılsa "column does not
+      exist" ile düşerdi. Göç dosyaları repoda durduğu için "uygulandı"
+      görünüyor; **tek doğrulama `list_migrations`.**
+
+      Canlıda ölçüldü: `addresses` tablosu + 4 politika, `profiles`ta 3 avatar
+      kolonu, `avatars` kovası (public=false, 3 MB), 5 depolama politikası,
+      4 tetikleyici. `profiles_guard_avatar` **invoker** (definer olsaydı
+      kontrol sessizce hiçbir şey yapmazdı). `avatar_karar` ve `addresses`
+      `anon`a kapalı.
+
+- [x] Denetçinin iki uyarısı kapatıldı (`20260818090000_denetci_uyarilari.sql`)
+      — ikisi de **dünkü** göçlerden kalmaydı, bugünküler temiz çıktı:
+      `yayinlanabilir_ad`a `set search_path`, `product_photos_karar_sonrasi`
+      tetikleyici fonksiyonundan `anon`/`authenticated` EXECUTE geri alındı.
+      Tetikleyici etkilenmiyor — PostgreSQL EXECUTE'u `create trigger` anında
+      denetliyor, ateşlenirken değil; yerelde 29 test paketiyle doğrulandı.
+
+### Sırada — cihazda tek tur
+
+- [ ] Taslak sil · adres ekle/düzenle/sil · avatar yükle (biri kabul, biri
+      ret) · filtre paneli. Hiçbiri gerçek bir cihazda çalıştırılmadı.
 
 ### Bu turda kapanmayan
 
