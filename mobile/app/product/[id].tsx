@@ -334,8 +334,13 @@ export default function ProductDetail() {
           {/* Bu düğme `/chat/ZD` gibi bir yola gidiyordu: baş harfler sohbet
               kimliği değil, yani her basışta var olmayan bir sohbet açılmaya
               çalışılıyordu. Alt bardaki düğmeyle aynı işi yapıyor artık. */}
-          <Pressable style={styles.iconBtn} onPress={sohbetAc} accessibilityLabel="Mesaj gönder">
-            <MaterialIcons name="chat-bubble-outline" size={20} color={colors.onSurface} />
+          {/* Etiketli hap, çıplak ikon değil. Tek başına konuşma balonu ne
+              yaptığını söylemiyordu: kart satıcıyı tanıtıyor, sağdaki ikon
+              "profiline git" de olabilirdi. Ekran metinlerinin tamamı Türkçe
+              ve yazılı; burada da yazılı olmalı. */}
+          <Pressable style={styles.mesajHap} onPress={sohbetAc} accessibilityLabel="Mesaj gönder">
+            <MaterialIcons name="chat-bubble-outline" size={16} color={colors.primary} />
+            <Text style={styles.mesajHapText}>Mesaj</Text>
           </Pressable>
         </View>
 
@@ -363,19 +368,30 @@ export default function ProductDetail() {
 
       <View style={[styles.actionbar, { paddingBottom: insets.bottom + 14 }]}>
         {/* Satıcıya sormak, itiraza giden soruların çoğunu baştan çözer. */}
-        <Pressable style={styles.iconSquare} onPress={sohbetAc} accessibilityLabel="Mesaj gönder">
-          <MaterialIcons name="chat-bubble-outline" size={20} color={colors.primary} />
+        {/* İkonların altına etiket. Sepet de etiketleniyor — yalnızca birini
+            yazıya dökmek ikisini farklı seviyede iki şey gibi gösterirdi;
+            oysa ikisi de aynı satırdaki aynı türden eylem.
+            Etiket ikonun ALTINDA, yanında değil: yan yana yazsaydık iki düğme
+            genişler ve asıl eylemi taşıyan "takas et" düğmesi daralırdı. */}
+        <Pressable style={styles.altAksiyon} onPress={sohbetAc} accessibilityLabel="Mesaj gönder">
+          <View style={styles.iconSquare}>
+            <MaterialIcons name="chat-bubble-outline" size={20} color={colors.primary} />
+          </View>
+          <Text style={styles.altAksiyonText}>Mesaj</Text>
         </Pressable>
         <Pressable
-          style={[styles.iconSquare, inSepet && styles.iconSquareOn]}
+          style={styles.altAksiyon}
           onPress={() => toggleCart(product.id)}
-          accessibilityLabel="Sepete ekle"
+          accessibilityLabel={inSepet ? 'Sepetten çıkar' : 'Sepete ekle'}
         >
-          <MaterialIcons
-            name={inSepet ? 'shopping-cart' : 'add-shopping-cart'}
-            size={20}
-            color={colors.primary}
-          />
+          <View style={[styles.iconSquare, inSepet && styles.iconSquareOn]}>
+            <MaterialIcons
+              name={inSepet ? 'shopping-cart' : 'add-shopping-cart'}
+              size={20}
+              color={colors.primary}
+            />
+          </View>
+          <Text style={styles.altAksiyonText}>{inSepet ? 'Sepette' : 'Sepet'}</Text>
         </Pressable>
         <Pressable
           style={[styles.cta, takasEdiliyor && { opacity: 0.6 }]}
@@ -583,6 +599,16 @@ const styles = StyleSheet.create({
   mcText: { fontSize: 11, fontWeight: '700', color: colors.onSurfaceVariant },
   mcTextVurgu: { color: colors.primary },
   desc: { color: colors.onSurfaceVariant, lineHeight: 20, fontSize: 13, fontWeight: '500', marginBottom: 16 },
+  mesajHap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 11,
+    height: 32,
+    borderRadius: shape.full,
+    backgroundColor: colors.primaryContainer,
+  },
+  mesajHapText: { fontSize: 12.5, fontWeight: '800', color: colors.primary },
   seller: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -633,8 +659,10 @@ const styles = StyleSheet.create({
      gibi duruyordu (alt sekme şeridiyle aynı kusur). */
   actionbar: {
     flexDirection: 'row',
-    gap: 7,
-    alignItems: 'center',
+    gap: 8,
+    /* Etiketli sütunlar CTA'dan uzun; ortalanınca CTA aşağı kayıyordu.
+       Üstten hizalanınca ikon satırı ile CTA aynı çizgide duruyor. */
+    alignItems: 'flex-start',
     paddingHorizontal: 18,
     paddingTop: 12,
     backgroundColor: colors.surfaceContainerLow,
@@ -650,6 +678,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconSquareOn: { backgroundColor: colors.primaryContainer },
+  /* Alt çubuktaki etiketli eylem: ikon üstte, yazı altta.
+     `alignItems: 'flex-start'` çubukta çünkü bu sütunlar CTA'dan uzun ve
+     ortalanınca düğme yukarı kayıyordu. */
+  altAksiyon: { alignItems: 'center', gap: 3 },
+  altAksiyonText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: colors.onSurfaceVariant,
+    letterSpacing: -0.1,
+  },
   cta: {
     flex: 1,
     flexDirection: 'row',
