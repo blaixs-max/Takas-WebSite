@@ -654,7 +654,8 @@ değiştirilemez.
         **reddedilmeyi** doğruluyor — yani yeni güvenlik duruşunu.
 - [x] **İlk yönetici eklendi** — bu madde "`auth.users` henüz **boş**" diyordu;
       2026-08-14 ölçümünde `auth.users` 3, `admins` 1 satır. Artık geçersiz.
-- [ ] **Hiç profil yok** (2026-08-14 ölçümü) — `profiles` **0 satır**.
+- [ ] **Neredeyse hiç profil yok** — 2026-08-18 ölçümü: 6 kullanıcı, **1**
+      profil. (Madde "0 satır" diyordu; bir kişi doldurdu, sorun aynı.)
       `20260814090949_profiller` göçü canlıda ve `edit-profile` ekranı
       çalışıyor; henüz kimse kaydetmedi. Sonucu sitede görünüyor: `seller_name`
       hâlâ e-postadan türüyor ve vitrin bunu **"Üye"** diye yazıyor — doğru
@@ -840,12 +841,16 @@ Kaynak: `vercel.com/changelog/gemini-3-7-flash-now-available-on-ai-gateway-for-5
       ("Kategori taban puanı 500") kaldırıldı, yerine ne olacağını anlatan
       metin geldi; yayından hemen önce `degerlet()` çağrılıyor.
       **Fonksiyon henüz deploy edilmedi** — anahtar maddesine bağlı.
-- [ ] **Kampanya puanı yeniden değerlendirilmeli.** Ölçek ~420'den ~1000'e
-      çıktı; 250+250 hoş geldin puanı artık ortalama bir ürünün yarısını
-      alıyor, eskiden tamamını alıyordu. Soğuk başlangıçta ilk takası
-      yaptırmak kritik. Öneri: kampanyayı ölçekle (600+600), oranı bozma —
-      "1 puan = 1 ₺" sadeliği kullanıcıya her gün lazım, kampanya rakamı bir
-      kez ayarlanır.
+- [ ] **Kampanya puanı yeniden değerlendirilmeli.** 2026-08-18'de ölçek
+      kararı verildi ve kampanyaya **dokunulmadı**: `puan_per_try = 1` kaldı,
+      yalnızca kondisyon katsayıları %8 indi. Yani asıl uçurum duruyor —
+      canlıda en pahalı ilan **7030 puan**, en zengin cüzdan **1480**,
+      kampanya tavanı **1000**.
+      Karar bilinçliydi: kampanyayı yükseltmek kapalı devreyi deler (puan
+      takas edilmeden dağıtılır). Ama soğuk başlangıçta ilk takası yaptırmak
+      kritik ve şu an yeni bir kullanıcı 250 puanla hiçbir şey alamıyor.
+      Gerçek kullanım verisi geldikçe yeniden bakılacak; şimdi karar vermek
+      için elimizde iki cüzdan var.
 - [ ] **Ürün Ekle: yapay zekâ değerlemesi** (2026-08-16 kararı). Karar verildi:
       model kareleri okuyup ürünü tanıyacak, **Google Search grounding** ile
       sıfır fiyatını bulacak, beyan edilen durum/hasar ve karelerdeki görünüme
@@ -1551,12 +1556,21 @@ bile değildi. Dördü ölçülerek doğrulandı (kodda arandı, yok).
 
 ### D · Site — pazarlama sitesinin asıl işi yapılmamış
 
-- [ ] **Ölçüm yok.** Analitik hiç kurulu değil; sitenin işe yarayıp
-      yaramadığını bilmiyoruz. Vercel Analytics tek satır ve çerezsiz.
-- [ ] **Tek indekslenebilir adres var.** Site tek sayfa. Oysa edinim kanalı
-      tam olarak burası olurdu: "ikinci el bebek arabası takası" gibi
-      aramalara karşılık gelen kategori sayfaları. Dokuz kategori × birer
-      sayfa, vitrinden beslenir.
+- [x] **Ölçüm kuruldu** (2026-08-16). Vercel Analytics + Speed Insights,
+      `src/main.tsx`. Çerezsiz ve birinci taraf yolundan (`/_vercel/insights/`).
+      Madde 2026-08-18'de gözden geçirilirken açık duruyordu — yapılmıştı ama
+      işaretlenmemişti. Aynı turda çerez modali ve `/gizlilik/` de düzeltilmişti
+      ("üçüncü taraf izleyici yüklenmez" cümlesi yanlış hâle gelmişti).
+      **Uygulama tarafında hâlâ ölçüm yok** — o ayrı bir madde.
+- [x] **Kategori sayfaları yazıldı** (2026-08-16). Bu madde "site tek sayfa"
+      diyordu; `scripts/kategori-sayfalari.mjs` derleme sonrası dokuz kategori
+      için gerçek HTML üretiyor (`dist/kategori/<slug>/`) ve site haritasını
+      da o üretiyor — 11 adres. Alt bilgideki kategori satırı bir gezinme
+      kolaylığı değil, indekslenme koşulu: hiçbir yerden bağlanmayan sayfa
+      yetimdir.
+      **Kalan iş içerik:** sayfalar canlı ilanlardan besleniyor ve şu an
+      anlık görüntü boş, yani sayfalar ilansız çıkıyor ve bunu açıkça
+      söylüyorlar. Vitrin dolunca kendiliğinden dolacaklar.
 - [ ] **Mağaza karekodları henüz hiçbir yere gitmiyor.** Uygulama yayında
       olmadığı için `StoreQrCodes` bugün ölü. Yayın günü ilk düzeltilecek şey.
 - [ ] **Siteden uygulamaya süreklilik yok.** Web'de bir ilana bakan kişi
@@ -1567,9 +1581,10 @@ bile değildi. Dördü ölçülerek doğrulandı (kodda arandı, yok).
 
 - [ ] **Hata izleme yok.** Sentry benzeri hiçbir şey kurulu değil; canlıdaki
       çökmeleri **göremiyoruz**. Yayın günü en çok ihtiyaç duyulacak şey bu.
-- [ ] **Uygulama tarafında tek bir test yok.** Veri tabanında 18 test var,
+- [ ] **Uygulama tarafında tek bir test yok.** Veri tabanında 30 test var,
       React Native tarafında sıfır. Takas akışını sessizce bozan bir düzenleme
-      hiçbir yerde yakalanmaz.
+      hiçbir yerde yakalanmaz. (Veri tabanı tarafı 2026-08-18'de **30 pakete**
+      çıktı, 100 makine denetimli iddia — uçurum büyüdü.)
 - [ ] **Geri dönüş planı doğrulanmadı.** Kötü bir göç ya da yanlış bir toplu
       güncelleme sonrası hangi noktaya dönebiliyoruz? Pro planın
       point-in-time recovery durumu teyit edilmeli — yayından **önce**.
