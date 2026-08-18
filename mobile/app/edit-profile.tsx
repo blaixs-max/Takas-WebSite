@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BOS_PROFIL, Profile, basHarfler, loadProfile, saveProfile } from '../lib/profile';
 import { AvatarBilgisi, BOS_AVATAR, loadMyAvatar, removeAvatar, uploadAvatar } from '../lib/avatar';
+import { hataBildir } from '../lib/hatalar';
 import { useAuth } from '../lib/auth';
 import { colors, elevation, shape } from '../theme/tokens';
 
@@ -103,9 +104,22 @@ export default function EditProfile() {
     const sonuc = await ImagePicker.launchImageLibraryAsync(secenekler);
     if (sonuc.canceled || !sonuc.assets?.[0]?.uri) return;
 
+    /* `try/finally`: bayrak bir istisnada da temizlenmeli. Öncesinde
+       `setAvatarIsi(false)` düz bir satırdı ve `uploadAvatar` beklenmedik bir
+       hata fırlatırsa (ağ, dosya okuma) bayrak `true` kalıyordu — avatar
+       alanının tamamı `disabled`, yani ekran DONMUŞ görünüyordu. Kullanıcı
+       2026-08-18 testinde tam bunu bildirdi. */
     setAvatarIsi(true);
-    const s = await uploadAvatar(sonuc.assets[0].uri);
-    setAvatarIsi(false);
+    let s: Awaited<ReturnType<typeof uploadAvatar>>;
+    try {
+      s = await uploadAvatar(sonuc.assets[0].uri);
+    } catch (e) {
+      uyar('Yüklenemedi', 'Fotoğraf yüklenirken beklenmedik bir hata oldu. Tekrar dene.');
+      void hataBildir(e, { kaynak: 'avatar-yukle' });
+      return;
+    } finally {
+      setAvatarIsi(false);
+    }
 
     if (!s.ok) {
       uyar('Yüklenemedi', s.message);
@@ -133,13 +147,19 @@ export default function EditProfile() {
         style: 'destructive',
         onPress: async () => {
           setAvatarIsi(true);
-          const s = await removeAvatar();
-          setAvatarIsi(false);
-          if (!s.ok) {
-            uyar('Kaldırılamadı', s.message);
-            return;
+          try {
+            const s = await removeAvatar();
+            if (!s.ok) {
+              uyar('Kaldırılamadı', s.message);
+              return;
+            }
+            await avatarTazele();
+          } catch (e) {
+            uyar('Kaldırılamadı', 'Beklenmedik bir hata oldu. Tekrar dene.');
+            void hataBildir(e, { kaynak: 'avatar-kaldir' });
+          } finally {
+            setAvatarIsi(false);
           }
-          await avatarTazele();
         },
       },
     ]);
@@ -216,9 +236,16 @@ export default function EditProfile() {
                   {avatar.url ? 'Fotoğrafı değiştir' : 'Fotoğraf ekle'}
                 </Text>
               </Pressable>
-              {avatar.url ? (
+              {/* Kaldır yalnızca `avatar.url` varken çiziliyordu ve bu bir
+                  çıkmaz üretiyordu: reddedilen avatarın yolu sunucuda
+                  boşaltılıyor, yani URL yok — ama kırmızı gerekçe kutusu
+                  ekranda kalıyor ve onu kapatacak düğme görünmüyordu.
+                  Koşul artık "temizlenecek bir durum var mı". */}
+              {avatar.url || avatar.durum ? (
                 <Pressable onPress={fotografKaldir} disabled={avatarIsi} hitSlop={8}>
-                  <Text style={[styles.avatarLink, { color: colors.error }]}>Kaldır</Text>
+                  <Text style={[styles.avatarLink, { color: colors.error }]}>
+                    {avatar.url ? 'Kaldır' : 'Uyarıyı temizle'}
+                  </Text>
                 </Pressable>
               ) : null}
             </View>

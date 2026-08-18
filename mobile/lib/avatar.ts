@@ -179,32 +179,33 @@ export async function uploadAvatar(localUri: string): Promise<AvatarSonucu> {
   return { ok: true, durum: 'pending', gerekce: null };
 }
 
-/** Avatarı kaldırır — yol satırdan, dosya depodan. */
+/**
+ * Avatarı kaldırır — yol, durum ve gerekçe satırdan; dosya depodan.
+ *
+ * Düz `update profiles set avatar_path = null` yetmiyor: reddedilen avatarın
+ * yolunu `avatar_karar` zaten boşaltmış oluyor, yani o yazma hiçbir alanı
+ * değiştirmiyor ve tetikleyici `rejected` durumunu olduğu gibi bırakıyordu —
+ * ekrandaki gerekçe kutusunun çıkışı yoktu. `avatar_kaldir()` üç alanı birlikte
+ * temizliyor ve tetikleyici gevşemiyor.
+ *
+ * Dosya satır güncellendikten **sonra** siliniyor. Ters sırada dosya gidip satır
+ * güncellenemezse profil var olmayan bir dosyayı gösterir ve kullanıcı kırık
+ * bir kare görür; bu sırada en kötü ihtimal depoda öksüz bir dosya kalması.
+ */
 export async function removeAvatar(): Promise<BasitSonuc> {
   if (!supabaseConfigured || !supabase) {
     return { ok: false, message: 'Sunucu bağlantısı yok.' };
   }
-  const { data: oturum } = await supabase.auth.getUser();
-  const uid = oturum?.user?.id;
-  if (!uid) return { ok: false, message: 'Bunun için giriş yapmalısın.' };
 
-  const { data: satir } = await supabase
-    .from('profiles')
-    .select('avatar_path')
-    .eq('user_id', uid)
-    .maybeSingle();
+  const { data, error } = await supabase.rpc('avatar_kaldir');
+  if (error) {
+    console.error('[removeAvatar]', error.message);
+    return { ok: false, message: 'Fotoğraf kaldırılamadı. Tekrar dene.' };
+  }
 
-  /* Önce satır, sonra dosya. Ters sırada dosya silinip satır güncellenemezse
-     profil var olmayan bir dosyayı gösterir ve kullanıcı kırık bir kare
-     görür; bu sırada ise en kötü durum depoda öksüz bir dosya kalması. */
-  const { error } = await supabase
-    .from('profiles')
-    .update({ avatar_path: null })
-    .eq('user_id', uid);
-  if (error) return { ok: false, message: 'Fotoğraf kaldırılamadı. Tekrar dene.' };
-
-  if (satir?.avatar_path) {
-    void supabase.storage.from('avatars').remove([satir.avatar_path as string]);
+  const eskiYol = typeof data === 'string' ? data : null;
+  if (eskiYol) {
+    void supabase.storage.from('avatars').remove([eskiYol]);
   }
   return { ok: true };
 }

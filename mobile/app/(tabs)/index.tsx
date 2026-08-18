@@ -283,8 +283,6 @@ export default function ShelfScreen() {
             </Text>
           </Pressable>
 
-          <View style={styles.cipAyrac} />
-
           {FILTERS.map((f) => {
             const sel = f.label === active;
             return (
@@ -301,7 +299,14 @@ export default function ShelfScreen() {
                 <Text style={[styles.chipText, sel && styles.chipTextSel]}>{f.label}</Text>
               </Pressable>
             );
-          })}
+          }).flatMap((c, i) =>
+            /* Ayraç "Tümü"nün ARDINDAN geliyor, önünden değil.
+               `Tümü` bir kategori değil, süzgecin kapalı hâli — yani Sırala
+               ve Filtrele ile aynı türden bir kontrol: üçü de "rafı nasıl
+               göreceğim" sorusuna cevap veriyor. Ayraç önlerine konunca
+               `Tümü` kategorilerle aynı gruba düşüyordu. */
+            i === 0 ? [c, <View key="ayrac" style={styles.cipAyrac} />] : [c],
+          )}
         </ScrollView>
 
         {/* Alt kategori satırı — ana satırla yarışmasın diye daha küçük ve

@@ -110,3 +110,35 @@ select bekle_esit('avatar yolu korundu',
 select bekle('authenticated avatar_karar çalıştıramaz',
              not has_function_privilege('authenticated',
                'public.avatar_karar(uuid, text, text)', 'execute'));
+
+\echo ''
+\echo '=== 9) REDDEDİLEN AVATAR KALDIRILABİLİYOR ==='
+-- Canlıda çıkışı olmayan bir durum bırakmıştı: `avatar_karar` reddederken
+-- yolu zaten boşaltıyor, bu yüzden istemcinin `avatar_path = null` yazması
+-- hiçbir alanı değiştirmiyor, tetikleyici de `rejected`i olduğu gibi
+-- bırakıyordu. Gerekçe kutusunu kapatmanın hiçbir yolu yoktu.
+reset role;
+select avatar_karar(:'a', 'rejected', 'Müstehcen içerik.');
+set session role authenticated;
+select set_config('test.uid', :'a', false);
+select bekle_esit('ret durumu yazıldı',
+                  (select avatar_status from profiles where user_id = :'a'), 'rejected');
+select bekle('ret yolu boşalttı',
+             (select avatar_path is null from profiles where user_id = :'a'));
+
+select avatar_kaldir();
+select bekle('kaldırdıktan sonra durum boş',
+             (select avatar_status is null from profiles where user_id = :'a'));
+select bekle('kaldırdıktan sonra gerekçe boş',
+             (select avatar_reason is null from profiles where user_id = :'a'));
+
+\echo ''
+\echo '=== 10) Kaldırma eski yolu döndürüyor — dosya silinebilsin ==='
+-- İstemci depodaki nesneyi bu değerle siliyor; null dönseydi dosya öksüz
+-- kalırdı.
+insert into profiles (user_id, avatar_path) values (:'a', :'a' || '/4000-jkl.jpg')
+  on conflict (user_id) do update set avatar_path = excluded.avatar_path;
+select bekle_esit('kaldırma eski yolu veriyor',
+                  avatar_kaldir(), :'a' || '/4000-jkl.jpg');
+select bekle('yol da temizlendi',
+             (select avatar_path is null from profiles where user_id = :'a'));
