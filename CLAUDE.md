@@ -1111,6 +1111,12 @@ npx tsc --noEmit                      # tip kontrolü (commit öncesi)
 npm start                             # geliştirme (Expo Go) — TÜNEL varsayılan
 # npm run start:temiz  → tünel + Metro önbelleği temiz (varlık/env değiştiyse)
 # npm run start:yerel  → aynı Wi-Fi (LAN); yalnızca kendi telefonunla hızlı
+#
+# TÜNEL DÜŞERSE ("Cannot read properties of undefined (reading 'body')"):
+# ngrok'un paylaşımlı hesabı sınıra dayanmıştır. `.env`e iki satır ekle —
+# gerekçesi `mobile/.env.example` içinde yazılı:
+#   EXPO_FORCE_WEBCONTAINER_ENV=1   → ngrok yerine @expo/ws-tunnel
+#   EXPO_TUNNEL_SUBDOMAIN=eldenele-test → adres sabitlenir, karekod değişmez
 EXPO_NO_TELEMETRY=1 CI=1 npx expo export --platform web   # derleme doğrulama
 
 # Arka uç testleri (yerel geçici Postgres): migration'ları sırayla uygula,
