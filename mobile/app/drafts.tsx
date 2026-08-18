@@ -10,9 +10,10 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BosDurum } from '../components/BosDurum';
+import { uyar } from '../components/Dialog';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { DraftListing, loadDrafts } from '../lib/listings';
+import { DraftListing, deleteListing, loadDrafts } from '../lib/listings';
 import { colors, elevation, shape } from '../theme/tokens';
 
 /**
@@ -33,6 +34,8 @@ export default function Drafts() {
   const [liste, setListe] = useState<DraftListing[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [tazeleniyor, setTazeleniyor] = useState(false);
+  /** Silinen satırın kimliği — o kart tıklanamaz ve dönen bir gösterge taşır. */
+  const [siliniyor, setSiliniyor] = useState<string | null>(null);
 
   const tazele = useCallback(async () => {
     setListe(await loadDrafts());
@@ -67,6 +70,37 @@ export default function Drafts() {
    */
   function duzenle(d: DraftListing) {
     router.push({ pathname: '/add-listing', params: { id: d.id } });
+  }
+
+  /**
+   * Silme, onaydan geçiyor ve onay ilanın adını söylüyor.
+   *
+   * Satırlar birbirine çok benziyor ("1 kare reddedildi · yeniden çekilmeli"
+   * beş kez yan yana duruyordu); "Bu ilanı silmek istiyor musun?" diye soran
+   * bir kutu, yanlış satıra bastığını fark etmene yaramaz. Başlık kutuda
+   * yazılı olunca yanlış silme ekranda görünür hâle geliyor.
+   */
+  function sil(d: DraftListing) {
+    uyar('İlanı kaldır', `“${d.title}” taslağı kaldırılacak. Bu geri alınamaz.`, [
+      { text: 'Vazgeç', style: 'cancel' },
+      {
+        text: 'Kaldır',
+        style: 'destructive',
+        onPress: async () => {
+          setSiliniyor(d.id);
+          const sonuc = await deleteListing(d.id);
+          setSiliniyor(null);
+          if (!sonuc.ok) {
+            uyar('Kaldırılamadı', sonuc.message);
+            return;
+          }
+          /* Liste yeniden okunuyor, satır elle çıkarılmıyor: sunucu ilanı
+             gerçekten kaldırdı mı sorusunun cevabı sunucuda. Elle çıkarmak
+             başarısız bir silmede ekranı sunucudan ayırırdı. */
+          await tazele();
+        },
+      },
+    ]);
   }
 
   return (
@@ -107,7 +141,12 @@ export default function Drafts() {
             />
           ) : (
             liste.map((d) => (
-              <Pressable key={d.id} style={styles.card} onPress={() => ac(d)}>
+              <Pressable
+                key={d.id}
+                style={[styles.card, siliniyor === d.id && styles.cardOff]}
+                onPress={() => ac(d)}
+                disabled={siliniyor === d.id}
+              >
                 <View style={{ flex: 1 }}>
                   <Text style={styles.title}>{d.title}</Text>
                   <Text style={styles.sub}>{durumMetni(d)}</Text>
@@ -119,6 +158,22 @@ export default function Drafts() {
                   accessibilityLabel={`${d.title} ilanını düzenle`}
                 >
                   <MaterialIcons name="edit" size={18} color={colors.primary} />
+                </Pressable>
+                {/* Sil, düzenlemenin yanında ve **kırmızı zeminli**: iki daire
+                    aynı renkte olsaydı ikisi de aynı ağırlıkta okunur, geri
+                    alınamayan olan yanlışlıkla seçilirdi. */}
+                <Pressable
+                  onPress={() => sil(d)}
+                  hitSlop={10}
+                  style={styles.silBtn}
+                  disabled={siliniyor === d.id}
+                  accessibilityLabel={`${d.title} ilanını kaldır`}
+                >
+                  {siliniyor === d.id ? (
+                    <ActivityIndicator size="small" color={colors.error} />
+                  ) : (
+                    <MaterialIcons name="delete-outline" size={19} color={colors.error} />
+                  )}
                 </Pressable>
                 <MaterialIcons name="chevron-right" size={22} color={colors.outline} />
               </Pressable>
@@ -166,6 +221,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceContainerLowest,
     ...elevation.level1,
   },
+  cardOff: { opacity: 0.5 },
   duzenleBtn: {
     width: 36,
     height: 36,
@@ -173,6 +229,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.primaryContainer,
+  },
+  silBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: shape.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.errorContainer,
   },
   title: { fontSize: 14, fontWeight: '800', color: colors.onSurface },
   sub: { fontSize: 11.5, fontWeight: '500', color: colors.onSurfaceVariant, marginTop: 3 },

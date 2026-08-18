@@ -104,6 +104,7 @@ function RootNavigator() {
       <Stack.Screen name="edit-profile" options={{ presentation: 'modal' }} />
       <Stack.Screen name="notifications" options={{ presentation: 'card' }} />
       <Stack.Screen name="messages" options={{ presentation: 'card' }} />
+      <Stack.Screen name="my-listings" options={{ presentation: 'card' }} />
       <Stack.Screen name="addresses" options={{ presentation: 'card' }} />
       <Stack.Screen name="security" options={{ presentation: 'card' }} />
       <Stack.Screen name="help" options={{ presentation: 'card' }} />

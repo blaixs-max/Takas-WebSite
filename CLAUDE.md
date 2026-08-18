@@ -709,6 +709,119 @@ ilan pazarlama sitesine "emrahatabek" adıyla düştü — kişinin e-postasın�
 yarısı, indekslenen bir sayfada. Site tarafı artık böyle bir adı yayınlamıyor
 ("Üye" yazıyor), ama asıl çözüm profilin dolu olması.
 
+## Profil fotoğrafı (2026-08-18)
+
+Avatar isteğe bağlı ve **kendisi olmak zorunda değil** — çizim, hayvan, nesne
+de olur (kullanıcı kararı). Denetlenen şey kimlik değil içerik: müstehcen,
+şiddet, nefret sembolü, **çocuk yüzü** ve görselin üzerine yazılmış iletişim
+bilgisi engelliyor. Kalite denetlenmiyor; bulanık avatar kimseye zarar vermez.
+
+`avatar-check`, `photo-check`ten ayrı bir fonksiyon ve ayrı olmasının sebebi
+denetimlerin aynı şeye bakmaması: ilan karesinde soru "ürünü doğru gösteriyor
+mu" (açı, kadraj, kıyas), avatarda tek soru "yayınlanabilir mi". Uyarı katmanı
+da yok — bir profil fotoğrafı ya yayınlanabilir ya değil.
+
+**Üç durumlu alan, iki değil.** `profiles.avatar_status`: null · pending ·
+approved · rejected. `pending` şart: denetim saniyeler sürüyor ve o pencerede
+görselin görünmemesi gerekiyor.
+
+İki koruma, ikisi de tek başına yetmez:
+
+- **Onay kapısı depolama katmanında.** Başkasının avatarını okuma politikası
+  `avatar_status = 'approved'` koşuluna bağlı. Arayüz hata yapsa bile
+  denetlenmemiş bir görselin imzalı bağlantısı üretilemez.
+- **Yol her yüklemede değişiyor** (`{uid}/{zaman}-{rastgele}.jpg`). İlk tasarım
+  sabit yoldu (`{uid}/avatar.jpg`) ve orada bir delik vardı: aynı yola ikinci
+  kez yazmak Postgres'te hiçbir iz bırakmaz, yani masum bir fotoğrafı
+  onaylatıp üstüne başkasını koymak denetimi tamamen atlatırdı.
+
+`profiles_guard_avatar` **`security invoker` olmak zorunda.** `security
+definer` yazılsaydı `current_user` fonksiyonun sahibi olurdu, koşul hiç tutmaz
+ve kontrol sessizce hiçbir şey yapmazdı — bu tam olarak 2026-08-17'de
+`product_photos` tarafında yaşandı ve paket yine "geçti" dedi.
+
+Başkasının avatar yolunu `avatar_yolu(uid)` veriyor ve yalnızca onaylı olanı:
+`profiles` satırı sahibinden başkasına kapalı ve öyle kalmalı (içinde `bio`
+ve `city` de var). Satıcı kimliği bu yüzden `products` sorgusuna eklendi —
+**yalnızca uygulamada.** Pazarlama sitesinde tersi geçerli ve orada
+`seller.id` bilerek ilanın kimliğini taşıyor.
+
+**Hesap silinince dosya da gidiyor** — istemcide çözüldü. `auth.users`
+silinince `profiles` zincirleme gidiyor ama depodaki nesnenin oraya yabancı
+anahtarı yok. `hesabiSil()` avatarı RPC'den **önce** siliyor; sonra oturum
+kalmıyor, silecek yetki de. `/gizlilik/` "profil fotoğrafınız silinir" diye
+yayında duruyor: bu bir düzen tercihi değil, yazılı bir taahhüt.
+
+## Adres defteri (2026-08-18) — bir kararın tersine dönmesi
+
+Ana Doküman ve `addresses.tsx` bugüne kadar tersini söylüyordu: adres
+saklanmıyor, her ödemede soruluyordu. Ekranda bir defter değil, defterin
+**neden olmadığını** anlatan bir not duruyordu. Karar kullanıcının: adres
+saklanacak, düzenlenebilecek, silinebilecek, birden fazla olabilecek.
+
+**Değişmeyen: T.C. kimlik numarası hâlâ saklanmıyor.** `addresses` tablosunda
+öyle bir kolon yok ve olmayacak — `adres_defteri_test.sql` bunu bir iddia
+olarak koruyor, yani ileride biri "fatura için lazım" diye eklerse test düşer
+ve karar yeniden konuşulur.
+
+Adres **hiçbir yüzeyde başkasına gösterilmiyor**: vitrin okumuyor, ilan kartı
+okumuyor, pazarlama sitesi veri tabanına hiç bağlanmıyor. Tek okuyucusu
+sahibinin ödeme formu.
+
+RPC yok, doğrudan tablo + RLS: satırın her alanı kullanıcının kendi yazdığı,
+kendi okuduğu veri. Yazılamaması gereken bir alan olsaydı (satıcı kimliği,
+puan, değerleme izi gibi) RPC şart olurdu. Tek istisna varsayılan işareti ve
+o bir tetikleyicide: iki ayrı `update`e bölünseydi arada uygulama
+kapandığında iki varsayılan kalırdı.
+
+**Ödeme formu deftere bağlı.** Bağlamamak defteri süs yapardı — varlık sebebi
+adresi ikinci kez yazdırmamak. Varsayılan adres formu kendiliğinden dolduruyor
+ama alanlar kilitli değil: bu gönderi başka bir yere gidebilir.
+
+## İlan kaldırma (2026-08-18)
+
+`delete_listing` **gerçek silme değil, `REMOVED`.** `trades.product_id`
+üzerinde `on delete restrict` var ve olmalı: tamamlanmış bir takasın hangi
+ürün için yapıldığı, ürün silinince kaybolamaz. Gerçek `delete` bu yüzden
+yalnızca hiç takas görmemiş ilanlarda çalışırdı ve kullanıcıya "bazı ilanlar
+silinebilir, bazıları silinemez" gibi keyfî bir ayrım olarak yansırdı.
+
+Süren takası olan (`CREATED`…`DISPUTED`) ya da `SOLD` ilan kaldırılamıyor:
+alıcının puanı havuzdayken ilanı kaldırmak takası askıda bırakırdı.
+
+**Sepet ve favoriler elle temizleniyor.** `on delete cascade` yalnızca gerçek
+silmede çalışır; satır durduğu için temizlenmezse ilan başkasının sepetinde
+kalır ve ödeme adımında "satın alınabilir durumda değil" hatası verir —
+alıcının anlayamayacağı bir hata, çünkü sepetine koyduğunda ilan oradaydı.
+
+Yayındaki ilanların listesi ayrı bir ekran (`my-listings`). Profildeki
+"N ilanın yayında" kutusu rafa (`/(tabs)`) gidiyordu: kullanıcının kendi
+ilanlarına değil, herkesin ilanlarına.
+
+## Sırala & Filtrele (2026-08-18)
+
+Süzme ve sıralama `lib/suzgec.ts` içinde ve **saf**: girdi ürün dizisi, çıktı
+ürün dizisi. Ekranda kalsaydı çizim mantığıyla iş mantığı iç içe geçerdi — ve
+bu ikisi bozulunca farklı görünüyor: yanlış çizim gözle yakalanır, yanlış
+süzgeç yakalanmaz, yalnızca "aradığımı bulamadım" olarak yaşanır.
+
+**İstemcide süzülüyor** çünkü vitrin zaten tamamı çekiliyor ve birkaç düzine
+ilan var. İlan sayısı binleri bulduğunda bu karar yeniden bakılmalı; o gün
+süzgecin sorguya çevrilmesi gerekecek ve bu dosya o dönüşümün tek yeri.
+
+Üç küçük karar, üçü de bir kusurdan geliyor:
+
+- **Süzgeç paneli taslak üzerinde çalışıyor**, anında uygulamıyor. Anında
+  uygulasaydı kullanıcı sonucu göremeden ölçütü değiştirir, kapatınca
+  vazgeçemezdi. Sıralamada tersi: tek seçim, seçer seçmez uygulanıyor.
+- **Rozet kategoriyi saymıyor.** Kategori ekranda çip satırı olarak zaten
+  görünüyor; rozet kullanıcının **göremediği** süzgeçlerin sayacı.
+- **Boş sonuç sessiz kalmıyor** ve süzgeç yüzündense çıkışı da veriyor.
+
+`sayi('')` `null` dönüyor, `0` değil: `Number('')` sıfır verir ve "en az 0
+puan" ile "alt sınır yok" aynı sonucu verdiği için fark uzun süre görünmez —
+sonra "en çok" alanı boşaltıldığında raf tamamen boşalır.
+
 ## Güvenlik kuralları (ASLA ihlal etme)
 - `service_role` / iyzico `secret key` **asla mobilde** olmaz; yalnızca backend.
 - Mobilde yalnızca `EXPO_PUBLIC_SUPABASE_ANON_KEY`. RLS, `auth.uid()` ile korur.

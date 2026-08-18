@@ -7,8 +7,13 @@ export interface ProductsResult {
   products: Product[];
 }
 
+/* `seller_id` profil fotoğrafı için: avatarın yolunu `avatar_yolu(uid)`
+   veriyor ve o çağrı satıcının kimliğini istiyor. Kimlik zaten `products`
+   satırında ve istemciye açık; sorguya eklemek yeni bir yüzey açmıyor.
+   Pazarlama sitesinde bunun tersi geçerli — orada satıcı kimliği bilerek
+   dışarı çıkmıyor (karşı repo, `vitrin-cek.mjs`). */
 const COLS =
-  'id, title, points, condition, category, sub_category, location, distance_km, rating, market_value, badge, description, image_key, gallery_keys, seller_name, seller_initials, seller_trust, seller_trades, has_damage';
+  'id, title, points, condition, category, sub_category, location, distance_km, rating, market_value, badge, description, image_key, gallery_keys, seller_id, created_at, seller_name, seller_initials, seller_trust, seller_trades, has_damage';
 
 /**
  * Kapak karelerinin imzalı bağlantılarını toplu üretir.

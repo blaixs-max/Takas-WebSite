@@ -206,6 +206,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
        */
       async hesabiSil() {
         if (!supabase) return { error: 'Supabase yapılandırılmadı' };
+
+        /* Profil fotoğrafı dosyası ÖNCE siliniyor.
+           `auth.users` silinince `profiles` satırı zincirleme gidiyor ama
+           depodaki nesnenin oraya yabancı anahtarı yok — dosya kalırdı. Ve
+           kalması sessiz bir tutarsızlık olmazdı: `/gizlilik/` sayfası
+           "profil fotoğrafınız silinir" diye **yayında** duruyor.
+           Sıra zorunlu: hesap silindikten sonra oturum yok, dosyayı silecek
+           yetki de yok. Silme başarısız olursa hesap yine siliniyor —
+           kullanıcıyı öksüz bir dosya yüzünden hesabına kilitlemek yanlış
+           olurdu; o durumda geride kalan şey kimliksiz bir görsel. */
+        const { data: oturum } = await supabase.auth.getUser();
+        const uid = oturum?.user?.id;
+        if (uid) {
+          const { data: p } = await supabase
+            .from('profiles')
+            .select('avatar_path')
+            .eq('user_id', uid)
+            .maybeSingle();
+          if (p?.avatar_path) {
+            await supabase.storage.from('avatars').remove([p.avatar_path as string]);
+          }
+        }
+
         const { error } = await supabase.rpc('delete_own_account', {
           p_onay: 'HESABIMI SIL',
         });

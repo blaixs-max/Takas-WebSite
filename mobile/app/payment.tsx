@@ -15,6 +15,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../lib/auth';
+import { Address, loadAddresses } from '../lib/addresses';
 import { BuyerInfo, initCargoPayment, openCheckout } from '../lib/payment';
 import { PriceQuote, quotePrice } from '../lib/trades';
 import { colors, elevation, shape } from '../theme/tokens';
@@ -58,6 +59,50 @@ export default function PaymentScreen() {
       iptal = true;
     };
   }, [trade]);
+
+  /**
+   * Kayıtlı adresler.
+   *
+   * Defter 2026-08-18'de açıldı; ödeme formunu ona bağlamamak kullanıcıya aynı
+   * adresi her takasta yeniden yazdırmak olurdu — defterin varlık sebebi tam
+   * olarak bu.
+   *
+   * Varsayılan adres formu **kendiliğinden** dolduruyor ama alanlar kilitli
+   * değil: kullanıcı bu gönderiyi başka bir yere yollamak isteyebilir ve bunun
+   * için deftere dönüp varsayılanı değiştirmesi gerekmemeli.
+   */
+  const [adresler, setAdresler] = useState<Address[]>([]);
+  const [secilenAdres, setSecilenAdres] = useState<string | null>(null);
+
+  function adresUygula(a: Address) {
+    setSecilenAdres(a.id);
+    const parcalar = a.adSoyad.trim().split(/\s+/);
+    if (parcalar.length > 1) {
+      setSoyad(parcalar[parcalar.length - 1]);
+      setAd(parcalar.slice(0, -1).join(' '));
+    } else {
+      setAd(a.adSoyad.trim());
+    }
+    if (a.telefon) setTelefon(a.telefon);
+    setAdres(`${a.acikAdres} — ${a.ilce}`);
+    setSehir(a.il);
+  }
+
+  useEffect(() => {
+    let iptal = false;
+    loadAddresses().then((liste) => {
+      if (iptal) return;
+      setAdresler(liste);
+      const v = liste.find((a) => a.varsayilan);
+      if (v) adresUygula(v);
+    });
+    return () => {
+      iptal = true;
+    };
+    // `adresUygula` yalnızca setState çağırıyor; bağımlılığa girmesi
+    // gerekmiyor ve girseydi her çizimde yeniden koşardı.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Profildeki ad soyad varsa formu doldur; kullanıcı yine değiştirebilir.
   useEffect(() => {
@@ -167,10 +212,44 @@ export default function PaymentScreen() {
           </View>
 
           <Text style={styles.baslik}>Fatura bilgileri</Text>
+          {/* Metin karar değişince yeniden yazıldı. Eskiden "bu bilgiler
+              kaydedilmiyor" diyordu; 2026-08-18'de adres defteri açılınca
+              cümlenin yarısı yanlış hâle geldi — adres artık kaydedilebiliyor,
+              kimlik numarası hâlâ kaydedilmiyor. Bir özellik ile onun
+              açıklaması ayrı turlarda giderse, arada kalan sürede ekran kendi
+              yaptığı şey hakkında yanlış beyanda bulunur. */}
           <Text style={styles.aciklama}>
-            iyzico fatura için istiyor. Bu bilgiler kaydedilmiyor, yalnızca bu ödeme için
-            iletiliyor.
+            iyzico fatura için istiyor. T.C. kimlik numarası kaydedilmez, yalnızca bu ödeme
+            için iletilir. Adresini istersen adres defterine kaydedebilirsin.
           </Text>
+
+          {adresler.length > 0 && (
+            <View style={styles.adresSatiri}>
+              {adresler.map((a) => {
+                const sel = secilenAdres === a.id;
+                return (
+                  <Pressable
+                    key={a.id}
+                    style={[styles.adresHap, sel && styles.adresHapSel]}
+                    onPress={() => adresUygula(a)}
+                  >
+                    <MaterialIcons
+                      name={sel ? 'radio-button-checked' : 'radio-button-unchecked'}
+                      size={15}
+                      color={sel ? colors.primary : colors.onSurfaceVariant}
+                    />
+                    <Text style={[styles.adresHapText, sel && styles.adresHapTextSel]}>
+                      {a.baslik}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+              <Pressable style={styles.adresHap} onPress={() => router.push('/address-edit')}>
+                <MaterialIcons name="add" size={15} color={colors.primary} />
+                <Text style={[styles.adresHapText, { color: colors.primary }]}>Yeni</Text>
+              </Pressable>
+            </View>
+          )}
 
           <View style={styles.ikili}>
             <Alan etiket="Ad" deger={ad} setDeger={setAd} stil={{ flex: 1 }} />
@@ -301,6 +380,21 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginBottom: 2,
   },
+  adresSatiri: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+  adresHap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    height: 34,
+    paddingHorizontal: 12,
+    borderRadius: shape.full,
+    borderWidth: 1,
+    borderColor: colors.outlineVariant,
+    backgroundColor: colors.surfaceContainerLowest,
+  },
+  adresHapSel: { backgroundColor: colors.primaryContainer, borderColor: 'transparent' },
+  adresHapText: { fontSize: 12.5, fontWeight: '700', color: colors.onSurfaceVariant },
+  adresHapTextSel: { color: colors.primary },
   ozet: {
     padding: 15,
     borderRadius: shape.md,

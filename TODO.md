@@ -1,6 +1,53 @@
 # ELDENELE — Yol Haritası / TODO
 
-Son güncelleme: 2026-08-17 · Branch: `main`
+Son güncelleme: 2026-08-18 · Branch: `main`
+
+## 🆕 Dört madde (2026-08-18)
+
+Kullanıcı isteği; dördü de kodda tamam, göçler ve `avatar-check` **canlıya
+uygulanmadı** — aşağıdaki "Yayına alınacak" listesine bak.
+
+1. **İlan kaldırma.** `delete_listing` RPC (`REMOVED`, gerçek silme değil —
+   `trades.product_id` `on delete restrict` taşıyor). Taslak listesinde sil
+   düğmesi; yayındakiler için yeni ekran `my-listings.tsx`. Süren takası olan
+   ya da `SOLD` ilan kaldırılamıyor. Sepet ve favoriler elle temizleniyor.
+2. **Adres defteri.** `addresses` tablosu + RLS + varsayılan tekilliği
+   tetikleyicide. `addresses.tsx` gerçek CRUD, `address-edit.tsx` form,
+   `payment.tsx` deftere bağlandı. **Bu bir karar değişikliği** — Ana Doküman
+   "adres saklanmaz" diyordu; T.C. kimlik numarası hâlâ saklanmıyor.
+3. **Profil fotoğrafı.** `avatars` kovası (özel), `profiles.avatar_status`,
+   `avatar-check` Edge Function. Onaylanmadan görünmüyor ve kapı depolama
+   politikasında. Avatar; profil sekmesinde, ana sayfadaki dairede, düzenleme
+   ekranında ve ürün detayındaki satıcı kartında görünüyor.
+4. **Sırala & Filtrele.** `lib/suzgec.ts` (saf), `components/AltSayfa.tsx`
+   (paylaşılan alt panel), ana sayfada Sırala | Filtrele şeridi. Sıralama:
+   önerilen · en yeni · puan artan · puan azalan · yakınlık. Süzgeç:
+   kondisyon, puan aralığı, konum, yalnızca hasarsız.
+
+**Dokümanlar aynı turda güncellendi:** `CLAUDE.md` (dört yeni bölüm) ve karşı
+repodaki `/gizlilik/` (profil fotoğrafı denetimi, kayıtlı adresler, galeri
+izni, hesap silme listesi). Sonuncusu kural gereği: uygulamadan dışarı yeni
+bir veri akışı çıkıyorsa o sayfa aynı turda güncellenir.
+
+### Yayına alınacak (panel/CLI gerekiyor)
+
+- [ ] Üç göç canlıya: `20260818060000_ilan_silme.sql`,
+      `20260818070000_adres_defteri.sql`, `20260818080000_profil_fotografi.sql`
+- [ ] `npx supabase functions deploy avatar-check --project-ref fauhxnbxwcpsdfcvfodz`
+- [ ] `avatars` kovasının panelde göründüğünü doğrula (göç oluşturuyor)
+- [ ] Uygulamada tek tur: taslak sil · adres ekle/düzenle/sil · avatar yükle
+      (biri kabul, biri ret) · filtre paneli
+
+### Bu turda kapanmayan
+
+- [ ] **Ana Doküman'ın adres kararı** hâlâ eski metni taşıyor (docx bu repoda
+      değil). "Fatura bilgisi ve T.C. kimlik numarası saklanmaz — adres
+      tablosu bu karar verilmeden açılmaz" cümlesi güncellenmeli: adres
+      tablosu açıldı, kimlik numarası saklanmıyor.
+- [ ] Avatar denetimi **hiç canlıda çalışmadı**; ret yolu (dosyanın depodan
+      silinmesi) gerçek bir istekle doğrulanmadı.
+- [ ] Süzgeç istemcide süzüyor. İlan sayısı binleri bulunca sorguya çevrilmeli;
+      `lib/suzgec.ts` o dönüşümün tek yeri.
 
 ## 🟢 Supabase artık gerçek
 
@@ -447,9 +494,12 @@ hiçbir sır konulamıyor — Vercel deploy hook URL'si bir kez yazıldı, commi
 
 - [x] **`addresses.tsx` artık maket değil** (2026-08-14 denetimi). Bu madde
       "sabit iki adres gösteriyor" diyordu; sahte adresler ekran denetimi
-      turunda kaldırılmıştı, madde güncellenmemiş. Ekran şimdi boş durumda
-      "Kayıtlı adresiniz yok" diyor ve adres defterinin neden açılmadığını
-      anlatıyor. Tablonun açılması hâlâ bir KVKK kararı — o aşağıda.
+      turunda kaldırılmıştı, madde güncellenmemiş. Ekran boş durumda "Kayıtlı
+      adresiniz yok" diyor ve adres defterinin neden açılmadığını anlatıyordu.
+- [x] **Adres defteri açıldı** (2026-08-18). Yukarıdaki maddede "tablonun
+      açılması hâlâ bir KVKK kararı" yazıyordu; karar verildi ve tersine
+      döndü. Ekran artık defterin kendisi: çoklu adres, başlık, varsayılan,
+      düzenle, sil. T.C. kimlik numarası kararı **değişmedi** — saklanmıyor.
 
 ## ⏳ Sıradaki (öncelik sırası)
 

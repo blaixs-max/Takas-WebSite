@@ -40,11 +40,29 @@ export interface Product {
    * gibi okunuyor.
    */
   hasDamage: boolean;
-  seller: { name: string; initials: string; trust: number; trades: number };
+  /**
+   * `id` satıcının kullanıcı kimliği; profil fotoğrafını çekmek için gerekiyor
+   * ve **yalnızca uygulamada** var. Pazarlama sitesindeki aynı adlı alan
+   * bilerek ilanın kimliğini taşıyor (karşı repo, `vitrin-cek.mjs`): orası
+   * açık web ve indeksleniyor, gerçek kullanıcı kimlikleri oraya inmemeli.
+   * Burası üyeler arası ve kimlik zaten takas akışında dolaşıyor.
+   *
+   * Demo ilanlarda boş — onların bir kullanıcısı yok.
+   */
+  seller: { id?: string; name: string; initials: string; trust: number; trades: number };
   description: string;
   image: ImageSourcePropType;
   gallery: ImageSourcePropType[];
   favorite?: boolean;
+  /**
+   * İlanın yayına giriş anı (ISO). "En yeniler" sıralaması için.
+   *
+   * Sorgu zaten `created_at desc` ile geliyordu, yani varsayılan sıra doğruydu
+   * — ama değer arayüze hiç çıkmıyordu. Kullanıcı bir kez "puana göre"
+   * sıraladıktan sonra "yeniden en yeniye dön" diyemiyordu; geri dönülecek
+   * ölçüt elimizde yoktu. Demo ilanlarda boş.
+   */
+  createdAt?: string;
 }
 
 /** Supabase satırını uygulama tipine çevirir (görseli image_key'den çözer). */
@@ -63,6 +81,8 @@ export interface ProductRow {
   description: string | null;
   image_key: string;
   gallery_keys: string[] | null;
+  seller_id?: string | null;
+  created_at?: string | null;
   seller_name: string;
   seller_initials: string;
   seller_trust: number;
@@ -105,6 +125,7 @@ export function rowToProduct(
     marketValue: r.market_value ?? '',
     badge: r.badge ?? undefined,
     hasDamage: r.has_damage === true,
+    createdAt: r.created_at ?? undefined,
     description: r.description ?? '',
     image: kapakUrl
       ? { uri: kapakUrl }
@@ -120,7 +141,13 @@ export function rowToProduct(
         : depolamaYoluMu(r.image_key)
           ? [EMPTY_IMAGE]
           : resolveGallery(r.gallery_keys),
-    seller: { name: r.seller_name, initials: r.seller_initials, trust: r.seller_trust, trades: r.seller_trades },
+    seller: {
+      id: r.seller_id ?? undefined,
+      name: r.seller_name,
+      initials: r.seller_initials,
+      trust: r.seller_trust,
+      trades: r.seller_trades,
+    },
   };
 }
 

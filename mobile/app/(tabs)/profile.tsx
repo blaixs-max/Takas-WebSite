@@ -10,6 +10,7 @@ import { BOS_PROFIL, Profile, basHarfler, loadProfile } from '../../lib/profile'
 import { unreadMessageCount } from '../../lib/messages';
 import { amIAdmin } from '../../lib/admin';
 import { loadDrafts } from '../../lib/listings';
+import { loadMyAvatar } from '../../lib/avatar';
 import {
   ProfileStats,
   Sanction,
@@ -102,6 +103,22 @@ export default function ProfileScreen() {
     };
   }, [user]);
 
+  /* Avatar `useFocusEffect` ile: kullanıcı düzenleme ekranında fotoğrafını
+     değiştirip geri döndüğünde burası tazelenmeli. `useEffect(..., [user])`
+     ile eski fotoğraf ekranda kalırdı — sekme ekranları arka planda canlı. */
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      let iptal = false;
+      loadMyAvatar().then((a) => {
+        if (!iptal) setAvatarUrl(a.url);
+      });
+      return () => {
+        iptal = true;
+      };
+    }, []),
+  );
+
   /**
    * "Mesajlarım" satırındaki okunmamış sayısı.
    *
@@ -163,7 +180,15 @@ export default function ProfileScreen() {
           <LinearGradient colors={colors.coverGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.cover}>
             <View style={styles.id}>
               <View style={styles.av}>
-                <Text style={styles.avText}>{initials}</Text>
+                {/* Fotoğraf varsa baş harflerin yerini alıyor. `pending` bir
+                    avatar da burada görünüyor — sahibinin kendi fotoğrafını
+                    inceleme bitene kadar hiç görememesi, "yüklendi mi?"
+                    sorusunu cevapsız bırakırdı. Başkasına görünmüyor. */}
+                {avatarUrl ? (
+                  <Image source={{ uri: avatarUrl }} style={styles.avImg} resizeMode="cover" />
+                ) : (
+                  <Text style={styles.avText}>{initials}</Text>
+                )}
                 <View style={styles.avOk}>
                   <MaterialIcons name="check" size={13} color="#fff" />
                 </View>
@@ -346,7 +371,12 @@ export default function ProfileScreen() {
               <View style={styles.sec}>
                 <Text style={styles.secTitle}>İlanlarım</Text>
               </View>
-              <Pressable style={styles.ilanKutu} onPress={() => router.push('/(tabs)')}>
+              {/* Kutu rafa (`/(tabs)`) gidiyordu: kullanıcının kendi
+                  ilanlarına değil, herkesin ilanlarına. "3 ilanın yayında"
+                  yazan bir düğmeye basıp yüz ilanlık vitrine düşmek, düğmenin
+                  söylediği şeyi yapmaması demek — ve kendi ilanını kaldırmak
+                  isteyenin gidebileceği bir yer yoktu. */}
+              <Pressable style={styles.ilanKutu} onPress={() => router.push('/my-listings')}>
                 <MaterialIcons name="inventory-2" size={20} color={colors.onSurfaceVariant} />
                 <Text style={styles.ilanKutuText}>
                   {istatistik?.yayindakiIlan} ilanın yayında
@@ -426,6 +456,10 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: 'rgba(255,255,255,0.92)',
   },
+  /* Kırpma resmin kendisinde, kapsayıcıda değil: `av` üzerine
+     `overflow: 'hidden'` yazmak sağ alttaki doğrulama rozetini de kırpardı —
+     rozet dairenin kenarına taşıyor. */
+  avImg: { ...StyleSheet.absoluteFillObject, borderRadius: shape.full },
   avText: { fontSize: 18, fontWeight: '800', color: colors.onTertiaryContainer },
   avOk: {
     position: 'absolute',

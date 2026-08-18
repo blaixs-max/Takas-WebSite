@@ -166,6 +166,89 @@ export async function updateListing(id: string, l: NewListing): Promise<CreateRe
   return { ok: true, id: row.id as string };
 }
 
+export type SilmeSonucu = { ok: true } | { ok: false; message: string };
+
+/**
+ * İlanı kaldırır.
+ *
+ * Hem taslak hem yayındaki ilan için aynı çağrı: kullanıcı açısından ikisi de
+ * "bu ilanı istemiyorum" ve iki ayrı düğme öğrenmesi için bir sebep yok.
+ * Ayrımı sunucu yapıyor — süren takası olan ya da satılmış ilan geri
+ * çeviriliyor.
+ */
+export async function deleteListing(id: string): Promise<SilmeSonucu> {
+  if (!supabaseConfigured || !supabase) {
+    return { ok: false, message: 'Sunucu bağlantısı yok. Anahtarlar tanımlı değil.' };
+  }
+  const { error } = await supabase.rpc('delete_listing', { p_product_id: id });
+  if (!error) return { ok: true };
+  return { ok: false, message: silmeHatasi(error.message) };
+}
+
+function silmeHatasi(mesaj: string): string {
+  if (mesaj.includes('süren takası'))
+    return 'Bu ilan için süren bir takas var. Takas tamamlanmadan ilan kaldırılamaz.';
+  if (mesaj.includes('satılmış ilan'))
+    return 'Satılmış ilanlar kaldırılamaz; takas geçmişinde kayıtlı kalır.';
+  if (mesaj.includes('ilan bulunamadı'))
+    return 'Bu ilan bulunamadı. Listeyi yenileyip tekrar dene.';
+  if (mesaj.includes('oturum açmalısınız')) return 'Bunun için giriş yapmalısın.';
+  return 'İlan kaldırılamadı. Bağlantını kontrol edip tekrar dene.';
+}
+
+export interface MyListing {
+  id: string;
+  title: string;
+  points: number;
+  status: 'ACTIVE' | 'RESERVED' | 'SOLD';
+  imageKey: string | null;
+  createdAt: string;
+}
+
+/**
+ * Kullanıcının yayındaki ilanları.
+ *
+ * Taslaklarla aynı ekranda listelenmiyor: taslak "bitmemiş iş", yayındaki
+ * ilan "biten iş". İkisini karıştırmak, kullanıcının silmek istediği ilanla
+ * yayına almak istediği ilanı yan yana koyardı.
+ *
+ * `seller_id` filtresi burada da açık — RLS'in yönetici politikası taslak
+ * listesinde bir kez bütün kullanıcıların ilanlarını göstermişti.
+ */
+export async function loadMyListings(): Promise<MyListing[]> {
+  if (!supabaseConfigured || !supabase) return [];
+
+  const { data: oturum } = await supabase.auth.getUser();
+  const uid = oturum?.user?.id;
+  if (!uid) return [];
+
+  const { data, error } = await supabase
+    .from('products')
+    .select('id, title, points, status, image_key, created_at')
+    .eq('seller_id', uid)
+    .in('status', ['ACTIVE', 'RESERVED', 'SOLD'])
+    .order('created_at', { ascending: false });
+
+  if (error || !data) return [];
+  return (data as unknown as MyListingRow[]).map((r) => ({
+    id: r.id,
+    title: r.title,
+    points: Number(r.points),
+    status: r.status as MyListing['status'],
+    imageKey: r.image_key,
+    createdAt: r.created_at,
+  }));
+}
+
+interface MyListingRow {
+  id: string;
+  title: string;
+  points: number;
+  status: string;
+  image_key: string | null;
+  created_at: string;
+}
+
 export interface DegerlemeSonuc {
   bulundu: boolean;
   urun?: string;

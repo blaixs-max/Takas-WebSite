@@ -28,6 +28,16 @@ verify_jwt = false
 # İkisi birden gerekli; bu satırı kaldırmak kimliği tamamen düşürür.
 verify_jwt = true
 
+[functions.avatar-check]
+# Profil fotoğrafını yükleyen kullanıcı çağırır; oturum zorunlu.
+#
+# Burada ayrıca bir sahiplik kontrolü YOK ve bu bilinçli: fonksiyon gövdeden
+# bir kullanıcı kimliği almıyor, çağıranın kendi avatarına bakıyor.
+# photo-check'teki tuzak (verify_jwt "birisi giriş yaptı" der, "bu kayıt onun"
+# demez) burada oluşamıyor. Gövdeye bir userId alanı eklenirse OLUŞUR — o gün
+# sahiplik kontrolü de yazılmalı.
+verify_jwt = true
+
 [functions.send-sms]
 # Supabase Auth Hook'u çağırır; imza doğrulaması fonksiyonun içindedir.
 verify_jwt = false

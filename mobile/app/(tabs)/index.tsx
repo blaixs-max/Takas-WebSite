@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -7,10 +7,23 @@ import { uyar } from '../../components/Dialog';
 import { ProductCard } from '../../components/ProductCard';
 import { FeaturedCard } from '../../components/FeaturedCard';
 import { ALL_CATEGORIES, CATEGORY_TREE, subsOf } from '../../data/categories';
+import { AltSayfa } from '../../components/AltSayfa';
 import { useProducts } from '../../hooks/useProducts';
-import { aramaEslesir } from '../../lib/arama';
+import {
+  BOS_SUZGEC,
+  KONDISYONLAR,
+  SIRALAMA_SECENEKLERI,
+  Siralama,
+  Suzgec,
+  acikSuzgecSayisi,
+  enYuksekPuan,
+  mevcutKonumlar,
+  suzgeciTemizle,
+  uygula,
+} from '../../lib/suzgec';
 import { unreadCount } from '../../lib/notifications';
 import { basHarfler, ilkAd, loadProfile } from '../../lib/profile';
+import { loadMyAvatar } from '../../lib/avatar';
 import { colors, elevation, shape } from '../../theme/tokens';
 
 /** 'Tümü' bir kategori değil, süzgecin kapalı hâli — listeye burada ekleniyor. */
@@ -22,15 +35,35 @@ const FILTERS: { label: string; icon: keyof typeof MaterialIcons.glyphMap }[] = 
 export default function ShelfScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [active, setActive] = useState<string>(ALL_CATEGORIES);
-  const [activeSub, setActiveSub] = useState<string>(ALL_CATEGORIES);
+
+  /**
+   * Süzgeç tek bir nesnede.
+   *
+   * Kategori ve alt kategori de bunun içinde: ekranda çip satırı olarak
+   * duruyorlar ama süzme kuralı olarak diğerlerinden farkları yok, ve ayrı
+   * durumda tutulsalardı `uygula` iki kaynaktan beslenirdi. Rozet onları
+   * saymıyor — o ayrım `acikSuzgecSayisi` içinde ve gerekçesi orada yazılı.
+   */
+  const [suzgec, setSuzgec] = useState<Suzgec>(BOS_SUZGEC);
+  const [siralama, setSiralama] = useState<Siralama>('onerilen');
+  const [siralamaAcik, setSiralamaAcik] = useState(false);
+  const [suzgecAcik, setSuzgecAcik] = useState(false);
+
+  /* Panel açıkken yapılan değişiklikler önce taslağa yazılıyor, "Uygula"ya
+     basılınca gerçek süzgece geçiyor. Anında uygulasaydı panel her dokunuşta
+     arkadaki rafı yeniden çizerdi ve kullanıcı sonucu göremeden ölçütü
+     değiştirmiş olurdu; kapatınca vazgeçmek de mümkün olmazdı. */
+  const [taslak, setTaslak] = useState<Suzgec>(BOS_SUZGEC);
+
+  const active = suzgec.kategori;
+  const activeSub = suzgec.altKategori;
 
   /* Ana kategori değişince alt seçim düşer: önceki alt kategori yeni ana
      kategoride yok, kalsaydı raf sessizce boş dönerdi. */
   const anaSec = (ad: string) => {
-    setActive(ad);
-    setActiveSub(ALL_CATEGORIES);
+    setSuzgec((s) => ({ ...s, kategori: ad, altKategori: ALL_CATEGORIES }));
   };
+  const setActiveSub = (ad: string) => setSuzgec((s) => ({ ...s, altKategori: ad }));
   /**
    * Bildirim rozeti.
    *
@@ -73,22 +106,48 @@ export default function ShelfScreen() {
       iptal = true;
     };
   }, []);
+
+  /* Profil fotoğrafı bu küçük dairede de görünüyor: kullanıcı fotoğrafını
+     yükleyip ana ekranda hâlâ baş harflerini görseydi, yüklemenin işe
+     yaramadığını düşünürdü. `useFocusEffect` — sekme ekranı arka planda canlı
+     kalıyor ve düzenlemeden dönüşte tazelenmezse eski hâli kalır. */
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      let iptal = false;
+      loadMyAvatar().then((a) => {
+        if (!iptal) setAvatarUrl(a.url);
+      });
+      return () => {
+        iptal = true;
+      };
+    }, []),
+  );
   const { products, featured, loading, refreshing, refresh } = useProducts();
 
   /* Alt kategoriler yalnızca bir ana kategori seçiliyken açılır — mimarinin
      kuralı bu. Hepsini birden göstermek altmış iki çip demekti. */
   const altlar = subsOf(active);
 
-  /* Arama `aramaEslesir` üzerinden: `toLowerCase()` Türkçe'yi bozuyordu
-     ("İpekyol" küçültülünce birleşen noktalı bir i çıkıyor ve düz "ipek" ile
-     eşleşmiyor) ve şapkasız yazan kullanıcı hiçbir şey bulamıyordu.
-     Taranan alanlar da genişledi: açıklama ve konum eklendi — "Kadıköy"
-     yazan biri semtindeki ilanları görebilmeli. */
-  const visible = products.filter((p) => {
-    if (active !== ALL_CATEGORIES && p.category !== active) return false;
-    if (activeSub !== ALL_CATEGORIES && p.subCategory !== activeSub) return false;
-    return aramaEslesir(q, [p.title, p.category, p.subCategory, p.location, p.description]);
-  });
+  /* Süzme ve sıralama `lib/suzgec.ts` içinde ve saf: girdi ürün dizisi,
+     çıktı ürün dizisi. Ekranda kalsaydı çizim mantığıyla iş mantığı iç içe
+     geçerdi — ve bu ikisi bozulunca farklı görünüyor: yanlış çizim gözle
+     yakalanır, yanlış süzgeç yalnızca "aradığımı bulamadım" olarak yaşanır. */
+  const visible = useMemo(
+    () => uygula(products, suzgec, q, siralama),
+    [products, suzgec, q, siralama],
+  );
+
+  const acikSayi = acikSuzgecSayisi(suzgec);
+  const konumlar = useMemo(() => mevcutKonumlar(products), [products]);
+  const enYuksek = useMemo(() => enYuksekPuan(products), [products]);
+  const siralamaEtiketi =
+    SIRALAMA_SECENEKLERI.find((s) => s.deger === siralama)?.etiket ?? 'Önerilen';
+
+  function suzgecPaneliniAc() {
+    setTaslak(suzgec);
+    setSuzgecAcik(true);
+  }
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -161,13 +220,50 @@ export default function ShelfScreen() {
               accessibilityRole="button"
               accessibilityLabel="Profilim"
             >
-              {basHarf === '—' ? (
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} style={styles.avatarImg} resizeMode="cover" />
+              ) : basHarf === '—' ? (
                 <MaterialIcons name="person" size={17} color={colors.onTertiaryContainer} />
               ) : (
                 <Text style={styles.avatarText}>{basHarf}</Text>
               )}
             </Pressable>
           </View>
+        </View>
+
+        {/* Sırala / Filtrele.
+            Çip satırının ÜSTÜNDE: kategori bir süzgeç değil gezinme, ve
+            gezinmeden önce "bu rafı nasıl görmek istiyorum" sorusu geliyor.
+            İkisi eşit genişlikte çünkü eşit ağırlıkta iki karar. */}
+        <View style={styles.araclar}>
+          <Pressable
+            style={styles.arac}
+            onPress={() => setSiralamaAcik(true)}
+            accessibilityLabel={`Sıralama: ${siralamaEtiketi}`}
+          >
+            <MaterialIcons name="swap-vert" size={18} color={colors.onSurface} />
+            <Text style={styles.aracText} numberOfLines={1}>
+              {siralama === 'onerilen' ? 'Sırala' : siralamaEtiketi}
+            </Text>
+          </Pressable>
+          <View style={styles.aracAyrac} />
+          <Pressable
+            style={styles.arac}
+            onPress={suzgecPaneliniAc}
+            accessibilityLabel={
+              acikSayi > 0 ? `Filtrele — ${acikSayi} filtre açık` : 'Filtrele'
+            }
+          >
+            <MaterialIcons name="tune" size={18} color={colors.onSurface} />
+            <Text style={styles.aracText}>Filtrele</Text>
+            {/* Rozet, boş rafın sebebini söylüyor: süzgeç paneli kapalıyken
+                sonuç boş kalabiliyor ve kullanıcı bunu bir kusur sanıyor. */}
+            {acikSayi > 0 && (
+              <View style={styles.aracRozet}>
+                <Text style={styles.aracRozetText}>{acikSayi}</Text>
+              </View>
+            )}
+          </Pressable>
         </View>
 
         {/* Filtre chip'leri */}
@@ -278,6 +374,26 @@ export default function ShelfScreen() {
           <View style={styles.loading}>
             <ActivityIndicator color={colors.primary} />
           </View>
+        ) : visible.length === 0 ? (
+          /* Boş raf sessiz kalmıyor. Süzgeç yüzündense çıkışı da veriyor:
+             kullanıcının hangi ölçütü koyduğunu hatırlaması gerekmesin. */
+          <View style={styles.bos}>
+            <MaterialIcons name="search-off" size={34} color={colors.outline} />
+            <Text style={styles.bosBaslik}>Bu ölçütlere uyan ilan yok</Text>
+            <Text style={styles.bosMetin}>
+              {acikSayi > 0
+                ? 'Filtreleri gevşetmeyi ya da temizlemeyi dene.'
+                : 'Aramanı değiştirmeyi ya da başka bir kategoriye bakmayı dene.'}
+            </Text>
+            {acikSayi > 0 && (
+              <Pressable
+                style={styles.bosCta}
+                onPress={() => setSuzgec((s) => suzgeciTemizle(s))}
+              >
+                <Text style={styles.bosCtaText}>Filtreleri temizle</Text>
+              </Pressable>
+            )}
+          </View>
         ) : (
           <View style={styles.grid}>
             {visible.map((p) => (
@@ -289,8 +405,165 @@ export default function ShelfScreen() {
         )}
       </ScrollView>
 
+      {/* ---- Sırala ---- */}
+      <AltSayfa acik={siralamaAcik} baslik="Sırala" onKapat={() => setSiralamaAcik(false)}>
+        {/* Sıralama anında uygulanıyor, "Uygula" düğmesi yok: tek seçimlik bir
+            karar ve seçer seçmez sonucu görmek doğru davranış. Süzgeç panelinde
+            tersi geçerli — orada birden fazla ölçüt birlikte kuruluyor. */}
+        {SIRALAMA_SECENEKLERI.map((s) => {
+          const sel = s.deger === siralama;
+          return (
+            <Pressable
+              key={s.deger}
+              style={styles.secenek}
+              onPress={() => {
+                setSiralama(s.deger);
+                setSiralamaAcik(false);
+              }}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.secenekText, sel && styles.secenekTextSel]}>{s.etiket}</Text>
+                {s.aciklama ? <Text style={styles.secenekAlt}>{s.aciklama}</Text> : null}
+              </View>
+              <MaterialIcons
+                name={sel ? 'radio-button-checked' : 'radio-button-unchecked'}
+                size={20}
+                color={sel ? colors.primary : colors.outline}
+              />
+            </Pressable>
+          );
+        })}
+      </AltSayfa>
+
+      {/* ---- Filtrele ---- */}
+      <AltSayfa
+        acik={suzgecAcik}
+        baslik="Filtrele"
+        onKapat={() => setSuzgecAcik(false)}
+        altBar={
+          <>
+            <Pressable
+              style={styles.temizle}
+              onPress={() => setTaslak((t) => suzgeciTemizle(t))}
+            >
+              <Text style={styles.temizleText}>Temizle</Text>
+            </Pressable>
+            <Pressable
+              style={styles.uygula}
+              onPress={() => {
+                setSuzgec(taslak);
+                setSuzgecAcik(false);
+              }}
+            >
+              <Text style={styles.uygulaText}>Sonuçları göster</Text>
+            </Pressable>
+          </>
+        }
+      >
+        <Text style={styles.grupBaslik}>ÜRÜN DURUMU</Text>
+        <View style={styles.hapSatir}>
+          {KONDISYONLAR.map((k) => {
+            const sel = taslak.kondisyonlar.includes(k);
+            return (
+              <Pressable
+                key={k}
+                style={[styles.hap, sel && styles.hapSel]}
+                onPress={() =>
+                  setTaslak((t) => ({
+                    ...t,
+                    kondisyonlar: sel
+                      ? t.kondisyonlar.filter((x) => x !== k)
+                      : [...t.kondisyonlar, k],
+                  }))
+                }
+              >
+                <Text style={[styles.hapText, sel && styles.hapTextSel]}>{k}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <Text style={styles.grupBaslik}>TAKAS PUANI</Text>
+        <View style={styles.aralik}>
+          <View style={styles.aralikAlan}>
+            <TextInput
+              style={styles.aralikInput}
+              value={taslak.enAzPuan === null ? '' : String(taslak.enAzPuan)}
+              onChangeText={(t) => setTaslak((s) => ({ ...s, enAzPuan: sayi(t) }))}
+              placeholder="En az"
+              placeholderTextColor={colors.onSurfaceVariant}
+              keyboardType="number-pad"
+              maxLength={6}
+            />
+          </View>
+          <Text style={styles.aralikAyrac}>—</Text>
+          <View style={styles.aralikAlan}>
+            <TextInput
+              style={styles.aralikInput}
+              value={taslak.enCokPuan === null ? '' : String(taslak.enCokPuan)}
+              onChangeText={(t) => setTaslak((s) => ({ ...s, enCokPuan: sayi(t) }))}
+              placeholder={enYuksek > 0 ? `En çok (${enYuksek})` : 'En çok'}
+              placeholderTextColor={colors.onSurfaceVariant}
+              keyboardType="number-pad"
+              maxLength={6}
+            />
+          </View>
+        </View>
+
+        {/* Konum listesi rafta GERÇEKTEN bulunan ilçelerden. 81 ilin tamamını
+            listelemek, kullanıcıya sonucu boş dönecek onlarca seçenek sunmak
+            olurdu — ve boş sonucun sebebini süzgecin kendisi yaratırdı. */}
+        {konumlar.length > 1 && (
+          <>
+            <Text style={styles.grupBaslik}>KONUM</Text>
+            <View style={styles.hapSatir}>
+              {konumlar.map((k) => {
+                const sel = taslak.konum === k;
+                return (
+                  <Pressable
+                    key={k}
+                    style={[styles.hap, sel && styles.hapSel]}
+                    onPress={() => setTaslak((t) => ({ ...t, konum: sel ? '' : k }))}
+                  >
+                    <Text style={[styles.hapText, sel && styles.hapTextSel]}>{k}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </>
+        )}
+
+        <Pressable
+          style={styles.anahtarSatir}
+          onPress={() => setTaslak((t) => ({ ...t, hasarsiz: !t.hasarsiz }))}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={styles.anahtarBaslik}>Yalnızca hasarsız ürünler</Text>
+            <Text style={styles.anahtarAlt}>Satıcının hasar beyan ettiği ilanları gizler.</Text>
+          </View>
+          <MaterialIcons
+            name={taslak.hasarsiz ? 'check-box' : 'check-box-outline-blank'}
+            size={24}
+            color={taslak.hasarsiz ? colors.primary : colors.outline}
+          />
+        </Pressable>
+      </AltSayfa>
     </View>
   );
+}
+
+/**
+ * Metni puana çevirir; boş ya da sayı değilse `null` (sınır yok).
+ *
+ * `Number('')` sıfır veriyor ve bu tam olarak yanlış cevap: kullanıcı alanı
+ * boşaltınca "en az 0 puan" değil "alt sınır yok" demek istiyor. İkisi aynı
+ * sonucu verdiği için fark uzun süre görünmez, sonra "en çok" alanı
+ * boşaltıldığında raf tamamen boşalır.
+ */
+function sayi(t: string): number | null {
+  const temiz = t.replace(/[^0-9]/g, '');
+  if (!temiz) return null;
+  return Number(temiz);
 }
 
 const styles = StyleSheet.create({
@@ -341,7 +614,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  avatarImg: { width: '100%', height: '100%', borderRadius: shape.full },
   avatarText: { color: colors.onTertiaryContainer, fontWeight: '800', fontSize: 11.5 },
+  /* Sırala | Filtrele — eşit genişlikte iki yarım, ortada ince bir ayraç.
+     Trendyol'daki gibi tek bir şerit: iki ayrı düğme olsaydı aralarındaki
+     boşluk hangisinin daha önemli olduğu sorusunu doğururdu, oysa eşitler. */
+  araclar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 18,
+    marginBottom: 10,
+    height: 42,
+    borderRadius: shape.sm,
+    borderWidth: 1,
+    borderColor: colors.outlineVariant,
+    backgroundColor: colors.surfaceContainerLowest,
+  },
+  arac: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  aracText: { fontSize: 13, fontWeight: '700', color: colors.onSurface },
+  aracAyrac: { width: 1, height: 20, backgroundColor: colors.outlineVariant },
+  aracRozet: {
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 5,
+    borderRadius: shape.full,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  aracRozetText: { color: '#fff', fontSize: 10, fontWeight: '800' },
   chips: { gap: 8, paddingHorizontal: 18, paddingBottom: 4 },
   /* Tasarım: beyaz hap + ince kenarlık, yüksekliği 25 pt; seçili olan açık
      turkuaz zemin ve koyu turkuaz metin. Burada 30: 25 pt dokunma için fazla
@@ -386,6 +687,97 @@ const styles = StyleSheet.create({
   /* Kenar 18, kartlar arası 10 (ölçüldü) → 13 + 5 + 5 + 13. */
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 13 },
   cell: { width: '50%', paddingHorizontal: 5, marginBottom: 14 },
+  bos: { alignItems: 'center', paddingHorizontal: 40, paddingVertical: 44, gap: 8 },
+  bosBaslik: { fontSize: 15, fontWeight: '800', color: colors.onSurface, marginTop: 4 },
+  bosMetin: {
+    fontSize: 12.5,
+    fontWeight: '500',
+    color: colors.onSurfaceVariant,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  bosCta: {
+    height: 40,
+    paddingHorizontal: 18,
+    borderRadius: shape.full,
+    justifyContent: 'center',
+    backgroundColor: colors.primaryContainer,
+    marginTop: 6,
+  },
+  bosCtaText: { fontSize: 13, fontWeight: '800', color: colors.primary },
+  secenek: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.outlineVariant,
+  },
+  secenekText: { fontSize: 14, fontWeight: '600', color: colors.onSurface },
+  secenekTextSel: { fontWeight: '800', color: colors.primary },
+  secenekAlt: { fontSize: 11.5, fontWeight: '500', color: colors.onSurfaceVariant, marginTop: 3 },
+  grupBaslik: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: colors.onSurfaceVariant,
+    letterSpacing: 0.7,
+    marginTop: 18,
+    marginBottom: 9,
+  },
+  hapSatir: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  hap: {
+    height: 34,
+    paddingHorizontal: 13,
+    borderRadius: shape.full,
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.outlineVariant,
+    backgroundColor: colors.surfaceContainerLowest,
+  },
+  hapSel: { backgroundColor: colors.primaryContainer, borderColor: 'transparent' },
+  hapText: { fontSize: 12.5, fontWeight: '700', color: colors.onSurfaceVariant },
+  hapTextSel: { color: colors.primary },
+  aralik: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  aralikAlan: {
+    flex: 1,
+    height: 44,
+    paddingHorizontal: 14,
+    borderRadius: shape.sm,
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceContainerHigh,
+  },
+  aralikInput: { fontSize: 14, color: colors.onSurface, padding: 0 },
+  aralikAyrac: { color: colors.onSurfaceVariant, fontWeight: '700' },
+  anahtarSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 20,
+    padding: 14,
+    borderRadius: shape.sm,
+    backgroundColor: colors.surfaceContainerLowest,
+  },
+  anahtarBaslik: { fontSize: 13.5, fontWeight: '800', color: colors.onSurface },
+  anahtarAlt: { fontSize: 11.5, fontWeight: '500', color: colors.onSurfaceVariant, marginTop: 3 },
+  temizle: {
+    flex: 1,
+    height: 48,
+    borderRadius: shape.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.outline,
+  },
+  temizleText: { fontSize: 14, fontWeight: '800', color: colors.onSurfaceVariant },
+  uygula: {
+    flex: 2,
+    height: 48,
+    borderRadius: shape.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+  },
+  uygulaText: { fontSize: 14, fontWeight: '800', color: '#fff' },
   fab: {
     position: 'absolute',
     right: 18,

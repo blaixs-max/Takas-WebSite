@@ -49,7 +49,10 @@ echo "▸ test yardımcıları"
 # `security definer` yazıldı, kontrol hiç çalışmadı, kullanıcı kendi karesini
 # onaylayabilir hâle geldi — ve paket yine "24 test geçti" dedi. Bu satır o
 # boşluğun büyüklüğünü her koşuda görünür tutuyor; sessizce unutulmasın.
-denetimli=$(grep -ho "bekle_esit\?(" "$KOK"/supabase/tests/*_test.sql | wc -l)
+# Desen bir tur boyunca `bekle_esit\?(` idi — yani "bekle_esi" + isteğe bağlı
+# bir "t". `bekle(` çağrılarını hiç saymıyordu ve sayaç, tam da görünür tutmak
+# için yazıldığı şeyi olduğundan küçük gösteriyordu.
+denetimli=$(grep -ho "bekle\(_esit\)\?(" "$KOK"/supabase/tests/*_test.sql | wc -l)
 elle=$(grep -h "BEKLENEN" "$KOK"/supabase/tests/*_test.sql | wc -l)
 echo "▸ iddialar: $denetimli makine denetimli, $elle hâlâ göz kontrolünde"
 

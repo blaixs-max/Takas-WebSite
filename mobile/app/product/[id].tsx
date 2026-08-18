@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -24,6 +24,7 @@ import { useCart } from '../../lib/cart';
 import { shareProduct } from '../../lib/share';
 import { startTrade, quotePrice } from '../../lib/trades';
 import { startConversation } from '../../lib/messages';
+import { loadUserAvatar } from '../../lib/avatar';
 import { useAuth } from '../../lib/auth';
 import { colors, elevation, shape } from '../../theme/tokens';
 
@@ -71,6 +72,32 @@ export default function ProductDetail() {
   const [buyutulmus, setBuyutulmus] = useState(false);
   const heroRef = useRef<ScrollView>(null);
   const [takasEdiliyor, setTakasEdiliyor] = useState(false);
+
+  /**
+   * Satıcının profil fotoğrafı.
+   *
+   * `loadUserAvatar` yalnızca **onaylı** avatarın bağlantısını üretebiliyor:
+   * `avatar_yolu` onaysızda null dönüyor ve depolama politikası da bağlantı
+   * vermiyor. Yani buradaki bir hata bile denetlenmemiş bir görseli ekrana
+   * getiremez.
+   *
+   * Bağlantı üretilemezse baş harfler kalıyor — kırık bir kare göstermek
+   * yerine hep çalışan hâle düşmek.
+   */
+  const saticiId = product?.seller.id;
+  const [saticiAvatar, setSaticiAvatar] = useState<string | null>(null);
+  useEffect(() => {
+    let iptal = false;
+    setSaticiAvatar(null);
+    if (!saticiId) return;
+    loadUserAvatar(saticiId).then((u) => {
+      if (!iptal) setSaticiAvatar(u);
+    });
+    return () => {
+      iptal = true;
+    };
+  }, [saticiId]);
+
   const fav = product ? isFavorite(product.id) : false;
   const inSepet = product ? inCart(product.id) : false;
 
@@ -316,7 +343,11 @@ export default function ProductDetail() {
         {/* Satıcı */}
         <View style={styles.seller}>
           <View style={styles.sellerAv}>
-            <Text style={styles.sellerAvText}>{product.seller.initials}</Text>
+            {saticiAvatar ? (
+              <Image source={{ uri: saticiAvatar }} style={styles.sellerAvImg} resizeMode="cover" />
+            ) : (
+              <Text style={styles.sellerAvText}>{product.seller.initials}</Text>
+            )}
             <View style={styles.sellerOk}>
               <MaterialIcons name="check" size={11} color="#fff" />
             </View>
@@ -627,6 +658,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  /* Kırpma resmin kendisinde: kapsayıcıya `overflow: 'hidden'` yazmak sağ
+     alttaki doğrulama tikini de kırpardı — tik dairenin kenarına taşıyor. */
+  sellerAvImg: { ...StyleSheet.absoluteFillObject, borderRadius: shape.full },
   sellerAvText: { fontWeight: '800', fontSize: 13, color: colors.primary },
   sellerOk: {
     position: 'absolute',
