@@ -107,6 +107,54 @@ export async function campaignStatus(): Promise<CampaignStatus | null> {
   };
 }
 
+export interface AdminHata {
+  id: number;
+  platform: string;
+  surum: string | null;
+  ekran: string | null;
+  mesaj: string;
+  yigin: string | null;
+  tekrar: number;
+  ilkAt: string;
+  sonAt: string;
+  goruldu: boolean;
+  /** Oturumlu bir kullanıcıda mı oldu — kimliği değil, yalnızca bu. */
+  kullanici: boolean;
+}
+
+/**
+ * Canlıdaki JS çökmeleri.
+ *
+ * Sıralama `goruldu` önce: paneldeki asıl soru "şu an neyi bilmiyorum".
+ * Aynı hata tekrar ederse `goruldu` sıfırlanıyor, yani kapatılmış sanılan bir
+ * çökme geri gelirse yeniden yukarı çıkıyor.
+ */
+export async function adminHatalar(limit = 50): Promise<AdminHata[]> {
+  if (!supabaseConfigured || !supabase) return [];
+  const { data, error } = await supabase.rpc('admin_hatalar', { p_limit: limit });
+  if (error || !Array.isArray(data)) return [];
+  return (data as Record<string, unknown>[]).map((r) => ({
+    id: Number(r.id),
+    platform: String(r.platform ?? 'bilinmiyor'),
+    surum: (r.surum as string) || null,
+    ekran: (r.ekran as string) || null,
+    mesaj: String(r.mesaj ?? ''),
+    yigin: (r.yigin as string) || null,
+    tekrar: Number(r.tekrar ?? 1),
+    ilkAt: String(r.ilk_at ?? ''),
+    sonAt: String(r.son_at ?? ''),
+    goruldu: r.goruldu === true,
+    kullanici: r.kullanici === true,
+  }));
+}
+
+/** "Bunu biliyorum" işareti. */
+export async function hataGoruldu(id: number): Promise<boolean> {
+  if (!supabaseConfigured || !supabase) return false;
+  const { error } = await supabase.rpc('admin_hata_goruldu', { p_id: id });
+  return !error;
+}
+
 export type AdminResult = { ok: true } | { ok: false; message: string };
 
 export async function moderatePhoto(

@@ -1605,3 +1605,30 @@ bile değildi. Dördü ölçülerek doğrulandı (kodda arandı, yok).
 - Supabase dashboard OAuth config (proje ve anahtarlar artık hazır)
 - Kargo aggregator hesabı + anlaşmalı tarife
 - Apple Developer + Google Play hesapları (mevcut)
+
+## 🛑 Hata izleme (2026-08-18)
+
+Canlıdaki bir JS çökmesinden **hiç haberimiz olmuyordu**: mobilde ne hata
+sınırı ne küresel yakalayıcı vardı. Ekran beyaza düşüyor, kullanıcı
+uygulamayı kapatıyor, biz bir şey görmüyoruz — o da anlatamıyor, "açılmadı"
+diyor.
+
+- [x] `client_errors` tablosu + `hata_bildir` RPC (parmak izi birleştirme,
+      saatlik 200 yeni-satır sınırı, sunucuda kırpma)
+- [x] `components/HataSiniri.tsx` — çizim hatalarını yakalıyor, kullanıcıya
+      bir çıkış veriyor, hatayı bildiriyor
+- [x] `lib/hatalar.ts` — küresel yakalayıcı (`ErrorUtils`), ekran adı takibi
+- [x] Yönetim panelinde "Hatalar" sekmesi; rozet yalnızca **görülmemişleri**
+      sayıyor
+
+**Neden Sentry değil.** `@sentry/react-native` native modül istiyor ve
+uygulama Expo Go'dan çalışıyor; development build'e geçmek kapsam dışı
+bırakılmıştı. Bu çözüm o boşluğu dolduruyor, Sentry'nin yerini almıyor.
+
+- [ ] **EAS build yapıldığında Sentry eklenecek.** İstemci tarafı tek dosya
+      (`lib/hatalar.ts`); hedefi değiştirmek yalnızca orayı değiştirmek.
+      Çağıran yerlerin hiçbiri nereye yazıldığını bilmiyor. Bu tablo o gün
+      yedek olarak kalabilir.
+- [ ] **Sitede hata izleme yok.** Vite tarafı bu turda kapsam dışı kaldı;
+      orada native kısıtı olmadığı için `@sentry/react` doğrudan çalışır ama
+      yeni bir üçüncü taraf demek, yani `/gizlilik/` aynı turda güncellenir.

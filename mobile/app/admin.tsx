@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Image,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -16,12 +17,15 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
+  AdminHata,
   CampaignStatus,
   DisputeQueueRow,
   PhotoQueueRow,
   ReportQueueRow,
+  adminHatalar,
   amIAdmin,
   campaignStatus,
+  hataGoruldu,
   disputeEvidenceUrls,
   imzaliBaglantilar,
   loadDisputeQueue,
@@ -65,12 +69,16 @@ export default function AdminScreen() {
   const router = useRouter();
 
   const [yetkili, setYetkili] = useState<boolean | null>(null);
-  const [sekme, setSekme] = useState<'kare' | 'itiraz' | 'sikayet'>('kare');
+  const [sekme, setSekme] = useState<'kare' | 'itiraz' | 'sikayet' | 'hata'>('kare');
   const [kareler, setKareler] = useState<PhotoQueueRow[]>([]);
   const [kareUrl, setKareUrl] = useState<Record<string, string>>({});
   const [itirazlar, setItirazlar] = useState<DisputeQueueRow[]>([]);
   const [kampanya, setKampanya] = useState<CampaignStatus | null>(null);
   const [sikayetler, setSikayetler] = useState<ReportQueueRow[]>([]);
+  const [hatalar, setHatalar] = useState<AdminHata[]>([]);
+  /* Açılan yığın izi. Hepsini birden açmak listeyi okunmaz yapardı; hata
+     kaydının değeri listede değil, tek tek incelenmesinde. */
+  const [acikYigin, setAcikYigin] = useState<number | null>(null);
   const [yenileniyor, setYenileniyor] = useState(false);
   const [topluIsliyor, setTopluIsliyor] = useState(false);
   const [islemde, setIslemde] = useState<string | null>(null);
@@ -86,16 +94,18 @@ export default function AdminScreen() {
   const [iadeKargo, setIadeKargo] = useState('');
 
   const getir = useCallback(async () => {
-    const [k, i, c, r] = await Promise.all([
+    const [k, i, c, r, h] = await Promise.all([
       loadPhotoQueue(),
       loadDisputeQueue(),
       campaignStatus(),
       loadReportQueue(),
+      adminHatalar(),
     ]);
     setKareler(k);
     setItirazlar(i);
     setKampanya(c);
     setSikayetler(r);
+    setHatalar(h);
 
     // Özel kova: görselleri göstermek için kısa ömürlü bağlantı gerekiyor.
     // Eşlemeyi yol üzerinden kuruyoruz; sıraya güvenmek, bir bağlantı
@@ -264,6 +274,14 @@ export default function AdminScreen() {
           sayi={sikayetler.length}
           aktif={sekme === 'sikayet'}
           onPress={() => setSekme('sikayet')}
+        />
+        {/* Sayaç yalnızca GÖRÜLMEMİŞ hataları sayıyor. Toplamı saysaydı rozet
+            hiç sıfırlanmaz ve bir süre sonra bakılmayan bir sayı olurdu. */}
+        <Sekme
+          etiket="Hatalar"
+          sayi={hatalar.filter((h) => !h.goruldu).length}
+          aktif={sekme === 'hata'}
+          onPress={() => setSekme('hata')}
         />
       </View>
 
@@ -500,6 +518,64 @@ export default function AdminScreen() {
               </View>
             </View>
           ))}
+
+        {sekme === 'hata' && hatalar.length === 0 && (
+          <Bos ikon="check-circle" metin="Bildirilen hata yok." />
+        )}
+
+        {sekme === 'hata' &&
+          hatalar.map((h) => (
+            <View key={h.id} style={[styles.kart, h.goruldu && styles.kartSolgun]}>
+              <View style={styles.hataUst}>
+                {/* Tekrar sayısı en görünür yerde: bir kez olan hata ile
+                    kırk kez olan hata aynı listede ama aynı iş değil. */}
+                <View style={styles.hataRozet}>
+                  <Text style={styles.hataRozetText}>×{h.tekrar}</Text>
+                </View>
+                <Text style={styles.hataEkran} numberOfLines={1}>
+                  {h.ekran || 'bilinmeyen ekran'}
+                </Text>
+                <Text style={styles.hataMeta}>
+                  {h.platform}
+                  {h.surum ? ` · ${h.surum}` : ''}
+                </Text>
+              </View>
+
+              <Text style={styles.hataMesaj}>{h.mesaj}</Text>
+              <Text style={styles.hataMeta}>
+                Son: {tarih(h.sonAt)} · İlk: {tarih(h.ilkAt)} ·{' '}
+                {h.kullanici ? 'oturumlu' : 'oturumsuz'}
+              </Text>
+
+              {h.yigin && acikYigin === h.id && (
+                <Text style={styles.hataYigin}>{h.yigin}</Text>
+              )}
+
+              <View style={styles.aksiyonlar}>
+                {h.yigin && (
+                  <Pressable
+                    style={styles.ikincil}
+                    onPress={() => setAcikYigin(acikYigin === h.id ? null : h.id)}
+                  >
+                    <Text style={styles.ikincilText}>
+                      {acikYigin === h.id ? 'Yığını gizle' : 'Yığını gör'}
+                    </Text>
+                  </Pressable>
+                )}
+                {!h.goruldu && (
+                  <Pressable
+                    style={styles.ikincil}
+                    onPress={async () => {
+                      await hataGoruldu(h.id);
+                      await getir();
+                    }}
+                  >
+                    <Text style={styles.ikincilText}>Gördüm</Text>
+                  </Pressable>
+                )}
+              </View>
+            </View>
+          ))}
       </ScrollView>
 
       {/* Gerekçe — sunucu boş gerekçeyi reddediyor, burada da zorunlu */}
@@ -608,6 +684,14 @@ function Etiket({ metin, vurgu }: { metin: string; vurgu?: boolean }) {
       <Text style={styles.etiketText}>{metin}</Text>
     </View>
   );
+}
+
+/** Kısa tarih — Hermes'te Intl güvenilir değil, elle biçimlendiriyoruz. */
+function tarih(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${p(d.getDate())}.${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
 function Bos({ ikon, metin }: { ikon: keyof typeof MaterialIcons.glyphMap; metin: string }) {
@@ -722,6 +806,38 @@ const styles = StyleSheet.create({
   },
   topluBtnOff: { opacity: 0.5 },
   aksiyonlar: { flexDirection: 'row', gap: 10, marginTop: 13 },
+  /* Görülmüş hata solgunlaşıyor ama listeden düşmüyor: tekrar ederse
+     `goruldu` sunucuda sıfırlanıyor ve kayıt kendiliğinden yukarı çıkıyor. */
+  kartSolgun: { opacity: 0.55 },
+  hataUst: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  hataRozet: {
+    paddingHorizontal: 8,
+    height: 22,
+    borderRadius: shape.full,
+    justifyContent: 'center',
+    backgroundColor: colors.errorContainer,
+  },
+  hataRozetText: { fontSize: 11, fontWeight: '800', color: colors.error },
+  hataEkran: { flex: 1, fontSize: 12.5, fontWeight: '800', color: colors.onSurface },
+  hataMeta: { fontSize: 11, fontWeight: '500', color: colors.onSurfaceVariant },
+  hataMesaj: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.onSurface,
+    lineHeight: 18,
+    marginBottom: 6,
+  },
+  /* Yığın izi tek boşluklu ve küçük: okunacak değil, taranacak bir metin. */
+  hataYigin: {
+    fontSize: 10.5,
+    lineHeight: 15,
+    color: colors.onSurfaceVariant,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    marginTop: 10,
+    padding: 10,
+    borderRadius: shape.sm,
+    backgroundColor: colors.surfaceContainerHigh,
+  },
   birincil: {
     flex: 1,
     height: 44,

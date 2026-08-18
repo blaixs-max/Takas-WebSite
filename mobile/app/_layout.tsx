@@ -9,7 +9,14 @@ import { FavoritesProvider } from '../lib/favorites';
 import { CartProvider } from '../lib/cart';
 import { AcilisEkrani } from '../components/brand/AcilisEkrani';
 import { DialogHost } from '../components/Dialog';
+import { HataSiniri } from '../components/HataSiniri';
+import { ekranBildir, kureselYakalayiciyiKur } from '../lib/hatalar';
 import { colors } from '../theme/tokens';
+
+/* Küresel yakalayıcı modül yüklenirken kuruluyor, bir bileşenin içinde değil:
+   çizim başlamadan önce olan bir hata da yakalanmalı ve o an henüz hiçbir
+   bileşen bağlanmamış olur. */
+kureselYakalayiciyiKur();
 
 /**
  * Yerel açılış ekranı kendiliğinden kapanmasın: paket yüklenip ilk kare
@@ -63,6 +70,17 @@ function RootNavigator() {
   const { loading } = useAuth();
   const sureDoldu = useEnAzSure(ACILIS_EN_AZ_MS);
   useProtectedRoute();
+
+  /* Hata kayıtlarına ekran adı yazılıyor. Gruplamanın omurgası bu:
+     "product/[id] altı çökme" ile "listing-photos altı çökme" iki ayrı iş ve
+     yığın izi tek başına bunu söylemiyor — küçültülmüş paketle yığın çoğu
+     zaman okunmaz hâlde.
+     Rota **kalıbı** kullanılıyor, gerçek yol değil: `product/[id]` yazılıyor,
+     `product/abc-123` değil. Yoksa her ilan ayrı bir hata gibi görünürdü. */
+  const parcalar = useSegments();
+  useEffect(() => {
+    ekranBildir(parcalar.join('/'));
+  }, [parcalar]);
 
   /* İlk kare çizildi; yerel açılış ekranı artık kapanabilir. Kapanınca
      altından bu ekran çıkıyor ve ikisi aynı krem zemini paylaştığı için
@@ -123,16 +141,22 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
     <SafeAreaProvider>
       <StatusBar style="dark" />
-      <AuthProvider>
-        <FavoritesProvider>
-          <CartProvider>
-            <RootNavigator />
-            {/* Uyarı kutuları uygulamanın kendi katmanından çıksın diye
-                sağlayıcıların en içinde, gezinmenin üstünde duruyor. */}
-            <DialogHost />
-          </CartProvider>
-        </FavoritesProvider>
-      </AuthProvider>
+      {/* Hata sınırı sağlayıcıların DIŞINDA: bir sağlayıcının kendisi
+          çökerse (oturum çözümü, sepet yüklemesi) sınır onun içinde kalsaydı
+          o hatayı yakalayamazdı. Buradan yakalıyor ve ekranı beyaz
+          bırakmıyor. */}
+      <HataSiniri>
+        <AuthProvider>
+          <FavoritesProvider>
+            <CartProvider>
+              <RootNavigator />
+              {/* Uyarı kutuları uygulamanın kendi katmanından çıksın diye
+                  sağlayıcıların en içinde, gezinmenin üstünde duruyor. */}
+              <DialogHost />
+            </CartProvider>
+          </FavoritesProvider>
+        </AuthProvider>
+      </HataSiniri>
     </SafeAreaProvider>
     </GestureHandlerRootView>
   );
