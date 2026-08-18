@@ -231,47 +231,60 @@ export default function ShelfScreen() {
           </View>
         </View>
 
-        {/* Sırala / Filtrele.
-            Çip satırının ÜSTÜNDE: kategori bir süzgeç değil gezinme, ve
-            gezinmeden önce "bu rafı nasıl görmek istiyorum" sorusu geliyor.
-            İkisi eşit genişlikte çünkü eşit ağırlıkta iki karar. */}
-        <View style={styles.araclar}>
-          <Pressable
-            style={styles.arac}
-            onPress={() => setSiralamaAcik(true)}
-            accessibilityLabel={`Sıralama: ${siralamaEtiketi}`}
-          >
-            <MaterialIcons name="swap-vert" size={18} color={colors.onSurface} />
-            <Text style={styles.aracText} numberOfLines={1}>
-              {siralama === 'onerilen' ? 'Sırala' : siralamaEtiketi}
-            </Text>
-          </Pressable>
-          <View style={styles.aracAyrac} />
-          <Pressable
-            style={styles.arac}
-            onPress={suzgecPaneliniAc}
-            accessibilityLabel={
-              acikSayi > 0 ? `Filtrele — ${acikSayi} filtre açık` : 'Filtrele'
-            }
-          >
-            <MaterialIcons name="tune" size={18} color={colors.onSurface} />
-            <Text style={styles.aracText}>Filtrele</Text>
-            {/* Rozet, boş rafın sebebini söylüyor: süzgeç paneli kapalıyken
-                sonuç boş kalabiliyor ve kullanıcı bunu bir kusur sanıyor. */}
-            {acikSayi > 0 && (
-              <View style={styles.aracRozet}>
-                <Text style={styles.aracRozetText}>{acikSayi}</Text>
-              </View>
-            )}
-          </Pressable>
-        </View>
+        {/* Çip satırı — Sırala ve Filtrele "Tümü"nün yanında, aynı dilde.
+            Ayrı bir şerit olarak duruyorlardı ve iki kusuru vardı: dikeyde
+            bir satır daha yiyordu, ve iki farklı biçim (şerit + çipler) aynı
+            işi yapan üç kontrolü birbirinden ayırıyordu. Hepsi "rafı nasıl
+            göreceğim" sorusunun parçası.
 
-        {/* Filtre chip'leri */}
+            Ayraç, gezinme ile süzmeyi ayırıyor: solu eylem (panel açar),
+            sağı seçim (rafı süzer). Aynı biçimdeler ama aynı şey değiller. */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chips}
         >
+          {/* Sırala — varsayılan dışında bir seçim varsa çip "seçili" görünüyor
+              ve etiket seçimin kendisini yazıyor. Kullanıcı sıralamayı
+              değiştirdiğini paneli açmadan görebilmeli. */}
+          <Pressable
+            onPress={() => setSiralamaAcik(true)}
+            style={[styles.chip, siralama !== 'onerilen' && styles.chipSel]}
+            accessibilityLabel={`Sıralama: ${siralamaEtiketi}`}
+          >
+            <MaterialIcons
+              name="swap-vert"
+              size={16}
+              color={siralama !== 'onerilen' ? colors.primary : colors.onSurfaceVariant}
+            />
+            <Text
+              style={[styles.chipText, siralama !== 'onerilen' && styles.chipTextSel]}
+              numberOfLines={1}
+            >
+              {siralama === 'onerilen' ? 'Sırala' : siralamaEtiketi}
+            </Text>
+          </Pressable>
+
+          {/* Filtrele — açık süzgeç sayısı etikete giriyor, ayrı bir rozete
+              değil. Çip yüksekliği 32 ve üstüne binen bir rozet burada
+              sıkışırdı; "Filtrele (2)" aynı bilgiyi taşıyor. */}
+          <Pressable
+            onPress={suzgecPaneliniAc}
+            style={[styles.chip, acikSayi > 0 && styles.chipSel]}
+            accessibilityLabel={acikSayi > 0 ? `Filtrele — ${acikSayi} filtre açık` : 'Filtrele'}
+          >
+            <MaterialIcons
+              name="tune"
+              size={16}
+              color={acikSayi > 0 ? colors.primary : colors.onSurfaceVariant}
+            />
+            <Text style={[styles.chipText, acikSayi > 0 && styles.chipTextSel]}>
+              {acikSayi > 0 ? `Filtrele (${acikSayi})` : 'Filtrele'}
+            </Text>
+          </Pressable>
+
+          <View style={styles.cipAyrac} />
+
           {FILTERS.map((f) => {
             const sel = f.label === active;
             return (
@@ -616,34 +629,17 @@ const styles = StyleSheet.create({
   },
   avatarImg: { width: '100%', height: '100%', borderRadius: shape.full },
   avatarText: { color: colors.onTertiaryContainer, fontWeight: '800', fontSize: 11.5 },
-  /* Sırala | Filtrele — eşit genişlikte iki yarım, ortada ince bir ayraç.
-     Trendyol'daki gibi tek bir şerit: iki ayrı düğme olsaydı aralarındaki
-     boşluk hangisinin daha önemli olduğu sorusunu doğururdu, oysa eşitler. */
-  araclar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 18,
-    marginBottom: 10,
-    height: 42,
-    borderRadius: shape.sm,
-    borderWidth: 1,
-    borderColor: colors.outlineVariant,
-    backgroundColor: colors.surfaceContainerLowest,
+  chips: { gap: 8, paddingHorizontal: 18, paddingBottom: 4, alignItems: 'center' },
+  /* Eylem çipleriyle kategori çiplerini ayıran ince çizgi. Aynı biçimdeler
+     ama aynı şey değiller: solu bir panel açıyor, sağı rafı süzüyor. Boşluk
+     bırakmak yetmezdi — yatay kaydırmada boşluk, sadece kaydırma gibi
+     okunuyor. */
+  cipAyrac: {
+    width: 1,
+    height: 20,
+    backgroundColor: colors.outlineVariant,
+    marginHorizontal: 2,
   },
-  arac: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
-  aracText: { fontSize: 13, fontWeight: '700', color: colors.onSurface },
-  aracAyrac: { width: 1, height: 20, backgroundColor: colors.outlineVariant },
-  aracRozet: {
-    minWidth: 18,
-    height: 18,
-    paddingHorizontal: 5,
-    borderRadius: shape.full,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  aracRozetText: { color: '#fff', fontSize: 10, fontWeight: '800' },
-  chips: { gap: 8, paddingHorizontal: 18, paddingBottom: 4 },
   /* Tasarım: beyaz hap + ince kenarlık, yüksekliği 25 pt; seçili olan açık
      turkuaz zemin ve koyu turkuaz metin. Burada 30: 25 pt dokunma için fazla
      alçak, 36 (önceki değer) tasarımın yanında şişkin duruyordu. */
