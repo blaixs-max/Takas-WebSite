@@ -23,7 +23,7 @@ import { useFavorites } from '../../lib/favorites';
 import { useCart } from '../../lib/cart';
 import { shareProduct } from '../../lib/share';
 import { startTrade, quotePrice } from '../../lib/trades';
-import { startConversation } from '../../lib/messages';
+import { conversationsForProduct, startConversation } from '../../lib/messages';
 import { loadUserAvatar } from '../../lib/avatar';
 import { useAuth } from '../../lib/auth';
 import { colors, elevation, shape } from '../../theme/tokens';
@@ -100,10 +100,24 @@ export default function ProductDetail() {
 
   const fav = product ? isFavorite(product.id) : false;
   const inSepet = product ? inCart(product.id) : false;
+  /* Satıcı kimliği yalnızca canlı ilanlarda dolu; örnek veride yok. Bu yüzden
+     karşılaştırma ikisinin de var olmasına bağlı — `undefined === undefined`
+     her ilanı "benim" yapardı. */
+  const benimIlanim = !!user && !!product?.seller.id && product.seller.id === user.id;
 
   /**
-   * Takası gerçekten açar. Takas Puanı bu çağrıda Güvenli Havuz’a girer ve ilan
-   * rezerve edilir, o yüzden önce ne olacağı açıkça soruluyor.
+   * Sohbete götürür.
+   *
+   * İki yön var ve ikisi de aynı düğmede: alıcı satıcıya yazıyor, satıcı ise
+   * kendi ilanına gelen mesajı okuyor. İkincisi yoktu — satıcı kendi ilanında
+   * "Mesaj"a bastığında `start_conversation` "kendi ilanınıza mesaj
+   * gönderemezsiniz" diye reddediyor, ekranda bir hata kutusu çıkıyordu. Sunucu
+   * haklıydı (kendine sohbet açmanın anlamı yok) ama kullanıcının istediği şey
+   * sohbet açmak değil, **var olan sohbete gitmekti.**
+   *
+   * Tek sohbet varsa doğrudan açılıyor. Birden fazlaysa hangisi olduğunu
+   * seçmek kullanıcının işi: Mesajlarım'a gidiyor. Hiç yoksa bu bir hata değil
+   * bir bilgi — henüz kimse yazmamış.
    */
   async function sohbetAc() {
     if (!product) return;
@@ -114,6 +128,22 @@ export default function ProductDetail() {
       ]);
       return;
     }
+
+    if (benimIlanim) {
+      const sohbetler = await conversationsForProduct(product.id);
+      if (sohbetler.length === 1) {
+        router.push(`/chat/${sohbetler[0].id}`);
+      } else if (sohbetler.length > 1) {
+        router.push('/messages');
+      } else {
+        uyar(
+          'Henüz mesaj yok',
+          'Bu ilan için sana yazan olmadı. Biri yazdığında sohbet Mesajlarım’da görünür.',
+        );
+      }
+      return;
+    }
+
     const s = await startConversation(product.id);
     if (!s.ok) {
       uyar('Sohbet açılamadı', s.message);
@@ -369,9 +399,13 @@ export default function ProductDetail() {
               yaptığını söylemiyordu: kart satıcıyı tanıtıyor, sağdaki ikon
               "profiline git" de olabilirdi. Ekran metinlerinin tamamı Türkçe
               ve yazılı; burada da yazılı olmalı. */}
-          <Pressable style={styles.mesajHap} onPress={sohbetAc} accessibilityLabel="Mesaj gönder">
+          <Pressable
+            style={styles.mesajHap}
+            onPress={sohbetAc}
+            accessibilityLabel={benimIlanim ? 'Bu ilanın mesajları' : 'Mesaj gönder'}
+          >
             <MaterialIcons name="chat-bubble-outline" size={16} color={colors.primary} />
-            <Text style={styles.mesajHapText}>Mesaj</Text>
+            <Text style={styles.mesajHapText}>{benimIlanim ? 'Mesajlar' : 'Mesaj'}</Text>
           </Pressable>
         </View>
 
@@ -404,11 +438,17 @@ export default function ProductDetail() {
             oysa ikisi de aynı satırdaki aynı türden eylem.
             Etiket ikonun ALTINDA, yanında değil: yan yana yazsaydık iki düğme
             genişler ve asıl eylemi taşıyan "takas et" düğmesi daralırdı. */}
-        <Pressable style={styles.altAksiyon} onPress={sohbetAc} accessibilityLabel="Mesaj gönder">
+        {/* Kendi ilanında düğme mesaj göndermiyor, gelen mesaja götürüyor;
+            etiket de onu söylüyor. */}
+        <Pressable
+          style={styles.altAksiyon}
+          onPress={sohbetAc}
+          accessibilityLabel={benimIlanim ? 'Bu ilanın mesajları' : 'Mesaj gönder'}
+        >
           <View style={styles.iconSquare}>
             <MaterialIcons name="chat-bubble-outline" size={20} color={colors.primary} />
           </View>
-          <Text style={styles.altAksiyonText}>Mesaj</Text>
+          <Text style={styles.altAksiyonText}>{benimIlanim ? 'Mesajlar' : 'Mesaj'}</Text>
         </Pressable>
         <Pressable
           style={styles.altAksiyon}

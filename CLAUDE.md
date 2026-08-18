@@ -848,6 +848,42 @@ süzgecin sorguya çevrilmesi gerekecek ve bu dosya o dönüşümün tek yeri.
 puan" ile "alt sınır yok" aynı sonucu verdiği için fark uzun süre görünmez —
 sonra "en çok" alanı boşaltıldığında raf tamamen boşalır.
 
+## Mesajlaşmanın kapıları (2026-08-18)
+
+Dört ayrı kusur aynı yerde toplandı: kullanıcı mesajına ulaşamıyordu.
+
+**Bildirim sohbete gidiyor, ilana değil.** `hedef()` `data.product`a
+`data.conversation`dan önce bakıyordu; "Yeni mesajınız var"a dokunan kullanıcı
+ilan sayfasına düşüyor ve mesajı okumak için orada ayrıca "Mesaj"a basması
+gerekiyordu. Sunucu ikisini de yazıyor (`send_message`), sıra yanlıştı.
+Bildirimin amacı okunmasıysa varış yeri mesajın kendisi.
+
+**Kendi ilanında "Mesaj" artık gelen mesaja götürüyor.** `start_conversation`
+kendi ilanına sohbet açmayı reddediyor — doğru, kendine yazmanın anlamı yok —
+ama düğme o reddi ekrana hata olarak basıyordu. Satıcının o ilanda gerçekten
+bir sohbeti var: alıcının açtığı. Tek sohbet varsa doğrudan açılıyor, birden
+fazlaysa Mesajlarım'a gidiyor, hiç yoksa bu bir hata değil bir bilgi. Etiket
+de değişiyor ("Mesajlar"), çünkü düğme artık başka bir iş yapıyor.
+
+`benimIlanim` iki alanın da dolu olmasını istiyor: `product.seller.id`
+yalnızca canlı ilanlarda var, örnek veride yok. Düz eşitlik yazılsaydı
+`undefined === undefined` bütün örnek ilanları "benim" yapardı.
+
+**Sohbet ekranının yazı kutusu.** `KeyboardAvoidingView` artık kökün kendisi
+ve `keyboardVerticalOffset` sıfır. Önceden yalnızca gövdeyi sarıyor, ofset
+olarak `insets.top + 56` alıyordu; KAV pencere koordinatlarında ölçtüğü için
+o ofset ikinci kez sayılıyor ve kutu klavyenin bir başlık boyu üstünde havada
+kalıyordu. `insets.bottom` de klavye açıkken düşüyor — o boşluk ana düğme
+çubuğu içindir, klavye zaten örtüyor. Aynı hatanın aynı düzeltmesi
+`add-listing.tsx`te de var.
+
+**`useFocusEffect`, dördüncü kez.** Sohbete girip çıkınca Mesajlarım'daki
+okunmamış rozeti sönmüyordu. Sunucu doğruydu — sohbet ekranı
+`markConversationRead` çağırıyor — ama liste yığında altta durduğu için
+`useEffect` bir daha çalışmıyordu. Bu kusur bu depoda dört ekranda çıktı
+(profil sayaçları, ilanlarım, hesabım, mesajlar). **Kural: sekmede ya da
+yığında kalan bir ekran veriyi odakta tazeler.**
+
 ## Güvenlik kuralları (ASLA ihlal etme)
 - `service_role` / iyzico `secret key` **asla mobilde** olmaz; yalnızca backend.
 - Mobilde yalnızca `EXPO_PUBLIC_SUPABASE_ANON_KEY`. RLS, `auth.uid()` ile korur.

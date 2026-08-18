@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BosDurum } from '../components/BosDurum';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ConversationRow, loadConversations } from '../lib/messages';
 import { gecenSure } from '../lib/notifications';
@@ -31,9 +31,23 @@ export default function Messages() {
     setYukleniyor(false);
   }, []);
 
-  useEffect(() => {
-    getir();
-  }, [getir]);
+  /**
+   * `useFocusEffect`, `useEffect` değil.
+   *
+   * Sohbete girip çıkınca okunmamış rozeti sönmüyordu. Sunucu doğruydu —
+   * sohbet ekranı `markConversationRead` çağırıyor — ama bu ekran yığında
+   * altta durduğu için hiç yeniden çalışmıyor, ekranda kalan sayı sohbete
+   * girmeden önceki sayı oluyordu.
+   *
+   * Aynı kusur bu depoda dördüncü kez çıktı (profil sayaçları, ilanlarım,
+   * hesabım). Sekmede ya da yığında **kalan** bir ekran veriyi odakta
+   * tazelemek zorunda.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      getir();
+    }, [getir]),
+  );
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>

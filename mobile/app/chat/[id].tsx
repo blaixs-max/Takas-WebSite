@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -66,6 +67,25 @@ export default function Chat() {
     };
   }, [id]);
   const { product: urun } = useProduct(sohbet?.productId);
+
+  /* Klavye açıkken alt güvenli alan boşluğu düşüyor: `insets.bottom` ana
+     düğme çubuğu içindir, klavye onu zaten örtüyor. Bırakılırsa yazı kutusu
+     klavyenin üstünde bir parmak boşlukla havada duruyor. */
+  const [klavyeAcik, setKlavyeAcik] = useState(false);
+  useEffect(() => {
+    const ac = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setKlavyeAcik(true),
+    );
+    const kapa = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKlavyeAcik(false),
+    );
+    return () => {
+      ac.remove();
+      kapa.remove();
+    };
+  }, []);
 
   const getir = useCallback(async () => {
     if (!id) return;
@@ -151,7 +171,18 @@ export default function Chat() {
   }
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    /* KAV **kökün kendisi**, iç sarmalayıcı değil — ve ofset sıfır.
+       Önceden yalnızca gövdeyi sarıyor, `keyboardVerticalOffset` olarak
+       `insets.top + 56` alıyordu. KAV pencere koordinatlarında ölçüyor: kök
+       zaten y=0'dan başladığı için o ofset ikinci kez sayılıyordu ve yazı
+       kutusu klavyenin bir başlık boyu üstünde havada kalıyordu. Kök y=0'dan
+       başlayınca tahmin edilecek bir şey kalmıyor.
+       Aynı düzeltme `add-listing.tsx`te de var; oradaki gerekçe daha uzun. */
+    <KeyboardAvoidingView
+      style={[styles.root, { paddingTop: insets.top }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
+    >
       <View style={styles.appbar}>
         <Pressable style={styles.iconBtn} onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={24} color={colors.onSurface} />
@@ -166,109 +197,103 @@ export default function Chat() {
         </Pressable>
       </View>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={insets.top + 56}
-      >
-        {sohbet && (
-          <Pressable
-            style={styles.urunSerit}
-            onPress={() => router.push(`/product/${sohbet.productId}`)}
-            accessibilityRole="button"
-          >
-            {urun ? (
-              <Image source={urun.image} style={styles.urunGorsel} resizeMode="cover" />
-            ) : (
-              <View style={styles.urunGorsel} />
-            )}
-            <View style={{ flex: 1 }}>
-              <Text style={styles.urunBaslik} numberOfLines={1}>
-                {sohbet.productTitle}
+      {sohbet && (
+        <Pressable
+          style={styles.urunSerit}
+          onPress={() => router.push(`/product/${sohbet.productId}`)}
+          accessibilityRole="button"
+        >
+          {urun ? (
+            <Image source={urun.image} style={styles.urunGorsel} resizeMode="cover" />
+          ) : (
+            <View style={styles.urunGorsel} />
+          )}
+          <View style={{ flex: 1 }}>
+            <Text style={styles.urunBaslik} numberOfLines={1}>
+              {sohbet.productTitle}
+            </Text>
+            <View style={styles.urunAlt}>
+              <Text style={styles.urunKisi} numberOfLines={1}>
+                {sohbet.karsiTaraf}
               </Text>
-              <View style={styles.urunAlt}>
-                <Text style={styles.urunKisi} numberOfLines={1}>
-                  {sohbet.karsiTaraf}
-                </Text>
-                {urun ? (
-                  <>
-                    <Text style={styles.urunAyrac}>·</Text>
-                    <Diamond size={10} color={colors.primary} />
-                    <Text style={styles.urunPuan}>{urun.points} Takas Puanı</Text>
-                  </>
-                ) : null}
-              </View>
+              {urun ? (
+                <>
+                  <Text style={styles.urunAyrac}>·</Text>
+                  <Diamond size={10} color={colors.primary} />
+                  <Text style={styles.urunPuan}>{urun.points} Takas Puanı</Text>
+                </>
+              ) : null}
             </View>
-          </Pressable>
-        )}
-
-        {yukleniyor ? (
-          <View style={styles.orta}>
-            <ActivityIndicator color={colors.primary} />
           </View>
-        ) : (
-          <ScrollView
-            ref={listeRef}
-            contentContainerStyle={{ padding: 14, paddingBottom: 20 }}
-            onContentSizeChange={() => listeRef.current?.scrollToEnd({ animated: false })}
-          >
-            {mesajlar.length > 0 && (
-              <Text style={styles.ipucu}>
-                Uygunsuz bir mesajı bildirmek için üzerine basılı tut.
-              </Text>
-            )}
-            {/* Rehber 18'de boş durum tek cümle; tasarımda başlık ve
-                açıklama iki satır. İkisi aynı cümlenin bölünmüş hâli. */}
-            {mesajlar.length === 0 && (
-              <BosDurum
-                ikon="chat-bubble-outline"
-                baslik="Henüz mesaj yok"
-                metin="Ürünle ilgili merak ettiğini sorabilirsin."
-              />
-            )}
-            {mesajlar.map((m) => (
-              <Pressable
-                key={m.id}
-                style={[styles.balon, m.benim ? styles.benim : styles.karsi]}
-                // Kendi mesajını şikâyet edemezsin; sunucu da reddediyor.
-                onLongPress={() => {
-                  if (!m.benim) setSikayetEdilen(m);
-                }}
-                delayLongPress={400}
-              >
-                <Text style={[styles.metin, m.benim && styles.metinBenim]}>{m.body}</Text>
-                <Text style={[styles.saat, m.benim && styles.saatBenim]}>
-                  {saat(m.createdAt)}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        )}
+        </Pressable>
+      )}
 
-        <View style={[styles.girisAlani, { paddingBottom: insets.bottom + 10 }]}>
-          <TextInput
-            style={styles.giris}
-            placeholder="Mesaj yaz"
-            placeholderTextColor={colors.onSurfaceVariant}
-            value={metin}
-            onChangeText={setMetin}
-            multiline
-            maxLength={2000}
-          />
-          <Pressable
-            style={[styles.gonder, (!metin.trim() || gonderiliyor) && styles.kapali]}
-            disabled={!metin.trim() || gonderiliyor}
-            onPress={gonder}
-            accessibilityLabel="Mesajı gönder"
-          >
-            {gonderiliyor ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <MaterialIcons name="send" size={20} color="#fff" />
-            )}
-          </Pressable>
+      {yukleniyor ? (
+        <View style={styles.orta}>
+          <ActivityIndicator color={colors.primary} />
         </View>
-      </KeyboardAvoidingView>
+      ) : (
+        <ScrollView
+          ref={listeRef}
+          contentContainerStyle={{ padding: 14, paddingBottom: 20 }}
+          onContentSizeChange={() => listeRef.current?.scrollToEnd({ animated: false })}
+        >
+          {mesajlar.length > 0 && (
+            <Text style={styles.ipucu}>
+              Uygunsuz bir mesajı bildirmek için üzerine basılı tut.
+            </Text>
+          )}
+          {/* Rehber 18'de boş durum tek cümle; tasarımda başlık ve
+              açıklama iki satır. İkisi aynı cümlenin bölünmüş hâli. */}
+          {mesajlar.length === 0 && (
+            <BosDurum
+              ikon="chat-bubble-outline"
+              baslik="Henüz mesaj yok"
+              metin="Ürünle ilgili merak ettiğini sorabilirsin."
+            />
+          )}
+          {mesajlar.map((m) => (
+            <Pressable
+              key={m.id}
+              style={[styles.balon, m.benim ? styles.benim : styles.karsi]}
+              // Kendi mesajını şikâyet edemezsin; sunucu da reddediyor.
+              onLongPress={() => {
+                if (!m.benim) setSikayetEdilen(m);
+              }}
+              delayLongPress={400}
+            >
+              <Text style={[styles.metin, m.benim && styles.metinBenim]}>{m.body}</Text>
+              <Text style={[styles.saat, m.benim && styles.saatBenim]}>
+                {saat(m.createdAt)}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      )}
+
+      <View style={[styles.girisAlani, { paddingBottom: klavyeAcik ? 10 : insets.bottom + 10 }]}>
+        <TextInput
+          style={styles.giris}
+          placeholder="Mesaj yaz"
+          placeholderTextColor={colors.onSurfaceVariant}
+          value={metin}
+          onChangeText={setMetin}
+          multiline
+          maxLength={2000}
+        />
+        <Pressable
+          style={[styles.gonder, (!metin.trim() || gonderiliyor) && styles.kapali]}
+          disabled={!metin.trim() || gonderiliyor}
+          onPress={gonder}
+          accessibilityLabel="Mesajı gönder"
+        >
+          {gonderiliyor ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <MaterialIcons name="send" size={20} color="#fff" />
+          )}
+        </Pressable>
+      </View>
 
       <Modal
         visible={sikayetEdilen !== null}
@@ -298,7 +323,7 @@ export default function Chat() {
           </Pressable>
         </Pressable>
       </Modal>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

@@ -107,6 +107,22 @@ export async function sendMessage(conversationId: string, body: string): Promise
   return { ok: true, id: (row?.id as string) ?? '' };
 }
 
+/**
+ * Bir ilana ait sohbetler.
+ *
+ * Kendi ilanının sayfasındaki "Mesaj" düğmesi bunu kullanıyor:
+ * `start_conversation` kendi ilanına sohbet açmayı reddediyor (doğru, kendine
+ * yazmanın anlamı yok) ama düğme o reddi kullanıcıya hata olarak gösteriyordu.
+ * Oysa satıcının o ilanda gerçekten bir sohbeti var — alıcının açtığı sohbet.
+ *
+ * Sunucuda ürüne göre süzen bir uç yok; `my_conversations` zaten kullanıcının
+ * hepsini veriyor ve sayılar küçük.
+ */
+export async function conversationsForProduct(productId: string): Promise<ConversationRow[]> {
+  const hepsi = await loadConversations();
+  return hepsi.filter((c) => c.productId === productId);
+}
+
 /** İlan üzerinden sohbeti açar ya da varsa onu getirir. */
 export async function startConversation(
   productId: string,

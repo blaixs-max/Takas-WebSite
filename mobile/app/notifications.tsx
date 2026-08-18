@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BosDurum } from '../components/BosDurum';
-import { useRouter, type Href } from 'expo-router';
+import { useFocusEffect, useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   NotificationRow,
@@ -57,9 +57,14 @@ export default function Notifications() {
     if (yeni.some((n) => !n.okundu)) markAllRead().catch(() => {});
   }, []);
 
-  useEffect(() => {
-    getir();
-  }, [getir]);
+  /* Odakta tazeleniyor: bir bildirime dokunup sohbete gidip geri dönen
+     kullanıcı, bu arada düşen yeni bildirimi görmeli. Ekran yığında altta
+     kaldığı için `useEffect` bir daha hiç çalışmazdı. */
+  useFocusEffect(
+    useCallback(() => {
+      getir();
+    }, [getir]),
+  );
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>

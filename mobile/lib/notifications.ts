@@ -99,8 +99,17 @@ export function gecenSure(iso: string): string {
   return `${Math.floor(gun / 30)} ay`;
 }
 
-/** Bildirimin götüreceği ekran; hedefi yoksa null. */
+/**
+ * Bildirimin götüreceği ekran; hedefi yoksa null.
+ *
+ * **Sohbet ürünün önünde.** Mesaj bildirimi hem `conversation` hem `product`
+ * taşıyor; sıra ürüne öncelik verdiği için "Yeni mesajınız var"a dokunan
+ * kullanıcı sohbete değil ilan sayfasına düşüyordu — mesajı okumak için orada
+ * ayrıca "Mesaj"a basması gerekiyordu. Bildirimin amacı okunmasıysa varış yeri
+ * mesajın kendisi olmalı.
+ */
 export function hedef(n: NotificationRow): string | null {
+  if (typeof n.data.conversation === 'string') return `/chat/${n.data.conversation}`;
   if (typeof n.data.trade === 'string') return '/trades';
   if (typeof n.data.product === 'string') return `/product/${n.data.product}`;
   if (n.kind === 'campaign.granted') return '/wallet';
