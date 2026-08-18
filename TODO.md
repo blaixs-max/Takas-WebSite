@@ -78,6 +78,27 @@ yazdı, bu satır geri aldı, sonraki dosya eski oranla hesaplayıp **geçti**.
 Bir testin temizliği, başka bir testin iddiasını sahte biçimde doğruladı.
 Artık eski değer okunup saklanıyor, sabit yazılmıyor.
 
+### Taslak kurtarma (2026-08-18)
+
+Yayın kapısını yalnızca **kare kararı** çalıyordu; değerleme sonradan
+geldiğinde kimse bir daha çalmıyordu. Arada uygulamadan çıkan kullanıcının
+ilanı, bütün koşulları sağlamış hâlde taslakta kalıyordu.
+
+- [x] `products_degerleme_sonrasi` tetikleyicisi — `degerleme_at` dolunca kapı
+      yeniden çalınıyor. Yeni yayın yolu açılmıyor, kontroller aynı.
+- [x] **`publish_listing` fikirsiz yapıldı** — tetikleyicinin zorunlu ikinci
+      yarısı. Onsuz kullanıcı ilanını başarıyla yayınlayıp ekranda hata
+      görürdü; on altı test bunu anında yakaladı.
+- [x] Mahsur kalan üç ilan kurtarıldı: **5 yayında → 8 yayında**, 10 taslak → 7.
+
+Kalan yedi taslağın hepsi gerçekten kullanıcıda ve taslak ekranı sebebini
+yazıyor: dördünde reddedilmiş kare var, birinde hiç fotoğraf yok, birinde
+değerleme hiç çalışmamış.
+
+**Ders:** kanıt canlı veriden geldi, koddan değil. Aynı ürünün üç dakika
+arayla iki kez açılmış olması, kullanıcının "olmadı, tekrar deneyeyim"
+dediğinin kaydıydı. Taslak/yayın oranına bakmasaydık bu kusur görünmezdi.
+
 ### Sırada — cihazda tek tur
 
 - [ ] Taslak sil · adres ekle/düzenle/sil · avatar yükle (biri kabul, biri

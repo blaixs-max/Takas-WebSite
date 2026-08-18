@@ -1088,6 +1088,33 @@ sunucu ilanı kendisi yayına alır ve bildirim gider
   siliyor), yani kullanıcıdan istenecek bir şey yok — bildirim göndermek onu
   boşuna geri çağırmak olurdu. Zorunlu slottaki ret bildiriliyor, çünkü
   kullanıcı artık ekranda beklemiyor ve başka türlü öğrenemez.
+- **Kapıyı İKİ şey çalıyor** (2026-08-18). Uzun süre yalnızca kare kararı
+  çalıyordu ve sıralama yüzünden bir boşluk vardı: kareler onaylandığında
+  değerleme henüz yok (kapı haklı olarak geçirmiyor), değerleme sonra geliyor
+  ve **kimse bir daha çalmıyor**. Arada uygulamadan çıkan kullanıcının ilanı
+  bütün koşulları sağlamış hâlde taslakta kalıyordu.
+
+  Canlıda üç ilan tam bu durumdaydı ve ikisi **üç dakika arayla açılmış aynı
+  ürün** — kişi "olmadı" deyip yeniden denemişti. Kusurun kullanıcıda nasıl
+  göründüğünün en net kanıtı: hata yok, ilan yok, sebep hiçbir yerde yazmıyor.
+
+  `products_degerleme_sonrasi` artık `degerleme_at` dolunca da kapıyı çalıyor.
+  **Yeni bir yayın yolu açılmıyor** — `ilan_otomatik_yayina_al` bütün
+  kontrolleri yapmaya devam ediyor; değişen tek şey kapının *ne zaman*
+  çalındığı. Hangi koşul en son tamamlanırsa tamamlansın, o anda çalınıyor.
+- **`publish_listing` fikirsiz (idempotent) olmak ZORUNDA.** Yukarıdaki
+  tetikleyici eklenince on altı test birden düştü, hepsi aynı hatayla:
+  "yalnızca taslak ilan yayına alınır (mevcut: ACTIVE)". Sıra artık şu —
+  değerleme yazılır, tetikleyici ilanı yayına alır, sonra uygulamanın çağırdığı
+  `publish_listing` patlar. Yani kullanıcı ilanını **başarıyla yayınlar ve
+  ekranda hata görür**.
+
+  Sahibi kendi `ACTIVE` ilanı için çağırırsa satır dönüyor, exception yok —
+  `delete_listing`teki `REMOVED` kısayoluyla aynı gerekçe: istenen sonuç zaten
+  oluşmuşsa bu bir hata değildir. Gevşeme yok: sahiplik kontrolü duruyor,
+  yalnızca `ACTIVE` kapsanıyor (`RESERVED`/`SOLD`/`REMOVED` hâlâ hata veriyor),
+  ve **kapının gövdesi katı kalıyor** — fikirsizlik yalnızca kullanıcıya bakan
+  sarmalayıcıda. Gövdeye konsaydı otomatik yol da sessizleşirdi.
 
 `listing.published` ve `photo.rejected` bildirim türleri uygulamanın
 `gorunum()` eşlemesinde **zaten vardı**; sunucu tarafı hiç göndermiyormuş.
