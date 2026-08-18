@@ -80,11 +80,22 @@ select p.proname,
 \echo '=== 8) Ayar değişince puan değişiyor ==='
 -- Katsayılar tabloda olmasının sebebi bu: bir oranı değiştirmek göç yazmayı
 -- gerektirmemeli, çünkü değerleme ilk aylarda ayarlanacak.
+-- Eski değer OKUNARAK saklanıyor, sabit yazılmıyor.
+--
+-- Burada `0.62` sabiti duruyordu ve sessiz bir bağ üretiyordu: testler tek
+-- veri tabanını paylaşıyor ve dosyalar alfabetik koşuyor, yani bu satır
+-- `puan_sunucuda_test.sql`in gördüğü katsayıyı belirliyordu. 2026-08-18'de
+-- katsayı 0.57'ye indirildiğinde göç doğru çalıştı ama bu satır onu geri
+-- yazdı; sonraki dosya eski oranla hesaplayıp **geçti**. Yani bir testin
+-- temizlik satırı, başka bir testin iddiasını sahte biçimde doğruladı.
+select oran_iyi_durumda as eski_oran from valuation_settings where id = 1 \gset
 update valuation_settings set oran_iyi_durumda = 0.50 where id = 1;
-select puan_hesapla(1599, 'İyi durumda') as yeni_puan,
-       puan_hesapla(1599, 'İyi durumda') between 780 and 820 as ayar_islendi;
-update valuation_settings set oran_iyi_durumda = 0.62 where id = 1;
-\echo 'BEKLENEN: ayar_islendi = t (~800), sonra eski değere döndü'
+select bekle('ayar değişince puan da değişiyor',
+             puan_hesapla(1599, 'İyi durumda') between 780 and 820);
+update valuation_settings set oran_iyi_durumda = :eski_oran where id = 1;
+select bekle_esit('katsayı eski değerine döndü',
+                  (select oran_iyi_durumda from valuation_settings where id = 1),
+                  :eski_oran::numeric);
 
 \echo ''
 \echo '=== 9) HASARLI KONDİSYONU — ŞİDDETE GÖRE GEZİNİYOR ==='

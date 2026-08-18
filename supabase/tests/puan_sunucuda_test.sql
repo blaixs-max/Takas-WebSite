@@ -62,8 +62,9 @@ end $$;
 reset role;
 select points, sifir_fiyat, degerleme_guven
   from degerleme_yaz(:'y_id', 1599, 'trendyol.com/superman-figur', 0.86, 'gemini-3.7-flash') \gset d_
--- 1599 × %62 = 990. Sabit sayı bilerek: formül değişirse bu test düşmeli.
-select bekle_esit('İyi durumda oranı puanı doğru veriyor', :d_points, 990);
+-- 1599 × %57 = 910. Sabit sayı bilerek: formül değişirse bu test düşmeli.
+-- 2026-08-18'de katsayı 0.62 → 0.57 indi ve iddia doğru biçimde düştü.
+select bekle_esit('İyi durumda oranı puanı doğru veriyor', :d_points, 910);
 
 \echo ''
 \echo '=== 5) Değerlemeden sonra yayın geçiyor ==='
@@ -110,7 +111,7 @@ select :'b_id', s, :'s' || '/' || :'b_id' || '/' || s || '.jpg', 'approved'
 select points from degerleme_yaz(:'b_id', 100000, 'pahalı ürün', 0.90, 'gemini-3.7-flash') \gset x_
 set session role authenticated;
 select set_config('test.uid', :'s', false);
-select bekle_esit('100.000 TL × %80 = 80.000 puan', :x_points, 80000);
+select bekle_esit('100.000 TL × %74 = 74.000 puan', :x_points, 74000);
 select publish_listing(:'b_id', 'front');
 select bekle_esit('tavan yokken yüksek puanlı ilan yayına girer',
                   (select status from products where id = :'b_id'), 'ACTIVE');
@@ -190,7 +191,7 @@ select bekle('yükseltme olmadığı için işaret konmaz',
 select id from create_listing('Normal ürün', 'Oyun & Oyuncak', 'İyi durumda', 'S',
                               p_sub_category => 'Yapı & inşa') \gset n_
 select points from degerleme_yaz(:'n_id', 1000, 'test', 0.9, 'test') \gset np_
-select bekle_esit('1000 TL × %62 = 620 puan', :np_points, 620);
+select bekle_esit('1000 TL × %57 = 570 puan', :np_points, 570);
 select bekle('taban devreye girmedi',
              (select not taban_uygulandi from products where id = :'n_id'));
 set session role authenticated;

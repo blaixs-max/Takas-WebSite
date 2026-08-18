@@ -114,12 +114,38 @@ değiştirilebilir olmalı. Model fiyatı söyler, ekonomiyi biz yönetiriz.
 **1 puan = 1 ₺ ikinci el değeri.** Kullanıcı "990 puan" gördüğünde "₺990'lık
 bir şey" diye okuyor. Oran `valuation_settings.puan_per_try`.
 
-Durum merdiveni sıfır fiyatının yüzdesi: **Yeni gibi %80, Az kullanılmış %70,
-İyi durumda %62.** Tek gerçek çapa ilk canlı ilan: Süperman figürü, sıfırı
+Durum merdiveni sıfır fiyatının yüzdesi: **Yeni gibi %74, Az kullanılmış %65,
+İyi durumda %57, Hasarlı %41.** İlk çapa canlıdaki Süperman figürüydü: sıfırı
 ₺1599, sahibi "iyi durumda ₺1000 eder" dedi → %62. Piyasa bilgisi bizde
 değil, o yüzden tek veri noktasına oturtuldu ve **katsayılar tabloda**:
 bir oranı değiştirmek göç yazmayı gerektirmemeli, değerleme ilk aylarda
 ayarlanacak ve her ayar için deploy beklemek ayarı hiç yapmamak demek.
+
+**Merdiven 2026-08-18'de %8 indirildi** (0.80/0.70/0.62/0.45 → 0.74/0.65/0.57/0.41).
+Sebep canlıdan geldi: bir bebek telsizi 7600 puana çıktı, en zengin cüzdanda
+1480 puan vardı. Yani vitrinde kimsenin alamayacağı ilanlar birikiyordu.
+
+Masada üç seçenek vardı ve **ayrımları önemli**:
+
+| | Ne değişir | Ne değişmez |
+|---|---|---|
+| `puan_per_try`i düşür | Bütün sayılar (7600 → 760) | Sistemin dengesi — herkes aynı oranda etkilenir |
+| Kampanya puanını yükselt | Yeni kullanıcının alım gücü | — ama kapalı devre kararı delinir |
+| **Katsayıyı düşür** ← seçilen | İkinci elin sıfıra göre değeri | Ölçek (1 TL = 1 puan) |
+
+Yani bu bir görüntü ayarı değil, **fiyatlandırma kararı**: "yeni gibi" bir
+ürün artık sıfırının %80'i değil %74'ü ediyor.
+
+Hepsine aynı çarpan uygulandı, merdivenin aralıkları korundu. Tek tek seçilmiş
+sayılar olsaydı kondisyonlar arası fark keyfîleşir ve bir turda daralıp
+öbüründe açılırdı. `hasar_indirimi` (0.15) dokunulmadı — o katsayı değil,
+katsayının üstüne binen ayrı bir kesinti; düşürmek indirimi iki kez uygulamak
+olurdu.
+
+**Geriye dönük hesaplama yalnızca DRAFT ve ACTIVE'e uygulandı.** `SOLD`'un
+puanı gerçekten ödendi ve cüzdan defteri o rakamı taşıyor; değiştirmek ikisini
+ayrıştırırdı. `RESERVED`'de alıcının puanı havuzda kilitli, fiyatı altından
+çekmek ödediğiyle ilan arasında fark açardı.
 
 Üç karar yazılı olmalı çünkü üçü de sezgiye aykırı:
 

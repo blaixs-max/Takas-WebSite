@@ -53,6 +53,31 @@ bir veri akışı çıkıyorsa o sayfa aynı turda güncellenir.
       Tetikleyici etkilenmiyor — PostgreSQL EXECUTE'u `create trigger` anında
       denetliyor, ateşlenirken değil; yerelde 29 test paketiyle doğrulandı.
 
+### Puan ölçeği kararı verildi (2026-08-18)
+
+Canlıdan çıkan sorun: bebek telsizi **7600 puan**, en zengin cüzdanda **1480**.
+Kampanya ilan başına 250, üst sınır 1000. Yani vitrinde kimsenin alamayacağı
+ilanlar birikiyordu.
+
+**Karar: ölçeğe dokunulmadı (C), katsayılar %8 indirildi.**
+`puan_per_try = 1` (1 TL = 1 puan) aynı kalıyor;
+0.80/0.70/0.62/0.45 → **0.74/0.65/0.57/0.41**. Hedef "7600 → 7000 seviyesi"
+tutturuldu: 7030.
+
+- [x] `20260818100000_kondisyon_katsayilari.sql` — yerelde ve canlıda uygulandı
+- [x] Mevcut ilanlar yeniden hesaplandı (yalnızca DRAFT + ACTIVE; SOLD ve
+      RESERVED dokunulmadı, gerekçesi göç dosyasında)
+- [x] Üç test iddiası güncellendi — üçü de **doğru biçimde düştü**, formül
+      değişince düşsünler diye sabit yazılmışlardı
+
+**Bir yan bulgu, testlerin kendisiyle ilgili.** `degerleme_test.sql` bir
+katsayıyı değiştirip sonunda `0.62`ye **elle** geri yazıyordu. Testler tek
+veri tabanını paylaşıyor ve alfabetik koşuyor, yani o temizlik satırı
+`puan_sunucuda_test.sql`in gördüğü değeri belirliyordu: göç 0.57'yi doğru
+yazdı, bu satır geri aldı, sonraki dosya eski oranla hesaplayıp **geçti**.
+Bir testin temizliği, başka bir testin iddiasını sahte biçimde doğruladı.
+Artık eski değer okunup saklanıyor, sabit yazılmıyor.
+
 ### Sırada — cihazda tek tur
 
 - [ ] Taslak sil · adres ekle/düzenle/sil · avatar yükle (biri kabul, biri
