@@ -1632,3 +1632,38 @@ bırakılmıştı. Bu çözüm o boşluğu dolduruyor, Sentry'nin yerini almıyo
 - [ ] **Sitede hata izleme yok.** Vite tarafı bu turda kapsam dışı kaldı;
       orada native kısıtı olmadığı için `@sentry/react` doğrudan çalışır ama
       yeni bir üçüncü taraf demek, yani `/gizlilik/` aynı turda güncellenir.
+
+## ✏️ Yayındaki ilan düzenleme (2026-08-18)
+
+`update_listing` yalnızca DRAFT kabul ediyordu; yayındaki bir ilanda yazım
+hatası varsa tek çare ilanı kaldırıp yeniden açmaktı — yedi kare, yeniden
+denetim, yeniden değerleme. Bir harf için.
+
+- [x] Yayındayken **başlık, açıklama, konum** düzenlenebiliyor
+- [x] Kondisyon, kategori, desi, set beyanı **kilitli** — puanı ya da kargo
+      bedelini belirliyorlar; sunucu değişip değişmediklerine bakıp reddediyor
+- [x] `app/edit-listing.tsx` — üç alanlık ayrı ekran. Sihirbaz kullanılmadı:
+      altı adımın beşi kilitli olurdu. Kilitli alanlar **gizlenmiyor**,
+      gösterilip kilitli olduğu söyleniyor.
+- [x] "İlanlarım"a düzenle düğmesi (yalnızca ACTIVE'de); sil düğmesi duruyor
+
+**Değerleme bilerek yenilenmiyor.** Silmek ilanı puansız bırakırdı ve puansız
+bir ACTIVE, yayın kapısının hiçbir zaman geçirmeyeceği durum — kapı yalnızca
+girişte bakıyor. Kalan risk yanlış beyan; yeri şikâyet mekanizması.
+
+## 🔄 Sayaçlar tazelenmiyordu (2026-08-18)
+
+Kullanıcı bildirdi: taslakları sildiği hâlde profil "5 ilan yayında" demeye
+devam ediyordu. Sayaç yanlış değildi — **tazelenmiyordu.**
+
+`useEffect(..., [user])` idi ve sekme ekranları arka planda canlı kalıyor,
+yani sayaçlar yalnızca uygulama açıldığında bir kez okunuyordu. Canlıda
+ölçüldü: ekran 5 derken veri tabanında 3 yayında, 1 taslak, 4 kaldırılmış.
+
+- [x] `(tabs)/profile.tsx` → `useFocusEffect`
+- [x] `my-listings.tsx` → `useFocusEffect`
+
+Aynı kusur bu depoda **üçüncü** kez: bildirim rozeti ve okunmamış mesaj
+sayısı da aynı sebeple yanlış sayı göstermiş ve `useFocusEffect`e taşınmıştı.
+Yeni bir sekme ekranı yazarken varsayılan `useFocusEffect` olmalı;
+`useEffect` yalnızca gerçekten bir kez koşması gereken şey için.

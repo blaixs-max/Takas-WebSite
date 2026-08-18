@@ -86,6 +86,10 @@ export async function loadDraftForEdit(id: string): Promise<EditableListing | nu
 
   if (error || !data) return null;
   const r = data as unknown as EditableRow;
+  /* Taslak sihirbazı yalnızca DRAFT ile çalışıyor: yayındaki ilanda
+     kategoriyi ve kondisyonu değiştirmek sunucuda zaten reddediliyor, form
+     onları düzenlenebilir gösterseydi kullanıcı kaydedip hata alırdı.
+     Yayındakiler için ayrı bir ekran var (`edit-listing`). */
   if (r.status !== 'DRAFT') return null;
 
   return {
@@ -164,6 +168,91 @@ export async function updateListing(id: string, l: NewListing): Promise<CreateRe
   const row = Array.isArray(data) ? data[0] : data;
   if (!row?.id) return { ok: false, message: 'İlan güncellendi ama kimliği alınamadı.' };
   return { ok: true, id: row.id as string };
+}
+
+/**
+ * Yayındaki ilanın düzenlenebilir alanları.
+ *
+ * Yalnızca üçü. Puanı besleyen alanlar (kondisyon, kategori) ve alıcının
+ * ödeyeceği tutarı belirleyen alan (desi) yayında kilitli — sunucu da
+ * reddediyor. Gerekçesi `20260818140000_yayindaki_ilan_duzenleme.sql`de.
+ */
+export interface YayindakiIlan {
+  id: string;
+  title: string;
+  description: string | null;
+  location: string | null;
+  /** Değiştirilemiyor ama gösteriliyor: kullanıcı neyin kilitli olduğunu görmeli. */
+  category: string;
+  subCategory: string | null;
+  condition: Condition;
+  sizeClass: SizeClass;
+  hasDamage: boolean;
+  isSet: boolean;
+  points: number;
+}
+
+/** Yayındaki ilanı düzenleme formu için okur. */
+export async function loadActiveForEdit(id: string): Promise<YayindakiIlan | null> {
+  if (!supabaseConfigured || !supabase) return null;
+  const { data: oturum } = await supabase.auth.getUser();
+  const uid = oturum?.user?.id;
+  if (!uid) return null;
+
+  const { data, error } = await supabase
+    .from('products')
+    .select(
+      'id, title, description, category, sub_category, condition, size_class, location, has_damage, is_set, status, points',
+    )
+    .eq('id', id)
+    .eq('seller_id', uid)
+    .single();
+
+  if (error || !data) return null;
+  const r = data as unknown as EditableRow & { points: number };
+  if (r.status !== 'ACTIVE') return null;
+
+  return {
+    id: r.id,
+    title: r.title,
+    description: r.description,
+    /* "Belirtilmedi" bir konum değil, `create_listing`'in boş konuma yazdığı
+       dolgu. Forma öyle taşınsaydı kullanıcı onu kendi yazdığı bir şey sanıp
+       silmeye çalışırdı. */
+    location: r.location === 'Belirtilmedi' ? null : r.location,
+    category: r.category,
+    subCategory: r.sub_category,
+    condition: r.condition as Condition,
+    sizeClass: r.size_class as SizeClass,
+    hasDamage: Boolean(r.has_damage),
+    isSet: Boolean(r.is_set),
+    points: Number(r.points),
+  };
+}
+
+/**
+ * Yayındaki ilanın düzenlenebilir üç alanını kaydeder.
+ *
+ * Kilitli alanlar **olduğu gibi geri gönderiliyor**. Sunucu değişip
+ * değişmediklerine bakıyor ve değişmişse reddediyor; buradan farklı bir değer
+ * yollamak, kullanıcının dokunmadığı bir alan yüzünden hata almasına yol
+ * açardı.
+ */
+export async function updateActiveListing(
+  ilan: YayindakiIlan,
+  yeni: { title: string; description: string; location: string },
+): Promise<CreateResult> {
+  return updateListing(ilan.id, {
+    title: yeni.title,
+    description: yeni.description || undefined,
+    location: yeni.location || undefined,
+    category: ilan.category as NewListing['category'],
+    subCategory: ilan.subCategory as NewListing['subCategory'],
+    condition: ilan.condition,
+    sizeClass: ilan.sizeClass,
+    hasDamage: ilan.hasDamage,
+    isSet: ilan.isSet,
+  });
 }
 
 export type SilmeSonucu = { ok: true } | { ok: false; message: string };
@@ -326,8 +415,16 @@ function cevir(mesaj: string): string {
     return 'Hesaplanan değer olağandışı yüksek çıktı. İlan incelemeye alındı.';
   if (mesaj.includes('ilan bulunamadı'))
     return 'Bu ilan bulunamadı. Taslaklar listesini yenileyip tekrar dene.';
-  if (mesaj.includes('yayındaki ilan düzenlenemez'))
-    return 'Bu ilan yayında; yayındaki ilanlar düzenlenemiyor.';
+  if (mesaj.includes('yayındaki ilanın durumu'))
+    return 'Yayındaki ilanın ürün durumu değiştirilemiyor. Değiştirmen gerekiyorsa ilanı kaldırıp yeniden ekle.';
+  if (mesaj.includes('yayındaki ilanın kategorisi'))
+    return 'Yayındaki ilanın kategorisi değiştirilemiyor. Değiştirmen gerekiyorsa ilanı kaldırıp yeniden ekle.';
+  if (mesaj.includes('yayındaki ilanın boyutu'))
+    return 'Yayındaki ilanın boyutu değiştirilemiyor — kargo bedeli buna bağlı.';
+  if (mesaj.includes('yayındaki ilanın set beyanı'))
+    return 'Yayındaki ilanın set beyanı değiştirilemiyor.';
+  if (mesaj.includes('bu ilan düzenlenemez'))
+    return 'Bu ilan şu an düzenlenemiyor. Süren bir takası varsa takas bitince yeniden deneyebilirsin.';
   return 'İlan kaydedilemedi. Bağlantınızı kontrol edip tekrar deneyin.';
 }
 

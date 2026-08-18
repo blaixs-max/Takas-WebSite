@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BosDurum } from '../components/BosDurum';
 import { uyar } from '../components/Dialog';
@@ -53,9 +53,14 @@ export default function MyListings() {
     setYukleniyor(false);
   }, []);
 
-  useEffect(() => {
-    tazele();
-  }, [tazele]);
+  /* `useFocusEffect`: düzenleme ekranından dönüldüğünde liste tazelenmeli.
+     `useEffect` ile eski başlık ekranda kalırdı ve kullanıcı kaydın düştüğünü
+     sanırdı — profil sayaçlarında bugün tam olarak bu yaşandı. */
+  useFocusEffect(
+    useCallback(() => {
+      tazele();
+    }, [tazele]),
+  );
 
   function sil(l: MyListing) {
     uyar(
@@ -144,9 +149,24 @@ export default function MyListings() {
                       <Text style={[styles.rozetText, { color: d.yazi }]}>{d.metin}</Text>
                     </View>
                   </View>
+                  {/* Düzenleme yalnızca ACTIVE'de. `RESERVED`de alıcının
+                      puanı havuzda ve takas yürüyor; `SOLD`da ilan bitmiş —
+                      sunucu ikisini de reddediyor ve basılabilen ama hep hata
+                      veren bir düğme, olmayan düğmeden kötü. */}
+                  {l.status === 'ACTIVE' && (
+                    <Pressable
+                      onPress={() =>
+                        router.push({ pathname: '/edit-listing', params: { id: l.id } })
+                      }
+                      hitSlop={10}
+                      style={styles.duzenleBtn}
+                      accessibilityLabel={`${l.title} ilanını düzenle`}
+                    >
+                      <MaterialIcons name="edit" size={18} color={colors.primary} />
+                    </Pressable>
+                  )}
                   {/* Satılmış ilanda kaldırma düğmesi hiç çizilmiyor: sunucu
-                      zaten reddediyor ve basılabilen ama hep hata veren bir
-                      düğme, olmayan düğmeden kötü. */}
+                      zaten reddediyor. */}
                   {l.status !== 'SOLD' && (
                     <Pressable
                       onPress={() => sil(l)}
@@ -233,6 +253,14 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   rozetText: { fontSize: 10, fontWeight: '800' },
+  duzenleBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: shape.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primaryContainer,
+  },
   silBtn: {
     width: 36,
     height: 36,

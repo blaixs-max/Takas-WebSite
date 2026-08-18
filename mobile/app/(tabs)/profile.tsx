@@ -71,24 +71,41 @@ export default function ProfileScreen() {
   const [yaptirim, setYaptirim] = useState<Sanction | null>(null);
   const [taslak, setTaslak] = useState(0);
 
-  useEffect(() => {
-    let iptal = false;
-    amIAdmin().then((ok) => {
-      if (!iptal) setYonetici(ok);
-    });
-    loadProfileStats().then((st) => {
-      if (!iptal) setIstatistik(st);
-    });
-    loadSanction().then((y) => {
-      if (!iptal) setYaptirim(y);
-    });
-    loadDrafts().then((d) => {
-      if (!iptal) setTaslak(d.length);
-    });
-    return () => {
-      iptal = true;
-    };
-  }, [user]);
+  /**
+   * Sayaçlar ekrana her dönüşte tazeleniyor.
+   *
+   * `useEffect(..., [user])` idi ve bu sessiz bir yalan üretiyordu: sekme
+   * ekranları arka planda canlı kalıyor, yani sayaçlar yalnızca uygulama
+   * açıldığında bir kez okunuyordu. Kullanıcı taslaklarını siliyor, profile
+   * dönüyor ve **eski sayıyı** görüyordu — silme işe yaramamış gibi.
+   *
+   * Canlıda ölçüldü (2026-08-18): ekran "5 ilan yayında" derken veri
+   * tabanında 3 yayında, 1 taslak, 4 kaldırılmış vardı.
+   *
+   * Aynı kusur bu depoda daha önce iki kez yaşandı — bildirim rozeti ve
+   * okunmamış mesaj sayısı. İkisi de `useFocusEffect`e taşınmıştı; bu üçüncü
+   * yerdi ve gözden kaçmıştı.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      let iptal = false;
+      amIAdmin().then((ok) => {
+        if (!iptal) setYonetici(ok);
+      });
+      loadProfileStats().then((st) => {
+        if (!iptal) setIstatistik(st);
+      });
+      loadSanction().then((y) => {
+        if (!iptal) setYaptirim(y);
+      });
+      loadDrafts().then((d) => {
+        if (!iptal) setTaslak(d.length);
+      });
+      return () => {
+        iptal = true;
+      };
+    }, []),
+  );
 
   /* Ad profilden geliyor. Eskiden e-postanın kullanıcı adı kısmı
      gösteriliyordu ("emrahatabek"), oturum yoksa da sabit bir demo isim. */
