@@ -72,6 +72,16 @@ export interface CampaignStatus {
   kullaniciSayisi: number;
   kalanKontenjan: number;
   dagitilanPuan: number;
+  /**
+   * Yüksek kademede kalan yer (2026-08-18: ilk 50 kişi 1000+1000,
+   * kalan 950 kişi 300+300).
+   *
+   * "Kalan kontenjan 950" tek başına yanıltıcı: asıl merak edilen yüksek
+   * kademede kaç yer kaldığı, çünkü bütçenin büyük kısmı orada — 50 × 2000
+   * ile 950 × 600 birbirine yakın iki rakam.
+   */
+  erkenKalan: number;
+  erkenKullanici: number;
 }
 
 /**
@@ -92,6 +102,8 @@ export async function campaignStatus(): Promise<CampaignStatus | null> {
     kullaniciSayisi: Number(r.kullanici_sayisi ?? 0),
     kalanKontenjan: Number(r.kalan_kontenjan ?? 0),
     dagitilanPuan: Number(r.dagitilan_puan ?? 0),
+    erkenKalan: Number(r.erken_kalan ?? 0),
+    erkenKullanici: Number(r.erken_kullanici ?? 0),
   };
 }
 

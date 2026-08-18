@@ -294,8 +294,19 @@ export default function AdminScreen() {
               <Text style={styles.kampanyaEtiket}>Dağıtılan puan (yükümlülük)</Text>
               <Text style={styles.kampanyaDeger}>{binlik(kampanya.dagitilanPuan)}</Text>
             </View>
+            {/* Yüksek kademe önce: bütçenin büyük kısmı orada ve hızlı
+                doluyor. "Kalan kontenjan 950" tek başına yanıltıcıydı —
+                50 × 2000 ile 950 × 600 birbirine yakın iki rakam. */}
             <View style={styles.kampanyaSatir}>
-              <Text style={styles.kampanyaEtiket}>Kalan kontenjan</Text>
+              <Text style={styles.kampanyaEtiket}>Yüksek kademe (1000+1000)</Text>
+              <Text style={styles.kampanyaDeger}>
+                {kampanya.erkenKalan > 0
+                  ? `${kampanya.erkenKalan} yer kaldı`
+                  : `doldu · ${kampanya.erkenKullanici} kullanıcı`}
+              </Text>
+            </View>
+            <View style={styles.kampanyaSatir}>
+              <Text style={styles.kampanyaEtiket}>Toplam kalan (300+300)</Text>
               <Text style={styles.kampanyaDeger}>
                 {kampanya.kalanKontenjan} kullanıcı
               </Text>
