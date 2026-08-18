@@ -134,6 +134,14 @@ export interface AnalizSonuc {
   bekleyen: number;
   /** Reddedilen karelerin slotu ve gerekçesi; ekran bunları yeniden çektiriyor. */
   retler: { slot: PhotoSlot; gerekce: string }[];
+  /**
+   * Geçen ama kusurlu bulunan kareler.
+   *
+   * Ret değil: kare onaylandı, ilan yayına girebilir. Satıcıya söyleniyor ki
+   * isterse düzeltsin. Yanlış açı, bulanıklık ve "aynı açı" buraya düşüyor —
+   * hepsi yalnızca ilanın kalitesini ilgilendiriyor.
+   */
+  uyarilar: { slot: PhotoSlot; uyari: string }[];
 }
 
 /**
@@ -149,7 +157,7 @@ export interface AnalizSonuc {
  * yönetim kuyruğunda insan onayına düşüyor.
  */
 export async function analizEt(productId: string): Promise<AnalizSonuc> {
-  const bos: AnalizSonuc = { onaylanan: 0, reddedilen: 0, bekleyen: 0, retler: [] };
+  const bos: AnalizSonuc = { onaylanan: 0, reddedilen: 0, bekleyen: 0, retler: [], uyarilar: [] };
   if (!supabaseConfigured || !supabase) return bos;
 
   const { data } = await supabase
@@ -188,19 +196,27 @@ export async function analizEt(productId: string): Promise<AnalizSonuc> {
      tekrar "Kontrole gönder"e basarsa bekleyen kare yoktur, bu tur hiçbir şey
      incelemez ve liste boş çıkardı — ekran da yayın kapısının ham hata
      metnini gösterirdi. Durumu sormak, hatırlamaktan doğru. */
-  const { data: retSatirlari } = await supabase
+  const { data: satirlar } = await supabase
     .from('product_photos')
-    .select('slot, moderation_reason')
-    .eq('product_id', productId)
-    .eq('moderation_status', 'rejected');
+    .select('slot, moderation_status, moderation_reason, uyari')
+    .eq('product_id', productId);
+
+  const retSatirlari = (satirlar ?? []).filter((r) => r.moderation_status === 'rejected');
+  const uyariSatirlari = (satirlar ?? []).filter(
+    (r) => r.moderation_status === 'approved' && r.uyari,
+  );
 
   return {
     onaylanan: sonuclar.filter((x) => x.durum === 'approved').length,
-    reddedilen: retSatirlari?.length ?? 0,
+    reddedilen: retSatirlari.length,
     bekleyen: sonuclar.filter((x) => x.durum === 'pending').length,
-    retler: (retSatirlari ?? []).map((r) => ({
+    retler: retSatirlari.map((r) => ({
       slot: r.slot as PhotoSlot,
       gerekce: (r.moderation_reason as string) || 'Kare geçmedi.',
+    })),
+    uyarilar: uyariSatirlari.map((r) => ({
+      slot: r.slot as PhotoSlot,
+      uyari: r.uyari as string,
     })),
   };
 }

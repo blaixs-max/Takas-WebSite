@@ -62,6 +62,9 @@ interface Deger {
   bulundu: boolean;
   urun: string;
   sifirFiyatTry: number | null;
+  /** Başlık ve açıklama denetimi — `false` ise ilan yayına giremez. */
+  metinUygun?: boolean;
+  metinGerekce?: string | null;
   kaynak: string;
   guven: number;
   hasarSiddeti: number | null;
@@ -158,6 +161,14 @@ Deno.serve(async (req) => {
     p_guven: deger.guven,
     p_model: AI_MODEL,
     p_hasar_siddeti: deger.hasarSiddeti ?? 1.0,
+    /* Metin kararı **yalnızca açıkça `false` geldiğinde** engel oluyor.
+       Model alanı hiç vermezse ya da bozuk verirse `true` yazılıyor, `null`
+       değil: `null` "denetlenmedi" demek ve kapı onu geçiriyor, yani sonuç
+       aynı — ama `true` yazmak niyeti dürüst gösteriyor. Modelin susmasını
+       suçlama sebebi saymıyoruz; yanlış engellemenin bedeli kullanıcının
+       ilanını hiç verememesi. */
+    p_metin_uygun: deger.metinUygun === false ? false : true,
+    p_metin_gerekce: deger.metinUygun === false ? (deger.metinGerekce ?? null) : null,
   });
 
   if (yazHata) {
@@ -213,8 +224,30 @@ async function degerle(
 
 ${beyan}
 
-Görevin: bu ürünün **Türkiye'de bugünkü SIFIR (perakende) satış fiyatını** bulmak.
+İki görevin var.
+
+## 1) Fiyat
+
+Bu ürünün **Türkiye'de bugünkü SIFIR (perakende) satış fiyatını** bul.
 Google araması yap. İkinci el fiyatı değil, sıfır fiyatı arıyorsun.
+
+## 2) Metin denetimi
+
+Yukarıdaki **başlık ve açıklamayı** denetle. Şunlardan biri varsa
+\`metinUygun: false\` ver:
+
+- Küfür, hakaret, ırkçı/ayrımcı ya da nefret içeren ifade
+- Müstehcen ya da cinsel içerikli metin
+- Telefon numarası, e-posta, sosyal medya hesabı ya da dış bağlantı
+  (alışveriş uygulama içinde kalmalı; dışarı yönlendirme dolandırıcılığın
+  en yaygın yolu)
+- Yasa dışı ya da satışı yasak bir ürün tarifi
+- Ürünle ilgisi olmayan reklam ya da spam
+
+**Sıradan bir ürün açıklaması \`metinUygun: true\` almalı.** Yazım hatası,
+kısa yazılmış olması, büyük harf kullanımı ya da eksik bilgi kusur değildir.
+Emin değilsen \`true\` ver — bu bir engel ve yanlış engellemenin bedeli
+kullanıcının ilanını verememesi.
 
 Kurallar:
 - Ürünü fotoğraflardan tanı. Marka ve model görünüyorsa aramada kullan.
@@ -233,7 +266,9 @@ Yalnızca şu JSON'u döndür, başka hiçbir şey yazma:
   "sifirFiyatTry": sayı (₺, sıfır fiyatı) veya null,
   "kaynak": "fiyatı aldığın site ya da kısa açıklama",
   "guven": 0 ile 1 arası sayı,
-  "hasarSiddeti": 0 ile 1 arası sayı veya null (0 = hasarsız, 1 = ağır hasar)
+  "hasarSiddeti": 0 ile 1 arası sayı veya null (0 = hasarsız, 1 = ağır hasar),
+  "metinUygun": true|false,
+  "metinGerekce": "uygun değilse tek cümlede neden, uygunsa null"
 }`,
   });
 
@@ -286,6 +321,13 @@ Yalnızca şu JSON'u döndür, başka hiçbir şey yazma:
         c.hasarSiddeti === null || c.hasarSiddeti === undefined
           ? null
           : Math.max(0, Math.min(1, Number(c.hasarSiddeti) || 0)),
+      /* `=== false` bilerek, `!c.metinUygun` değil: alan hiç gelmediğinde
+         `undefined` da yanlış sayılır ve modelin susması kullanıcının
+         ilanını engellerdi. Engel yalnızca model **açıkça** "uygun değil"
+         derse kurulur. */
+      metinUygun: c.metinUygun === false ? false : true,
+      metinGerekce:
+        c.metinUygun === false ? String(c.metinGerekce ?? '').slice(0, 300) || null : null,
     };
   } catch {
     return null;

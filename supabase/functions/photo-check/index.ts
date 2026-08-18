@@ -126,11 +126,41 @@ const SAATLIK_LIMIT = Number(Deno.env.get('AI_VISION_SAATLIK_LIMIT') ?? 60);
  * satıcının canının sıkılması, güvenlikte yanılmanın bedeli bir çocuğun
  * yüzünün indekslenen bir pazaryerinde yayınlanması.
  */
-const GUVENLIK_SEBEPLERI = ['cocuk_yuzu', 'arka_plan'];
+const GUVENLIK_SEBEPLERI = ['cocuk_yuzu', 'mustehcen', 'arka_plan'];
+
+/**
+ * Yayını **engelleyen** sebepler. Kalanlar uyarıya iner.
+ *
+ * Ayıran çizgi: **başkasına zarar veren şey engeller, yalnızca satıcıyı
+ * ilgilendiren şey uyarır.** Buradakiler alıcıyı ya da fotoğraftaki kişiyi
+ * koruyor; dışarıda kalanlar (yanlış açı, bulanıklık, aynı açı) yalnızca
+ * ilanın kalitesiyle ilgili ve ona karar vermek satıcının hakkı — kötü
+ * fotoğraf kendi zararı, ilanı daha az ilgi görür.
+ *
+ * Ayrım canlıdaki ilk gerçek kullanımdan sonra kondu: sekiz reddin sekizi de
+ * kadraj yüzündendi, hiçbiri güvenlikle ilgili değildi. Bir Superman
+ * figüründe sol kareye "bu sağ profil", sağ kareye "bu sol profil" dendi —
+ * ikisini takas etse yine reddedilebilirdi, çıkışı olmayan bir döngü. Model
+ * sağı soldan güvenilir ayıramıyor ve ayıramadığı bir şey yüzünden insan
+ * engellenmemeli.
+ *
+ * `baska_urun` burada: "bu aynı ürün bile değil" bir kadraj tercihi değil,
+ * aldatmadır. `ayni_aci` burada **değil** — aynı zayıf görüşe dayanıyor, ve
+ * dört karenin dördü de aynı açıysa alıcı ilanı açtığında zaten görüyor.
+ */
+const ENGEL_SEBEPLERI = [
+  'cocuk_yuzu',
+  'mustehcen',
+  'arka_plan',
+  'stok_gorsel',
+  'ekran_cekimi',
+  'baska_urun',
+];
 
 /** Modelin seçebileceği red sebepleri. Serbest metin sayılamaz, bu sayılır. */
 const SEBEPLER = [
   'cocuk_yuzu',
+  'mustehcen',
   'arka_plan',
   'stok_gorsel',
   'ekran_cekimi',
@@ -247,6 +277,24 @@ Deno.serve(async (req) => {
   if (kare.moderation_status !== 'pending') {
     // İdempotency: aynı kare iki kez incelenmez.
     return json({ photoId: kare.id, status: kare.moderation_status, tekrar: true });
+  }
+
+  /* Etiket karesi denetlenmiyor — doğrudan geçiyor.
+     Zorunlu değil ve yayın kapısı zorunsuz slottaki reddi zaten siliyor, yani
+     buradaki bir ret hiçbir şeyi engellemiyordu; yalnızca kullanıcıya boşuna
+     "reddedildi" diyordu. Canlıdaki sekiz reddin üçü buradan geldi ve üçü de
+     "CE işareti okunmuyor" tipindeydi — ikinci el bir oyuncakta okunur etiket
+     beklemek gerçekçi değil.
+     Güvenlik gerekçesi zayıflamıyor: dört zorunlu açı kareye bakılıyor ve
+     ürün orada zaten görünüyor. Etiket karesi ürünün yakın çekimi, yeni bir
+     ortam ya da yeni bir kişi göstermiyor. */
+  if (kare.slot === 'label') {
+    await supabase
+      .from('product_photos')
+      .update({ moderation_status: 'approved', moderation_reason: null, uyari: null })
+      .eq('id', kare.id)
+      .eq('moderation_status', 'pending');
+    return json({ photoId: kare.id, status: 'approved', gerekce: '', uyari: '', denetimsiz: true });
   }
 
   // Anahtar yoksa kareyi ONAYLAMAYIZ. 'pending' kalır ve ilan insana kuyruklanır.
@@ -367,16 +415,31 @@ Deno.serve(async (req) => {
         ? `Bu kareyi daha önce çektiğin bir kareyle aynı açıdan çekmişsin. Ürünün ${SLOT_AD[kare.slot]} tarafını çekmen gerekiyor.`
         : null;
 
-  const uygun = karar.uygun && !kiyasHatasi;
-  const yeni = uygun ? 'approved' : 'rejected';
-  const gerekce = uygun ? null : (kiyasHatasi ?? karar.gerekce);
+  /* Sebep kodu: kıyas hatası kendi kodunu üretiyor, yoksa modelinki. */
+  const sebepKodu = kiyasHatasi
+    ? karar.ayniUrun === false
+      ? 'baska_urun'
+      : 'ayni_aci'
+    : karar.sebep;
+
+  /* Üç sonuç var, iki değil: geçti · notlu geçti · engellendi.
+     Model bir kusur bulduysa (`!karar.uygun` ya da kıyas hatası) o kusurun
+     **engel mi uyarı mı** olduğuna sebep koduna bakarak karar veriyoruz.
+     Engel değilse kare geçiyor ve kusur `uyari` alanına yazılıyor; satıcı
+     görür, isterse yeniden çeker, istemezse ilanı yayına girer. */
+  const kusurVar = !karar.uygun || Boolean(kiyasHatasi);
+  const engel = kusurVar && ENGEL_SEBEPLERI.includes(sebepKodu);
+  const uyariMetni = kusurVar && !engel ? (kiyasHatasi ?? karar.gerekce) : null;
+
+  const yeni = engel ? 'rejected' : 'approved';
+  const gerekce = engel ? (kiyasHatasi ?? karar.gerekce) : null;
 
   /* `.eq('moderation_status','pending')` idempotency koşulu: bu istek karara
      gerçekten kendisi vardıysa satır döner. Silme kararı buna bağlı — başka
      bir çağrı önce davrandıysa nesneyi ikinci kez silmeye çalışmayız. */
   const { data: guncel } = await supabase
     .from('product_photos')
-    .update({ moderation_status: yeni, moderation_reason: gerekce })
+    .update({ moderation_status: yeni, moderation_reason: gerekce, uyari: uyariMetni })
     .eq('id', kare.id)
     .eq('moderation_status', 'pending')
     .select('id');
@@ -400,13 +463,22 @@ Deno.serve(async (req) => {
     kare.id,
     kullanilanModel,
     yeni,
-    uygun ? null : (kiyasHatasi ? (karar.ayniUrun === false ? 'baska_urun' : 'ayni_aci') : karar.sebep),
+    /* Kusursuz kareye `null`, kusurluya kodu — engel olmasa bile. Uyarıya
+       inen sebeplerin ne sıklıkta ateşlediğini ancak böyle görebiliriz ve
+       `ayni_aci`yı uyarıya indirme kararı tam olarak bu veriye bakılarak
+       yeniden değerlendirilecek. */
+    kusurVar ? sebepKodu : null,
     ikinciGorus,
     karar.token,
     basladi,
   );
 
-  return json({ photoId: kare.id, status: yeni, gerekce: gerekce ?? '' });
+  return json({
+    photoId: kare.id,
+    status: yeni,
+    gerekce: gerekce ?? '',
+    uyari: uyariMetni ?? '',
+  });
 });
 
 /**
@@ -570,7 +642,8 @@ async function incele(
      bizim yazdığımız slot beklentisi gidiyor. Prompt injection yüzeyi yok. */
   const denetim = `Şu durumlarda UYGUN DEĞİL de:
 - Kadrajda bir çocuğun yüzü görünüyorsa
-- Arka planda müstehcen içerik, tanınabilir üçüncü bir kişi veya uygunsuz bir ortam varsa
+- Karede müstehcen, cinsel içerikli ya da yetişkinlere yönelik bir şey varsa — **ürünün kendisi de dahil**, yalnızca arka plan değil
+- Arka planda tanınabilir üçüncü bir kişi veya uygunsuz bir ortam varsa
 - Görsel stok/katalog fotoğrafı gibi duruyorsa (gerçek ev çekimi değilse)
 - Kare bir ekranın (telefon, bilgisayar, televizyon) ya da basılı bir fotoğrafın fotoğrafıysa — piksel deseni, ekran kenarı, yansıma veya parlaklık dalgalanması varsa
 - Ürün bulanık, çok karanlık ya da kadrajda çok küçükse
@@ -578,15 +651,16 @@ async function incele(
 
 Ayrıca \`sebep\` alanını doldur — hangi maddeden düştüğünü tek bir kodla söyle:
 - cocuk_yuzu ......... kadrajda çocuk yüzü var
-- arka_plan .......... arka planda müstehcen içerik, tanınabilir üçüncü kişi veya uygunsuz ortam
+- mustehcen .......... karede müstehcen/cinsel içerik (ürünün kendisi ya da arka plan)
+- arka_plan .......... arka planda tanınabilir üçüncü kişi veya uygunsuz ortam
 - stok_gorsel ........ stok/katalog fotoğrafı
 - ekran_cekimi ....... ekranın ya da basılı bir fotoğrafın fotoğrafı
 - kalite ............. bulanık, karanlık ya da ürün çok küçük
 - yanlis_aci ......... beklenen açıyı göstermiyor
 - yok ................ kare uygun
 
-Birden fazlası geçerliyse **listedeki ilk sırada olanı** ver: çocuk yüzü ve
-arka plan, diğerlerinin hepsinden önce gelir.`;
+Birden fazlası geçerliyse **listedeki ilk sırada olanı** ver: çocuk yüzü,
+müstehcen içerik ve arka plan, diğerlerinin hepsinden önce gelir.`;
 
   const istem = kiyas
     ? `Bir ikinci el çocuk ürünü ilanının fotoğraflarını denetliyorsun.

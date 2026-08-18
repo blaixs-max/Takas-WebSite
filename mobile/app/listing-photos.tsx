@@ -65,6 +65,9 @@ export default function ListingPhotos() {
   const [yayinlaniyor, setYayinlaniyor] = useState(false);
   const [degerleniyor, setDegerleniyor] = useState(false);
   const [analizEdiliyor, setAnalizEdiliyor] = useState(false);
+  /* Kullanıcı uyarıları görüp "yine de yayınla" dedi mi. Bir kez true olunca
+     bu ilan için bir daha sorulmuyor. */
+  const [uyariGecildi, setUyariGecildi] = useState(false);
 
   const tazele = useCallback(async () => {
     if (!id) return;
@@ -202,6 +205,14 @@ export default function ListingPhotos() {
        karenin reddi (etiket gibi) yayını engellemiyor: sunucu o satırı yayın
        anında siliyor. Kullanıcıya "etiketi yeniden çek" dedirtmek, zorunlu
        olmadığını söyledikten sonra tam tersini istemek olurdu. */
+    /* Uyarılar yayını durdurmuyor, yalnızca söyleniyor. Kullanıcı "Yine de
+       yayınla" derse devam ediyor, "Düzeltmek istiyorum" derse ekranda
+       kalıyor ve o kareyi yeniden çekebiliyor.
+       Uyarı çekim anında değil burada çıkıyor ve bu bir tercih: çekim anında
+       göstermek için kare kare model çağırmak gerekirdi, ki bu sabah tam
+       onu kaldırdık. Geç uyarı, yedi ayrı duvardan iyi. */
+    const uyarilar = analiz.uyarilar;
+
     const engelleyen = analiz.retler.filter((r) => zorunlu.includes(r.slot));
     if (engelleyen.length > 0) {
       setYayinlaniyor(false);
@@ -229,6 +240,31 @@ export default function ListingPhotos() {
        Sonucuna bakıp akışı durdurmuyoruz: başarısızsa yayın kapısı zaten
        geçirmez. Burada ayrıca kontrol etmek aynı kararı iki yerde vermek
        olurdu. */
+    if (uyarilar.length > 0 && !uyariGecildi) {
+      setYayinlaniyor(false);
+      const liste = uyarilar
+        .map((u) => `• ${SLOT_INFO[u.slot].baslik}: ${u.uyari}`)
+        .join('\n');
+      uyar(
+        uyarilar.length === 1 ? 'Bir fotoğrafta not var' : `${uyarilar.length} fotoğrafta not var`,
+        `${liste}\n\nBunlar yayını engellemiyor — istersen düzelt, istersen böyle yayınla.`,
+        [
+          { text: 'Düzeltmek istiyorum', style: 'cancel' },
+          {
+            text: 'Yine de yayınla',
+            onPress: () => {
+              /* Bayrak ikinci turda uyarıyı atlatıyor. Olmasaydı "Yine de
+                 yayınla" aynı diyaloğu tekrar açar ve kullanıcı döngüye
+                 girerdi. */
+              setUyariGecildi(true);
+              void yayinla();
+            },
+          },
+        ],
+      );
+      return;
+    }
+
     setDegerleniyor(true);
     const degerleme = await degerlet(id!);
     setDegerleniyor(false);

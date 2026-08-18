@@ -767,6 +767,65 @@ gösterilir.
 - İkonlar: `@expo/vector-icons/MaterialIcons`.
 - Para olmayan model: cüzdan anahtarsızken **DEMO** veriye düşer (kırılmaz).
 
+## Denetim: altı engel, üç uyarı (2026-08-17)
+
+Canlıdaki ilk gerçek kullanımda **sekiz reddin sekizi de kadraj yüzündendi**.
+Denetimin var olma sebebi (çocuk yüzü, uygunsuz içerik, dolandırıcılık) bir kez
+bile devreye girmedi; onun yerine insanlar bir fotoğrafçılık sınavına sokuldu.
+En açık örnek bir Superman figüründe sol kareye "bu sağ profil", sağ kareye
+"bu sol profil" denmesiydi — ikisini takas etse yine reddedilebilirdi.
+
+**Ayıran çizgi: başkasına zarar veren şey engeller, yalnızca satıcıyı
+ilgilendiren şey uyarır.**
+
+| Sebep | Karar |
+|---|---|
+| Çocuk yüzü | engel |
+| Müstehcen/cinsel içerik (**ürünün kendisi dahil**) | engel |
+| Arka planda tanınabilir üçüncü kişi | engel |
+| Stok/katalog fotoğrafı | engel |
+| Ekran fotoğrafı | engel |
+| Başka ürün | engel |
+| Uygunsuz başlık/açıklama | engel |
+| Yanlış açı | **uyarı** |
+| Bulanık / karanlık | **uyarı** |
+| Aynı açı tekrarı | **uyarı** |
+
+- **Uyarı = kare `approved`, `uyari` kolonunda not.** Dosya **silinmiyor** —
+  ret siliyor, uyarı silmemeli, yoksa "yine de yayınla" diyen kullanıcının
+  fotoğrafı olmaz. Ekran uyarıları toplu gösterip "Yine de yayınla / Düzeltmek
+  istiyorum" soruyor.
+- **`ayni_aci` uyarıya indi ve bu tartışmalı.** Satıcı kırık yüzü gizleyip
+  sağlam yüzü dört kez çekebilir. Yine de uyarı, iki gerekçeyle: sağı soldan
+  ayıramayan görüş "aynı açı"yı da ayıramaz (aynı zayıf yetenek), ve dört kare
+  de aynı açıysa **alıcı ilanı açtığında görüyor**. `baska_urun` engel kaldı:
+  "bu aynı ürün bile değil" kadraj tercihi değil, aldatmadır.
+- **Etiket karesi hiç denetlenmiyor.** Zorunlu değil ve yayın kapısı zorunsuz
+  slottaki reddi zaten siliyor; buradaki ret hiçbir şeyi engellemiyor, yalnızca
+  boşuna korkutuyordu. Sekiz reddin üçü buradandı ve üçü de "CE işareti
+  okunmuyor" tipindeydi — ikinci el oyuncakta okunur etiket beklemek gerçekçi
+  değil.
+- **Müstehcenlik artık bütün kareye bakıyor.** Eski istem "**arka planda**
+  müstehcen içerik" diyordu; ürünün kendisi uygunsuzsa ne olacağı hiç
+  sorulmuyordu. İstemediğin şeyi güvenilir alamazsın.
+- **Ölçüm kusurlu kareyi engel olmasa da kaydediyor** (`photo_check_events`).
+  Uyarıya inen sebeplerin ne sıklıkta ateşlediğini ancak böyle görebiliriz ve
+  `ayni_aci` kararı bu veriye bakılarak yeniden değerlendirilecek.
+
+### Metin denetimi
+
+Başlık ve açıklama bir tur boyunca **hiç denetlenmiyordu**: küfür, telefon
+numarası, dış bağlantı, reklam — fotoğraflar temizse hepsi yayına giriyordu.
+
+Denetim `listing-value` içine kondu, ayrı bir çağrıya değil: o fonksiyon
+başlığı ve açıklamayı **zaten** modele gönderiyor (fiyat için), yani bir alan
+eklemek ek maliyet getirmiyor.
+
+`metin_uygun` üç durumlu: `null` denetlenmedi (kapı geçirir — değerleme zaten
+`degerleme_at`e takılır), `true` geçti, `false` engel. Model alanı vermezse
+`true` yazılıyor: **modelin susması kullanıcının ilanını engellememeli.**
+Sonraki değerlemede karar `coalesce` ile korunuyor.
+
 ## Puan tavanı yok (2026-08-17)
 
 `valuation_settings.tavan_puan` **null** ve bu bilinçli: platform her fiyat
