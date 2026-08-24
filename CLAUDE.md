@@ -1201,11 +1201,24 @@ npm start                             # geliştirme (Expo Go) — TÜNEL varsay�
 # npm run start:temiz  → tünel + Metro önbelleği temiz (varlık/env değiştiyse)
 # npm run start:yerel  → aynı Wi-Fi (LAN); yalnızca kendi telefonunla hızlı
 #
-# TÜNEL DÜŞERSE ("Cannot read properties of undefined (reading 'body')"):
+# TÜNEL DÜŞERSE ("failed to start tunnel", "remote gone away",
+# "Cannot read properties of undefined (reading 'body')"):
 # ngrok'un paylaşımlı hesabı sınıra dayanmıştır. Önce TEKRAR DENE — geçici.
 # Israr ederse `.env`de tek satır (gerekçesi `mobile/.env.example` içinde):
 #   EXPO_FORCE_WEBCONTAINER_ENV=1   → ngrok yerine @expo/ws-tunnel
 # Karekod akışı bundan etkilenmiyor; yalnızca tünel servisi değişiyor.
+#
+# 2026-08-19: ngrok arka arkaya iki koşuda düştü ve yedek İLK KEZ GERÇEKTEN
+# KULLANILDI — adres `exp://<alt-alan>.boltexpo.dev` oldu, karekod normal
+# çalıştı. Yani bu satır artık "teoride var" değil, denenmiş bir çıkış yolu.
+# Varsayılan yapılmadı: ngrok çalışırken ek bir servise bağlanmaya gerek yok
+# ve iki tünelden birini seçebilmek, sorun çıktığında hangisinin bozuk
+# olduğunu ayırt etmeyi kolaylaştırıyor.
+#
+# Yerel mod (`npm run start:yerel`) tünelin yerine GEÇMEZ: telefonun
+# bilgisayarla aynı Wi-Fi'da olmasını şart koşar. Hangi moddasın adresten
+# okunur — `boltexpo.dev`/`ngrok.io` gibi bir alan adı tünel, `192.168.x.x`
+# gibi bir yerel IP değil.
 #
 # Sabit tünel adresi (`EXPO_TUNNEL_SUBDOMAIN`) bilerek KULLANILMIYOR —
 # kullanıcı kararı karekoddan yana (2026-08-18). Bağlantı göndermek yerine
