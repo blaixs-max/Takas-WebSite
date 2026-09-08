@@ -2,19 +2,23 @@ import { supabase, supabaseConfigured } from './supabase';
 
 export type StartTradeResult =
   | { ok: true; tradeId: string; points: number }
-  | { ok: false; message: string };
+  | { ok: false; message: string; kod?: 'ADRES_YOK' };
 
 /**
  * Takası başlatır.
  *
  * `create_trade` RPC'sini çağırır. Bu çağrı sunucuda tek bir işlemde şunları
- * yapar: ürünü kilitler, hâlâ satılabilir mi bakar, takası açar, ilanı rezerve
- * eder ve alıcının puanını güvenli havuza alır. Herhangi biri başarısız olursa
- * hepsi geri sarılır — yarım kalmış bir rezervasyon oluşmaz.
+ * yapar: ürünü kilitler, hâlâ satılabilir mi bakar, alıcının teslimat adresini
+ * takasa kopyalar, takası açar, ilanı rezerve eder ve alıcının puanını güvenli
+ * havuza alır. Herhangi biri başarısız olursa hepsi geri sarılır.
+ *
+ * Adres zorunlu: satıcı ürünü bir yere gönderecek ve o yer takas anında belli
+ * olmalı. Alıcının adresi yoksa `kod: 'ADRES_YOK'` döner; ekran onu adres
+ * eklemeye götürür.
  *
  * İstemci takası doğrudan insert ETMEZ: rezervasyon ve emanet oradan işliyor.
  */
-export async function startTrade(productId: string): Promise<StartTradeResult> {
+export async function startTrade(productId: string, addressId?: string): Promise<StartTradeResult> {
   if (!supabaseConfigured || !supabase) {
     return { ok: false, message: 'Sunucu bağlantısı yok. Anahtarlar tanımlı değil.' };
   }
@@ -24,43 +28,24 @@ export async function startTrade(productId: string): Promise<StartTradeResult> {
     return { ok: false, message: 'Takas için giriş yapmalısınız.' };
   }
 
-  const { data, error } = await supabase.rpc('create_trade', { p_product_id: productId });
-  if (error) return { ok: false, message: cevir(error.message) };
+  const { data, error } = await supabase.rpc('create_trade', {
+    p_product_id: productId,
+    p_address_id: addressId ?? null,
+  });
+  if (error) {
+    if (error.message.includes('teslimat adresi gerekli')) {
+      return {
+        ok: false,
+        kod: 'ADRES_YOK',
+        message: 'Takas için önce bir teslimat adresi eklemen gerekiyor.',
+      };
+    }
+    return { ok: false, message: cevir(error.message) };
+  }
 
   const row = Array.isArray(data) ? data[0] : data;
   if (!row?.id) return { ok: false, message: 'Takas açıldı ama kimliği alınamadı.' };
   return { ok: true, tradeId: row.id as string, points: Number(row.points ?? 0) };
-}
-
-export interface PriceQuote {
-  sizeClass: string;
-  shippingTl: number;
-  serviceFeeTl: number;
-  transactionFeeTl: number;
-  totalTl: number;
-}
-
-/**
- * Takasın kargo + hizmet + işlem payı kırılımını sunucudan alır.
- * Bu rakamlar istemcide hesaplanmaz; tarifeden türetilir.
- *
- * quote_trade_price() değil my_trade_quote() çağrılır: iç fonksiyon çağıranı
- * doğrulamıyordu ve kargo maliyeti ile komisyonu da döndürüyordu. Sarmalayıcı
- * çağıranın takasın tarafı olduğunu doğrular, marjı döndürmez.
- */
-export async function quotePrice(tradeId: string): Promise<PriceQuote | null> {
-  if (!supabaseConfigured || !supabase) return null;
-  const { data, error } = await supabase.rpc('my_trade_quote', { p_trade_id: tradeId });
-  if (error) return null;
-  const q = Array.isArray(data) ? data[0] : data;
-  if (!q) return null;
-  return {
-    sizeClass: q.size_class,
-    shippingTl: Number(q.shipping_tl),
-    serviceFeeTl: Number(q.service_fee_tl),
-    transactionFeeTl: Number(q.transaction_fee_tl),
-    totalTl: Number(q.total_tl),
-  };
 }
 
 export type TradeStatus =
@@ -71,6 +56,20 @@ export type TradeStatus =
   | 'COMPLETED'
   | 'DISPUTED'
   | 'REFUNDED';
+
+/**
+ * Alıcının teslimat adresinin takas anındaki kopyası.
+ *
+ * Yalnızca takasın iki tarafı okur (RLS). Satıcı bunu görür çünkü ürünü
+ * göndermek zorunda; kargodan önce iptal olan takasta sunucu kopyayı siliyor.
+ */
+export interface Teslimat {
+  adSoyad: string;
+  telefon: string | null;
+  il: string;
+  ilce: string;
+  acikAdres: string;
+}
 
 export interface TradeRow {
   id: string;
@@ -86,6 +85,9 @@ export interface TradeRow {
   disputeReason: string | null;
   /** Açık itiraz varsa kimliği ve durumu; yoksa null. */
   acikItiraz: { id: string; kanitBekleniyor: boolean } | null;
+  kargoFirmasi: string | null;
+  takipNo: string | null;
+  teslimat: Teslimat | null;
 }
 
 /** Kullanıcının taraf olduğu takaslar, yenisi üstte. */
@@ -102,7 +104,7 @@ export async function loadMyTrades(): Promise<TradeRow[]> {
     // Tek parça dize: birleştirilmiş bir select ifadesini supabase-js tip
     // olarak çözemiyor ve satırlar `GenericStringError`'a düşüyor.
     .select(
-      'id, status, points, product_id, buyer_id, deadline_at, delivered_at, dispute_reason, products(title), disputes(id, status)',
+      'id, status, points, product_id, buyer_id, deadline_at, delivered_at, dispute_reason, kargo_firmasi, takip_no, teslimat, products(title), disputes(id, status)',
     )
     .order('created_at', { ascending: false });
 
@@ -115,6 +117,18 @@ export async function loadMyTrades(): Promise<TradeRow[]> {
     const itirazlar = (t.disputes ?? []) as { id: string; status: string }[];
     const acik = itirazlar.find((d) => d.status === 'OPEN' || d.status === 'NEEDS_EVIDENCE');
 
+    const ham = t.teslimat as Record<string, unknown> | null;
+    const teslimat: Teslimat | null =
+      ham && typeof ham.acik_adres === 'string'
+        ? {
+            adSoyad: String(ham.ad_soyad ?? ''),
+            telefon: (ham.telefon as string) ?? null,
+            il: String(ham.il ?? ''),
+            ilce: String(ham.ilce ?? ''),
+            acikAdres: String(ham.acik_adres),
+          }
+        : null;
+
     return {
       id: t.id as string,
       status: t.status as TradeStatus,
@@ -126,11 +140,37 @@ export async function loadMyTrades(): Promise<TradeRow[]> {
       deliveredAt: (t.delivered_at as string) ?? null,
       disputeReason: (t.dispute_reason as string) ?? null,
       acikItiraz: acik ? { id: acik.id, kanitBekleniyor: acik.status === 'NEEDS_EVIDENCE' } : null,
+      kargoFirmasi: (t.kargo_firmasi as string) ?? null,
+      takipNo: (t.takip_no as string) ?? null,
+      teslimat,
     };
   });
 }
 
 export type ActionResult = { ok: true; status: TradeStatus } | { ok: false; message: string };
+
+/**
+ * Satıcı kargoya verdi: firma + takip numarası.
+ *
+ * Yalnızca satıcı, yalnızca puan havuzdayken. Takip numarası boş olamaz —
+ * "kargoya verdim" demek yetmez, alıcının takip edebileceği bir şey olmalı.
+ * Sunucu bunu SHIPPED'e alır ve alıcının 7 günlük onay sayacı başlar.
+ */
+export async function markShipped(
+  tradeId: string,
+  kargoFirmasi: string,
+  takipNo: string,
+): Promise<ActionResult> {
+  if (!supabaseConfigured || !supabase) return { ok: false, message: 'Sunucu bağlantısı yok.' };
+  const { data, error } = await supabase.rpc('mark_shipped', {
+    p_trade_id: tradeId,
+    p_kargo_firmasi: kargoFirmasi,
+    p_takip_no: takipNo,
+  });
+  if (error) return { ok: false, message: cevirAksiyon(error.message) };
+  const row = Array.isArray(data) ? data[0] : data;
+  return { ok: true, status: (row?.status ?? 'SHIPPED') as TradeStatus };
+}
 
 /**
  * "Teslim aldım" — puanı havuzdan çıkarıp satıcıya geçirir.
@@ -160,7 +200,7 @@ export type DisputeResult =
   | { ok: false; message: string };
 
 /**
- * İtiraz açar: 48 saatlik sayaç durur ve kanıt istenir.
+ * İtiraz açar: onay sayacı durur ve kanıt istenir.
  *
  * Talep `NEEDS_EVIDENCE` doğar. 24 saat içinde kanıt yüklenmezse sunucu talebi
  * reddeder ve sayaç kaldığı yerden devam eder — ekran kullanıcıyı kanıt
@@ -232,12 +272,16 @@ function cevirAksiyon(mesaj: string): string {
   if (mesaj.includes('gerekçesi zorunludur')) return 'Lütfen itiraz gerekçesi yazın.';
   if (mesaj.includes('oturum bulunamadı')) return 'Giriş yapmalısınız.';
   if (mesaj.includes('itiraz süresi geçmiş')) {
-    return 'İtiraz süresi geçmiş. Teslimattan sonra 48 saat içinde bildirilmeliydi.';
+    return 'İtiraz süresi geçmiş. Onay süresi içinde bildirilmeliydi.';
   }
   if (mesaj.includes('kargoya verildikten sonra iptal edilemez')) {
     return 'Ürün kargoya verildi; artık iptal değil iade süreci işler.';
   }
   if (mesaj.includes('yalnızca alıcı iptal')) return 'Bu takası yalnızca alıcı iptal edebilir.';
+  if (mesaj.includes('kargo bilgisini yalnızca satıcı')) return 'Kargo bilgisini yalnızca satıcı girer.';
+  if (mesaj.includes('kargo firması zorunludur')) return 'Kargo firmasını seç.';
+  if (mesaj.includes('takip numarası')) return 'Takip numarası 4–64 karakter olmalı.';
+  if (mesaj.includes('bu durumda kargoya verilemez')) return 'Bu takas kargoya verilebilir durumda değil.';
   if (mesaj.includes('kapanmış itiraza')) return 'Bu itiraz sonuçlanmış, kanıt eklenemez.';
   if (mesaj.includes('kendi klasörünüzde')) return 'Kanıt yüklenemedi, tekrar deneyin.';
   return 'İşlem tamamlanamadı. Tekrar deneyin.';
@@ -247,6 +291,7 @@ function cevir(mesaj: string): string {
   if (mesaj.includes('yetersiz bakiye')) return 'Takas puanınız yetmiyor.';
   if (mesaj.includes('kendi ilanınızı')) return 'Kendi ilanınızı takas edemezsiniz.';
   if (mesaj.includes('satın alınabilir durumda değil')) return 'Bu ilan şu anda müsait değil.';
+  if (mesaj.includes('adres bulunamadı')) return 'Seçilen adres bulunamadı.';
   if (mesaj.includes('bulunamadı')) return 'İlan bulunamadı.';
   return 'Takas başlatılamadı. Bağlantınızı kontrol edip tekrar deneyin.';
 }

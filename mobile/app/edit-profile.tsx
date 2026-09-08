@@ -134,7 +134,7 @@ export default function EditProfile() {
     if (s.durum === 'pending') {
       uyar(
         'Fotoğrafın incelemede',
-        'Denetim tamamlanana kadar fotoğrafın yalnızca sana görünür. Onaylanınca profilinde yayına girer.',
+        'Ekibimiz fotoğrafını inceleyecek. O zamana kadar yalnızca sana görünür; onaylanınca profilinde yayına girer ve sana bildirim gelir.',
       );
     }
   }

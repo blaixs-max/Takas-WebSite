@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -18,35 +18,44 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   AdminHata,
+  AvatarQueueRow,
   CampaignStatus,
   DisputeQueueRow,
-  PhotoQueueRow,
   ReportQueueRow,
+  ReviewQueueRow,
   adminHatalar,
   amIAdmin,
+  approveListing,
+  avatarKarari,
   campaignStatus,
-  hataGoruldu,
   disputeEvidenceUrls,
+  hataGoruldu,
   imzaliBaglantilar,
+  loadAvatarQueue,
   loadDisputeQueue,
-  loadPhotoQueue,
   loadReportQueue,
-  approvePhotosBulk,
-  moderatePhoto,
+  loadReviewQueue,
   nedenEtiketi,
+  puanOnizle,
+  rejectListing,
   resolveDispute,
   resolveReport,
 } from '../lib/admin';
 import { colors, elevation, shape } from '../theme/tokens';
 
 /**
- * Yönetim — üç kuyruk, tek ekran.
+ * Yönetim — beş kuyruk, tek ekran.
+ *
+ * İlk kuyruk **İlanlar** (2026-09-08): satıcının onaya gönderdiği ilan burada
+ * kareleri, metni ve beyanlarıyla görünür; yönetici sıfır fiyatını girer
+ * (formül puanı hesaplar) ya da puanı elle yazar, onaylar ya da gerekçeyle
+ * reddeder. Önceden bir görüntü modeli kareleri, bir dil modeli fiyatı
+ * belirliyordu; ikisi de kalktı, kararı insan veriyor.
  *
  * Kuyruklar sunucuda `is_admin()` süzgecinden geçer; yetkisiz bir oturum bu
  * ekranı açsa bile boş liste görür. Ekranın gizlenmesi kolaylık, yetkinin
- * kendisi veri tabanındadır.
- *
- * Karar veren her aksiyon gerekçe ister ve denetim kaydına yazılır.
+ * kendisi veri tabanındadır. Karar veren her aksiyon gerekçe ister ve denetim
+ * kaydına yazılır.
  */
 
 /** Binlik ayracı — Hermes'te Intl güvenilir değil, elle yazıyoruz. */
@@ -64,28 +73,38 @@ const SLOT_ADI: Record<string, string> = {
   parts: 'Parça',
 };
 
+type Sekme = 'ilan' | 'avatar' | 'itiraz' | 'sikayet' | 'hata';
+
 export default function AdminScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
   const [yetkili, setYetkili] = useState<boolean | null>(null);
-  const [sekme, setSekme] = useState<'kare' | 'itiraz' | 'sikayet' | 'hata'>('kare');
-  const [kareler, setKareler] = useState<PhotoQueueRow[]>([]);
+  const [sekme, setSekme] = useState<Sekme>('ilan');
+  const [ilanlar, setIlanlar] = useState<ReviewQueueRow[]>([]);
   const [kareUrl, setKareUrl] = useState<Record<string, string>>({});
+  const [avatarlar, setAvatarlar] = useState<AvatarQueueRow[]>([]);
+  const [avatarUrl, setAvatarUrl] = useState<Record<string, string>>({});
   const [itirazlar, setItirazlar] = useState<DisputeQueueRow[]>([]);
   const [kampanya, setKampanya] = useState<CampaignStatus | null>(null);
   const [sikayetler, setSikayetler] = useState<ReportQueueRow[]>([]);
   const [hatalar, setHatalar] = useState<AdminHata[]>([]);
-  /* Açılan yığın izi. Hepsini birden açmak listeyi okunmaz yapardı; hata
-     kaydının değeri listede değil, tek tek incelenmesinde. */
   const [acikYigin, setAcikYigin] = useState<number | null>(null);
   const [yenileniyor, setYenileniyor] = useState(false);
-  const [topluIsliyor, setTopluIsliyor] = useState(false);
   const [islemde, setIslemde] = useState<string | null>(null);
+  /* Tam ekran kare: küçük kutuda bulanıklık ya da yanlış açı görülmez. */
+  const [buyukKare, setBuyukKare] = useState<string | null>(null);
 
-  // Gerekçe soran tek bir sayfa: hem kare reddi hem itiraz kararı kullanır.
+  /* İlan başına form durumu: sıfır fiyatı metni, elle puan metni, önizleme. */
+  const [fiyat, setFiyat] = useState<Record<string, string>>({});
+  const [ellePuan, setEllePuan] = useState<Record<string, string>>({});
+  const [onizleme, setOnizleme] = useState<Record<string, number | null>>({});
+  const onizlemeZamanlayici = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  // Gerekçe soran tek bir sayfa: ilan reddi, avatar reddi, itiraz, şikâyet.
   const [gerekceIcin, setGerekceIcin] = useState<
-    | { tip: 'kareRet'; id: string }
+    | { tip: 'ilanRet'; id: string }
+    | { tip: 'avatarRet'; id: string }
     | { tip: 'itiraz'; id: string; kabul: boolean; esiginUstunde: boolean }
     | { tip: 'sikayet'; id: string; ihlal: boolean }
     | null
@@ -94,32 +113,26 @@ export default function AdminScreen() {
   const [iadeKargo, setIadeKargo] = useState('');
 
   const getir = useCallback(async () => {
-    const [k, i, c, r, h] = await Promise.all([
-      loadPhotoQueue(),
+    const [il, av, i, c, r, h] = await Promise.all([
+      loadReviewQueue(),
+      loadAvatarQueue(),
       loadDisputeQueue(),
       campaignStatus(),
       loadReportQueue(),
       adminHatalar(),
     ]);
-    setKareler(k);
+    setIlanlar(il);
+    setAvatarlar(av);
     setItirazlar(i);
     setKampanya(c);
     setSikayetler(r);
     setHatalar(h);
 
-    // Özel kova: görselleri göstermek için kısa ömürlü bağlantı gerekiyor.
-    // Eşlemeyi yol üzerinden kuruyoruz; sıraya güvenmek, bir bağlantı
-    // üretilemediğinde kareleri birbirine karıştırırdı.
-    const yolaGore = await imzaliBaglantilar(
-      'listing-photos',
-      k.map((x) => x.storagePath),
-    );
-    const eslesme: Record<string, string> = {};
-    for (const x of k) {
-      const url = yolaGore[x.storagePath];
-      if (url) eslesme[x.photoId] = url;
-    }
-    setKareUrl(eslesme);
+    // Özel kovalar: görselleri göstermek için kısa ömürlü bağlantı gerekiyor.
+    // Eşleme yol üzerinden; sıraya güvenmek kareleri birbirine karıştırırdı.
+    const yollar = il.flatMap((x) => x.kareler.map((k) => k.path));
+    setKareUrl(await imzaliBaglantilar('listing-photos', yollar));
+    setAvatarUrl(await imzaliBaglantilar('avatars', av.map((a) => a.avatarPath)));
   }, []);
 
   useEffect(() => {
@@ -130,37 +143,72 @@ export default function AdminScreen() {
     })();
   }, [getir]);
 
-  /** Kuyruktaki bütün kareleri onaylar. Geri dönüşü olmayan tarafı yok — ret
-      bu yolla yapılmıyor — ama yine de sayı söylenip onay isteniyor. */
-  function topluOnayla() {
-    const sayi = kareler.length;
-    uyar(
-      `${sayi} kare onaylansın mı?`,
-      'Hepsi yayına uygun sayılacak. Tek tek incelemeden onaylıyorsan, sonradan şikâyetle geri gelebilirler.',
-      [
-        { text: 'Vazgeç', style: 'cancel' },
-        {
-          text: 'Onayla',
-          onPress: async () => {
-            setTopluIsliyor(true);
-            const r = await approvePhotosBulk(kareler.map((k) => k.photoId));
-            await getir();
-            setTopluIsliyor(false);
-            uyar(
-              'Toplu onay bitti',
-              r.basarisiz === 0
-                ? `${r.onaylanan} kare onaylandı.`
-                : `${r.onaylanan} kare onaylandı, ${r.basarisiz} tanesi geçmedi. Geçmeyenler kuyrukta duruyor.`,
-            );
-          },
-        },
-      ],
-    );
+  /**
+   * Sıfır fiyatı yazılırken puan önizlemesi. Hesap sunucuda; her tuşta değil,
+   * yazma durunca (400 ms) soruluyor.
+   */
+  function fiyatDegisti(il: ReviewQueueRow, metin: string) {
+    setFiyat((f) => ({ ...f, [il.productId]: metin }));
+    const eski = onizlemeZamanlayici.current[il.productId];
+    if (eski) clearTimeout(eski);
+    const sayi = Number(metin.replace(',', '.'));
+    if (!Number.isFinite(sayi) || sayi <= 0) {
+      setOnizleme((o) => ({ ...o, [il.productId]: null }));
+      return;
+    }
+    onizlemeZamanlayici.current[il.productId] = setTimeout(async () => {
+      const p = await puanOnizle(sayi, il.condition, il.hasDamage);
+      setOnizleme((o) => ({ ...o, [il.productId]: p }));
+    }, 400);
   }
 
-  async function kareKarari(photoId: string, uygun: boolean, neden?: string) {
-    setIslemde(photoId);
-    const s = await moderatePhoto(photoId, uygun, neden);
+  async function ilanOnayla(il: ReviewQueueRow) {
+    const f = Number((fiyat[il.productId] ?? '').replace(',', '.'));
+    const e = Number((ellePuan[il.productId] ?? '').replace(',', '.'));
+    const fiyatVar = Number.isFinite(f) && f > 0;
+    const elleVar = Number.isFinite(e) && e > 0;
+    if (!fiyatVar && !elleVar) {
+      uyar('Puan gerekli', 'Sıfır fiyatını gir ya da puanı elle yaz.');
+      return;
+    }
+    const puanMetni = elleVar ? `${binlik(e)} puan (elle)` : `${onizleme[il.productId] != null ? binlik(onizleme[il.productId]!) + ' puan' : 'formülden hesaplanan puan'}`;
+    uyar('İlanı onayla', `“${il.title}” ${puanMetni} ile vitrine çıkacak. Kareler onaylı sayılacak.`, [
+      { text: 'Vazgeç', style: 'cancel' },
+      {
+        text: 'Onayla ve yayınla',
+        onPress: async () => {
+          setIslemde(il.productId);
+          const s = await approveListing(
+            il.productId,
+            fiyatVar ? f : undefined,
+            elleVar ? Math.round(e) : undefined,
+          );
+          setIslemde(null);
+          if (!s.ok) {
+            uyar('Onaylanamadı', s.message);
+            await getir();
+            return;
+          }
+          await getir();
+        },
+      },
+    ]);
+  }
+
+  async function ilanReddet(productId: string, neden: string) {
+    setIslemde(productId);
+    const s = await rejectListing(productId, neden);
+    setIslemde(null);
+    if (!s.ok) {
+      uyar('Reddedilemedi', s.message);
+      return;
+    }
+    await getir();
+  }
+
+  async function avatarKarar(userId: string, uygun: boolean, neden?: string) {
+    setIslemde(userId);
+    const s = await avatarKarari(userId, uygun, neden);
     setIslemde(null);
     if (!s.ok) {
       uyar('İşlem tamamlanamadı', s.message);
@@ -211,9 +259,7 @@ export default function AdminScreen() {
       uyar('Kanıt yok', 'Bu talebe henüz kanıt yüklenmemiş.');
       return;
     }
-    // Kanıtı ayrı bir görüntüleyicide değil, uyarı ile listeliyoruz: karar
-    // ekranı basit kalsın, kareler tarayıcıda tam boy açılsın.
-    uyar('Kanıtlar', `${urls.length} kare yüklenmiş. Karar için hepsine bakın.`);
+    setBuyukKare(urls[0]);
   }
 
   function kapat() {
@@ -233,9 +279,6 @@ export default function AdminScreen() {
   if (!yetkili) {
     return (
       <View style={[styles.root, styles.orta, { padding: 30 }]}>
-        {/* Rehber 23'ün uygulama notu: "Yönetim içindir" sistem ayrıntısı son
-            kullanıcıya gösterilmez. Ekran "burası yönetim alanı" diyordu —
-            yani olmadığı söylenen şeyin yerini işaret ediyordu. */}
         <MaterialIcons name="lock" size={44} color={colors.outline} />
         <Text style={styles.bosBaslik}>Bu sayfaya erişimin yok</Text>
         <Text style={styles.bosMetin}>Bu alan yalnızca yetkili hesaplar içindir.</Text>
@@ -256,37 +299,28 @@ export default function AdminScreen() {
         <View style={styles.iconBtn} />
       </View>
 
-      <View style={styles.sekmeler}>
-        <Sekme
-          etiket="Kareler"
-          sayi={kareler.length}
-          aktif={sekme === 'kare'}
-          onPress={() => setSekme('kare')}
-        />
-        <Sekme
-          etiket="İtirazlar"
-          sayi={itirazlar.length}
-          aktif={sekme === 'itiraz'}
-          onPress={() => setSekme('itiraz')}
-        />
-        <Sekme
-          etiket="Şikâyetler"
-          sayi={sikayetler.length}
-          aktif={sekme === 'sikayet'}
-          onPress={() => setSekme('sikayet')}
-        />
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.sekmeler}
+      >
+        <SekmeDugmesi etiket="İlanlar" sayi={ilanlar.length} aktif={sekme === 'ilan'} onPress={() => setSekme('ilan')} />
+        <SekmeDugmesi etiket="Avatarlar" sayi={avatarlar.length} aktif={sekme === 'avatar'} onPress={() => setSekme('avatar')} />
+        <SekmeDugmesi etiket="İtirazlar" sayi={itirazlar.length} aktif={sekme === 'itiraz'} onPress={() => setSekme('itiraz')} />
+        <SekmeDugmesi etiket="Şikâyetler" sayi={sikayetler.length} aktif={sekme === 'sikayet'} onPress={() => setSekme('sikayet')} />
         {/* Sayaç yalnızca GÖRÜLMEMİŞ hataları sayıyor. Toplamı saysaydı rozet
             hiç sıfırlanmaz ve bir süre sonra bakılmayan bir sayı olurdu. */}
-        <Sekme
+        <SekmeDugmesi
           etiket="Hatalar"
           sayi={hatalar.filter((h) => !h.goruldu).length}
           aktif={sekme === 'hata'}
           onPress={() => setSekme('hata')}
         />
-      </View>
+      </ScrollView>
 
       <ScrollView
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
             refreshing={yenileniyor}
@@ -300,21 +334,16 @@ export default function AdminScreen() {
         }
       >
         {/* Kampanya yükümlülüğü: dağıtılan puan kalıcı bir borçtur, görünür dursun */}
-        {kampanya && (
+        {kampanya && sekme === 'ilan' && (
           <View style={styles.kampanya}>
             <View style={styles.kampanyaSatir}>
               <Text style={styles.kampanyaEtiket}>Kampanya</Text>
-              <Text style={styles.kampanyaDeger}>
-                {kampanya.aktif ? 'açık' : 'kapalı'}
-              </Text>
+              <Text style={styles.kampanyaDeger}>{kampanya.aktif ? 'açık' : 'kapalı'}</Text>
             </View>
             <View style={styles.kampanyaSatir}>
               <Text style={styles.kampanyaEtiket}>Dağıtılan puan (yükümlülük)</Text>
               <Text style={styles.kampanyaDeger}>{binlik(kampanya.dagitilanPuan)}</Text>
             </View>
-            {/* Yüksek kademe önce: bütçenin büyük kısmı orada ve hızlı
-                doluyor. "Kalan kontenjan 950" tek başına yanıltıcıydı —
-                50 × 2000 ile 950 × 600 birbirine yakın iki rakam. */}
             <View style={styles.kampanyaSatir}>
               <Text style={styles.kampanyaEtiket}>Yüksek kademe (1000+1000)</Text>
               <Text style={styles.kampanyaDeger}>
@@ -325,73 +354,161 @@ export default function AdminScreen() {
             </View>
             <View style={styles.kampanyaSatir}>
               <Text style={styles.kampanyaEtiket}>Toplam kalan (300+300)</Text>
-              <Text style={styles.kampanyaDeger}>
-                {kampanya.kalanKontenjan} kullanıcı
-              </Text>
+              <Text style={styles.kampanyaDeger}>{kampanya.kalanKontenjan} kullanıcı</Text>
             </View>
           </View>
         )}
 
-        {sekme === 'kare' && kareler.length === 0 && (
-          <Bos ikon="check-circle" metin="Bekleyen kare yok. Kuyruk temiz." />
+        {/* ---------------------------------------------------------- İLANLAR */}
+        {sekme === 'ilan' && ilanlar.length === 0 && (
+          <Bos ikon="check-circle" metin="Onay bekleyen ilan yok. Kuyruk temiz." />
         )}
 
-        {/* Toplu onay. Kareler artık çekim sırasında değil, hepsi çekildikten
-            sonra toplu inceleniyor; modelin karar veremediği kareler buraya
-            düşüyor ve sayıları hızla büyüyebiliyor. Tek tek onaylamak o
-            noktada kuyruğu tıkar.
-            Karşılığı olan bir "tümünü reddet" **yok** ve olmayacak: onay geri
-            alınabilir, ret geri alınamaz — reddedilen kare depodan siliniyor.
-            Otuz kullanıcının fotoğrafını tek dokunuşla silebilen bir düğme,
-            yanlış basmanın bedelini kabul edilemez yapar. */}
-        {sekme === 'kare' && kareler.length > 1 && (
-          <View style={styles.topluSerit}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.topluBaslik}>{kareler.length} kare bekliyor</Text>
-              <Text style={styles.topluAlt}>
-                Hepsini onaylamadan önce göz gezdir — onay geri alınabilir ama
-                yayına çıkan kare yayına çıkmış olur.
-              </Text>
-            </View>
-            <Pressable
-              style={[styles.topluBtn, topluIsliyor && styles.topluBtnOff]}
-              disabled={topluIsliyor}
-              onPress={topluOnayla}
-            >
-              {topluIsliyor ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={styles.birincilText}>Tümünü onayla</Text>
-              )}
-            </Pressable>
-          </View>
-        )}
-
-        {sekme === 'kare' &&
-          kareler.map((k) => (
-            <View key={k.photoId} style={styles.kart}>
-              <View style={styles.kareUst}>
-                <View style={styles.kareGorsel}>
-                  {kareUrl[k.photoId] ? (
-                    <Image source={{ uri: kareUrl[k.photoId] }} style={styles.gorsel} />
-                  ) : (
-                    <MaterialIcons name="image" size={28} color={colors.outline} />
-                  )}
+        {sekme === 'ilan' &&
+          ilanlar.map((il) => {
+            const oniz = onizleme[il.productId];
+            const elle = (ellePuan[il.productId] ?? '').trim();
+            return (
+              <View key={il.productId} style={styles.kart}>
+                <View style={styles.kartUst}>
+                  <Text style={styles.kartBaslik}>{il.title}</Text>
+                  <Text style={styles.kartAlt}>{il.beklemeSaati} saat</Text>
                 </View>
+                <Text style={styles.kartAlt}>
+                  {il.sellerName} · {il.category}
+                  {il.subCategory ? ` › ${il.subCategory}` : ''} · {il.location}
+                </Text>
+
+                {/* Kareler yan yana; dokununca tam ekran. Küçük kutuda bulanıklık
+                    görülmez, karar için büyütmek şart. */}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.kareSerit}>
+                  {il.kareler.map((k) => {
+                    const url = kareUrl[k.path];
+                    return (
+                      <Pressable
+                        key={k.photoId}
+                        style={styles.kareKutu}
+                        onPress={() => url && setBuyukKare(url)}
+                      >
+                        {url ? (
+                          <Image source={{ uri: url }} style={styles.gorsel} />
+                        ) : (
+                          <MaterialIcons name="image" size={28} color={colors.outline} />
+                        )}
+                        <View style={[styles.kareEtiket, k.status === 'rejected' && styles.kareEtiketRet]}>
+                          <Text style={styles.kareEtiketText}>{SLOT_ADI[k.slot] ?? k.slot}</Text>
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+
+                <View style={styles.etiketler}>
+                  <Etiket metin={il.condition} vurgu />
+                  <Etiket metin={`Desi ${il.sizeClass}`} />
+                  {il.hasDamage && <Etiket metin="Hasar beyanı var" vurgu />}
+                  {il.isSet && <Etiket metin="Set / parçalı" />}
+                  {il.points != null && <Etiket metin={`Önceki puan ${binlik(il.points)}`} />}
+                </View>
+
+                {il.description ? (
+                  <Text style={styles.mesajKutusu}>“{il.description}”</Text>
+                ) : (
+                  <Text style={[styles.kartAlt, { marginTop: 8 }]}>Açıklama yazılmamış.</Text>
+                )}
+
+                {/* Puan: sıfır fiyatı → formül, ya da elle. İkisi de doluysa elle
+                    yazılan kazanır — sunucu da öyle davranıyor. */}
+                <View style={styles.puanSatir}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.alanEtiket}>Sıfır fiyatı (₺)</Text>
+                    <TextInput
+                      style={styles.alan}
+                      placeholder="örn. 1599"
+                      placeholderTextColor={colors.onSurfaceVariant}
+                      keyboardType="decimal-pad"
+                      value={fiyat[il.productId] ?? ''}
+                      onChangeText={(m) => fiyatDegisti(il, m)}
+                    />
+                  </View>
+                  <View style={styles.puanOk}>
+                    <MaterialIcons name="arrow-forward" size={18} color={colors.onSurfaceVariant} />
+                    <Text style={styles.puanOnizleme}>
+                      {oniz != null ? `${binlik(oniz)} puan` : '— puan'}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.alanEtiket}>Elle puan</Text>
+                    <TextInput
+                      style={[styles.alan, elle.length > 0 && styles.alanVurgu]}
+                      placeholder="isteğe bağlı"
+                      placeholderTextColor={colors.onSurfaceVariant}
+                      keyboardType="number-pad"
+                      value={ellePuan[il.productId] ?? ''}
+                      onChangeText={(m) => setEllePuan((e) => ({ ...e, [il.productId]: m }))}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.aksiyonlar}>
+                  <Pressable
+                    style={styles.birincil}
+                    disabled={islemde === il.productId}
+                    onPress={() => ilanOnayla(il)}
+                  >
+                    {islemde === il.productId ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.birincilText}>Onayla ve yayınla</Text>
+                    )}
+                  </Pressable>
+                  <Pressable
+                    style={styles.ikincil}
+                    disabled={islemde === il.productId}
+                    onPress={() => setGerekceIcin({ tip: 'ilanRet', id: il.productId })}
+                  >
+                    <Text style={styles.ikincilText}>Reddet</Text>
+                  </Pressable>
+                </View>
+              </View>
+            );
+          })}
+
+        {/* -------------------------------------------------------- AVATARLAR */}
+        {sekme === 'avatar' && avatarlar.length === 0 && (
+          <Bos ikon="account-circle" metin="Bekleyen profil fotoğrafı yok." />
+        )}
+
+        {sekme === 'avatar' &&
+          avatarlar.map((a) => (
+            <View key={a.userId} style={styles.kart}>
+              <View style={styles.kareUst}>
+                <Pressable
+                  style={styles.avatarKutu}
+                  onPress={() => avatarUrl[a.avatarPath] && setBuyukKare(avatarUrl[a.avatarPath])}
+                >
+                  {avatarUrl[a.avatarPath] ? (
+                    <Image source={{ uri: avatarUrl[a.avatarPath] }} style={styles.gorsel} />
+                  ) : (
+                    <MaterialIcons name="person" size={28} color={colors.outline} />
+                  )}
+                </Pressable>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.kartBaslik}>{k.productTitle}</Text>
-                  <Text style={styles.kartAlt}>
-                    {SLOT_ADI[k.slot] ?? k.slot} karesi · {k.beklemeSaati} saattir bekliyor
+                  <Text style={styles.kartBaslik}>{a.fullName || 'Adsız üye'}</Text>
+                  <Text style={styles.kartAlt}>{a.beklemeSaati} saattir bekliyor</Text>
+                  <Text style={[styles.kartAlt, { marginTop: 6 }]}>
+                    Müstehcen, şiddet, nefret sembolü, çocuk yüzü ya da iletişim bilgisi varsa
+                    reddet. Fotoğrafın kişinin kendisi olması gerekmiyor.
                   </Text>
                 </View>
               </View>
               <View style={styles.aksiyonlar}>
                 <Pressable
                   style={styles.birincil}
-                  disabled={islemde === k.photoId}
-                  onPress={() => kareKarari(k.photoId, true)}
+                  disabled={islemde === a.userId}
+                  onPress={() => avatarKarar(a.userId, true)}
                 >
-                  {islemde === k.photoId ? (
+                  {islemde === a.userId ? (
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
                     <Text style={styles.birincilText}>Onayla</Text>
@@ -399,8 +516,8 @@ export default function AdminScreen() {
                 </Pressable>
                 <Pressable
                   style={styles.ikincil}
-                  disabled={islemde === k.photoId}
-                  onPress={() => setGerekceIcin({ tip: 'kareRet', id: k.photoId })}
+                  disabled={islemde === a.userId}
+                  onPress={() => setGerekceIcin({ tip: 'avatarRet', id: a.userId })}
                 >
                   <Text style={styles.ikincilText}>Reddet</Text>
                 </Pressable>
@@ -408,6 +525,7 @@ export default function AdminScreen() {
             </View>
           ))}
 
+        {/* --------------------------------------------------------- İTİRAZLAR */}
         {sekme === 'itiraz' && itirazlar.length === 0 && (
           <Bos ikon="gavel" metin="Karar bekleyen itiraz yok." />
         )}
@@ -426,10 +544,7 @@ export default function AdminScreen() {
                   metin={d.esiginUstunde ? 'Eşiğin üstünde · ürün geri döner' : 'Ürün alıcıda kalır'}
                   vurgu={d.esiginUstunde}
                 />
-                <Etiket
-                  metin={`${d.kanitSayisi} kanıt`}
-                  vurgu={d.kanitSayisi === 0}
-                />
+                <Etiket metin={`${d.kanitSayisi} kanıt`} vurgu={d.kanitSayisi === 0} />
                 <Etiket metin={`${d.beklemeSaati} saat`} />
               </View>
 
@@ -449,12 +564,7 @@ export default function AdminScreen() {
                   style={styles.birincil}
                   disabled={islemde === d.disputeId}
                   onPress={() =>
-                    setGerekceIcin({
-                      tip: 'itiraz',
-                      id: d.disputeId,
-                      kabul: true,
-                      esiginUstunde: d.esiginUstunde,
-                    })
+                    setGerekceIcin({ tip: 'itiraz', id: d.disputeId, kabul: true, esiginUstunde: d.esiginUstunde })
                   }
                 >
                   <Text style={styles.birincilText}>İadeyi kabul et</Text>
@@ -463,12 +573,7 @@ export default function AdminScreen() {
                   style={styles.ikincil}
                   disabled={islemde === d.disputeId}
                   onPress={() =>
-                    setGerekceIcin({
-                      tip: 'itiraz',
-                      id: d.disputeId,
-                      kabul: false,
-                      esiginUstunde: d.esiginUstunde,
-                    })
+                    setGerekceIcin({ tip: 'itiraz', id: d.disputeId, kabul: false, esiginUstunde: d.esiginUstunde })
                   }
                 >
                   <Text style={styles.ikincilText}>Reddet</Text>
@@ -476,6 +581,8 @@ export default function AdminScreen() {
               </View>
             </View>
           ))}
+
+        {/* -------------------------------------------------------- ŞİKÂYETLER */}
         {sekme === 'sikayet' && sikayetler.length === 0 && (
           <Bos ikon="flag" metin="Bekleyen şikâyet yok." />
         )}
@@ -489,14 +596,10 @@ export default function AdminScreen() {
               </View>
 
               <View style={styles.etiketler}>
-                <Etiket
-                  metin={r.sistemIsareti ? 'Sistem işareti' : 'Kullanıcı bildirdi'}
-                  vurgu={!r.sistemIsareti}
-                />
+                <Etiket metin={r.sistemIsareti ? 'Sistem işareti' : 'Kullanıcı bildirdi'} vurgu={!r.sistemIsareti} />
                 <Etiket metin={r.urun} />
               </View>
 
-              {/* Kararın konusu mesajın kendisi; kısaltmadan gösteriyoruz. */}
               <Text style={styles.mesajKutusu}>“{r.mesaj}”</Text>
               {r.note && <Text style={styles.kartAlt}>{r.note}</Text>}
 
@@ -519,6 +622,7 @@ export default function AdminScreen() {
             </View>
           ))}
 
+        {/* ----------------------------------------------------------- HATALAR */}
         {sekme === 'hata' && hatalar.length === 0 && (
           <Bos ikon="check-circle" metin="Bildirilen hata yok." />
         )}
@@ -527,8 +631,6 @@ export default function AdminScreen() {
           hatalar.map((h) => (
             <View key={h.id} style={[styles.kart, h.goruldu && styles.kartSolgun]}>
               <View style={styles.hataUst}>
-                {/* Tekrar sayısı en görünür yerde: bir kez olan hata ile
-                    kırk kez olan hata aynı listede ama aynı iş değil. */}
                 <View style={styles.hataRozet}>
                   <Text style={styles.hataRozetText}>×{h.tekrar}</Text>
                 </View>
@@ -543,23 +645,15 @@ export default function AdminScreen() {
 
               <Text style={styles.hataMesaj}>{h.mesaj}</Text>
               <Text style={styles.hataMeta}>
-                Son: {tarih(h.sonAt)} · İlk: {tarih(h.ilkAt)} ·{' '}
-                {h.kullanici ? 'oturumlu' : 'oturumsuz'}
+                Son: {tarih(h.sonAt)} · İlk: {tarih(h.ilkAt)} · {h.kullanici ? 'oturumlu' : 'oturumsuz'}
               </Text>
 
-              {h.yigin && acikYigin === h.id && (
-                <Text style={styles.hataYigin}>{h.yigin}</Text>
-              )}
+              {h.yigin && acikYigin === h.id && <Text style={styles.hataYigin}>{h.yigin}</Text>}
 
               <View style={styles.aksiyonlar}>
                 {h.yigin && (
-                  <Pressable
-                    style={styles.ikincil}
-                    onPress={() => setAcikYigin(acikYigin === h.id ? null : h.id)}
-                  >
-                    <Text style={styles.ikincilText}>
-                      {acikYigin === h.id ? 'Yığını gizle' : 'Yığını gör'}
-                    </Text>
+                  <Pressable style={styles.ikincil} onPress={() => setAcikYigin(acikYigin === h.id ? null : h.id)}>
+                    <Text style={styles.ikincilText}>{acikYigin === h.id ? 'Yığını gizle' : 'Yığını gör'}</Text>
                   </Pressable>
                 )}
                 {!h.goruldu && (
@@ -578,30 +672,37 @@ export default function AdminScreen() {
           ))}
       </ScrollView>
 
+      {/* Tam ekran görsel */}
+      <Modal visible={buyukKare !== null} transparent animationType="fade" onRequestClose={() => setBuyukKare(null)}>
+        <Pressable style={styles.buyukPerde} onPress={() => setBuyukKare(null)}>
+          {buyukKare && <Image source={{ uri: buyukKare }} style={styles.buyukGorsel} resizeMode="contain" />}
+          <Text style={styles.buyukIpucu}>Kapatmak için dokun</Text>
+        </Pressable>
+      </Modal>
+
       {/* Gerekçe — sunucu boş gerekçeyi reddediyor, burada da zorunlu */}
-      <Modal
-        visible={gerekceIcin !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={kapat}
-      >
+      <Modal visible={gerekceIcin !== null} transparent animationType="fade" onRequestClose={kapat}>
         <Pressable style={styles.perde} onPress={kapat}>
           <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()} accessibilityViewIsModal>
             <Text style={styles.sheetBaslik}>
-              {gerekceIcin?.tip === 'kareRet'
-                ? 'Kare neden reddedildi?'
-                : gerekceIcin?.tip === 'sikayet'
-                  ? gerekceIcin.ihlal
-                    ? 'İhlal neden onaylandı?'
-                    : 'Şikâyet neden reddedildi?'
-                  : gerekceIcin?.kabul
-                    ? 'İade neden kabul edildi?'
-                    : 'Talep neden reddedildi?'}
+              {gerekceIcin?.tip === 'ilanRet'
+                ? 'İlan neden reddedildi?'
+                : gerekceIcin?.tip === 'avatarRet'
+                  ? 'Fotoğraf neden reddedildi?'
+                  : gerekceIcin?.tip === 'sikayet'
+                    ? gerekceIcin.ihlal
+                      ? 'İhlal neden onaylandı?'
+                      : 'Şikâyet neden reddedildi?'
+                    : gerekceIcin?.kabul
+                      ? 'İade neden kabul edildi?'
+                      : 'Talep neden reddedildi?'}
             </Text>
             <Text style={styles.sheetMetin}>
-              {gerekceIcin?.tip === 'kareRet'
-                ? 'Gerekçe kullanıcıya gösterilir; neyi düzelteceğini bilmeli.'
-                : 'Gerekçe denetim kaydına yazılır ve sonradan değiştirilemez.'}
+              {gerekceIcin?.tip === 'ilanRet'
+                ? 'Gerekçe satıcıya bildirimle gider; hangi kareyi ya da bilgiyi düzelteceğini yaz. Kareler silinmez.'
+                : gerekceIcin?.tip === 'avatarRet'
+                  ? 'Gerekçe kullanıcıya gösterilir; fotoğraf depodan silinir.'
+                  : 'Gerekçe denetim kaydına yazılır ve sonradan değiştirilemez.'}
             </Text>
 
             <TextInput
@@ -637,10 +738,16 @@ export default function AdminScreen() {
                 style={[styles.birincil, gerekce.trim().length === 0 && styles.kapali]}
                 disabled={gerekce.trim().length === 0 || islemde !== null}
                 onPress={() => {
-                  if (gerekceIcin?.tip === 'kareRet') {
+                  if (gerekceIcin?.tip === 'ilanRet') {
                     const id = gerekceIcin.id;
+                    const neden = gerekce;
                     kapat();
-                    kareKarari(id, false, gerekce);
+                    ilanReddet(id, neden);
+                  } else if (gerekceIcin?.tip === 'avatarRet') {
+                    const id = gerekceIcin.id;
+                    const neden = gerekce;
+                    kapat();
+                    avatarKarar(id, false, neden);
                   } else if (gerekceIcin?.tip === 'sikayet') {
                     sikayetKarari();
                   } else {
@@ -658,7 +765,7 @@ export default function AdminScreen() {
   );
 }
 
-function Sekme({
+function SekmeDugmesi({
   etiket,
   sayi,
   aktif,
@@ -711,8 +818,8 @@ const styles = StyleSheet.create({
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   sekmeler: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingBottom: 10 },
   sekme: {
-    flex: 1,
     height: 40,
+    paddingHorizontal: 16,
     borderRadius: shape.full,
     alignItems: 'center',
     justifyContent: 'center',
@@ -738,20 +845,43 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     ...elevation.level1,
   },
-  kartUst: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  kareUst: { flexDirection: 'row', gap: 12, alignItems: 'center' },
-  kareGorsel: {
-    width: 72,
-    height: 72,
+  kartUst: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
+  kareUst: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+  kareSerit: { marginTop: 12, marginHorizontal: -4 },
+  kareKutu: {
+    width: 104,
+    height: 104,
+    marginHorizontal: 4,
     borderRadius: shape.sm,
     overflow: 'hidden',
     backgroundColor: colors.surfaceContainerHigh,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  kareEtiket: {
+    position: 'absolute',
+    left: 6,
+    bottom: 6,
+    paddingHorizontal: 7,
+    height: 20,
+    borderRadius: shape.full,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+  },
+  kareEtiketRet: { backgroundColor: colors.error },
+  kareEtiketText: { color: '#fff', fontSize: 10.5, fontWeight: '800' },
+  avatarKutu: {
+    width: 84,
+    height: 84,
+    borderRadius: shape.full,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceContainerHigh,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   gorsel: { width: '100%', height: '100%' },
-  kartBaslik: { fontSize: 14.5, fontWeight: '700', color: colors.onSurface },
-  kartAlt: { fontSize: 12, fontWeight: '600', color: colors.onSurfaceVariant, marginTop: 3 },
+  kartBaslik: { flex: 1, fontSize: 14.5, fontWeight: '700', color: colors.onSurface },
+  kartAlt: { fontSize: 12, fontWeight: '600', color: colors.onSurfaceVariant, marginTop: 3, lineHeight: 17 },
   puan: { fontSize: 14, fontWeight: '800', color: colors.primary },
   mesajKutusu: {
     fontSize: 13.5,
@@ -782,32 +912,24 @@ const styles = StyleSheet.create({
   },
   etiketVurgu: { backgroundColor: colors.tertiaryContainer },
   etiketText: { fontSize: 11.5, fontWeight: '700', color: colors.onSurface },
+  puanSatir: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginTop: 12 },
+  puanOk: { alignItems: 'center', paddingBottom: 12, gap: 2 },
+  puanOnizleme: { fontSize: 12, fontWeight: '800', color: colors.primary },
+  alanEtiket: { fontSize: 11, fontWeight: '700', color: colors.onSurfaceVariant, marginBottom: 4 },
+  alan: {
+    height: 44,
+    borderRadius: shape.sm,
+    backgroundColor: colors.surfaceContainerHigh,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.onSurface,
+  },
+  alanVurgu: { borderWidth: 1.5, borderColor: colors.primary },
   uyari: { fontSize: 12, fontWeight: '600', color: colors.error, marginTop: 9 },
   kanitBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 11 },
   kanitBtnText: { fontSize: 12.5, fontWeight: '700', color: colors.primary },
-  topluSerit: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 14,
-    marginBottom: 12,
-    borderRadius: shape.lg,
-    backgroundColor: colors.primaryContainer,
-  },
-  topluBaslik: { fontSize: 13.5, fontWeight: '800', color: colors.onSurface },
-  topluAlt: { fontSize: 11.5, fontWeight: '500', color: colors.onSurfaceVariant, marginTop: 3, lineHeight: 16 },
-  topluBtn: {
-    height: 40,
-    paddingHorizontal: 16,
-    borderRadius: shape.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-  },
-  topluBtnOff: { opacity: 0.5 },
   aksiyonlar: { flexDirection: 'row', gap: 10, marginTop: 13 },
-  /* Görülmüş hata solgunlaşıyor ama listeden düşmüyor: tekrar ederse
-     `goruldu` sunucuda sıfırlanıyor ve kayıt kendiliğinden yukarı çıkıyor. */
   kartSolgun: { opacity: 0.55 },
   hataUst: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   hataRozet: {
@@ -820,14 +942,7 @@ const styles = StyleSheet.create({
   hataRozetText: { fontSize: 11, fontWeight: '800', color: colors.error },
   hataEkran: { flex: 1, fontSize: 12.5, fontWeight: '800', color: colors.onSurface },
   hataMeta: { fontSize: 11, fontWeight: '500', color: colors.onSurfaceVariant },
-  hataMesaj: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.onSurface,
-    lineHeight: 18,
-    marginBottom: 6,
-  },
-  /* Yığın izi tek boşluklu ve küçük: okunacak değil, taranacak bir metin. */
+  hataMesaj: { fontSize: 13, fontWeight: '600', color: colors.onSurface, lineHeight: 18, marginBottom: 6 },
   hataYigin: {
     fontSize: 10.5,
     lineHeight: 15,
@@ -860,13 +975,7 @@ const styles = StyleSheet.create({
   kapali: { opacity: 0.45 },
   bos: { alignItems: 'center', gap: 10, paddingTop: 70, paddingHorizontal: 30 },
   bosBaslik: { fontSize: 16, fontWeight: '700', color: colors.onSurface },
-  bosMetin: {
-    fontSize: 13,
-    color: colors.onSurfaceVariant,
-    fontWeight: '500',
-    textAlign: 'center',
-    lineHeight: 19,
-  },
+  bosMetin: { fontSize: 13, color: colors.onSurfaceVariant, fontWeight: '500', textAlign: 'center', lineHeight: 19 },
   geriBtn: {
     marginTop: 14,
     paddingHorizontal: 22,
@@ -878,6 +987,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   perde: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  buyukPerde: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center' },
+  buyukGorsel: { width: '100%', height: '80%' },
+  buyukIpucu: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600', marginTop: 12 },
   sheet: {
     backgroundColor: colors.surfaceContainer,
     borderTopLeftRadius: shape.lg,

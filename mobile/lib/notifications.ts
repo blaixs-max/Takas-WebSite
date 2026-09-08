@@ -62,6 +62,8 @@ export function gorunum(kind: string): Gorunum {
   switch (kind) {
     case 'listing.published':
       return { ikon: 'verified', ton: 'primary' };
+    case 'listing.rejected':
+      return { ikon: 'edit-note', ton: 'dikkat' };
     case 'photo.rejected':
       return { ikon: 'photo-camera', ton: 'dikkat' };
     case 'trade.created':
@@ -110,6 +112,10 @@ export function gecenSure(iso: string): string {
  */
 export function hedef(n: NotificationRow): string | null {
   if (typeof n.data.conversation === 'string') return `/chat/${n.data.conversation}`;
+  /* Reddedilen ilan taslakta; ürün sayfası taslağı açamaz (RLS yalnızca
+     sahibine gösterir ama sayfa yayındaki ilan için yazıldı). Varış yeri
+     taslak listesi — gerekçe orada okunuyor. */
+  if (n.data.draft === true) return '/drafts';
   if (typeof n.data.trade === 'string') return '/trades';
   if (typeof n.data.product === 'string') return `/product/${n.data.product}`;
   if (n.kind === 'campaign.granted') return '/wallet';

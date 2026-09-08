@@ -14,9 +14,10 @@ import { MaterialIcons } from '@expo/vector-icons';
  * olmamış. Olmayan bir şeyi zorunlu tutmak dürüst satıcıyı kapıda durdurur.
  *
  * Etiketin varlık sebebi değerlemeydi ("marka, model ve yaş grubu değerlemeyi
- * doğrudan etkiler"). O iş yapay zekâya geçti: değerleme dört açı karesinden
- * ürünü tanıyıp piyasa fiyatını buluyor. Etiket varsa tanımayı kolaylaştırır,
- * yoksa süreç durmaz.
+ * doğrudan etkiler"). Değerleme 2026-09-08'den beri yönetici panelinde, dört
+ * açı karesine ve satıcının beyanına bakan bir insan tarafından yapılıyor
+ * (arada birkaç haftalık yapay zekâ denemesi vardı, tamamen kapatıldı). Etiket
+ * varsa ürünü tanımayı kolaylaştırır, yoksa süreç durmaz.
  *
  * Zorunluluk kuralının tek doğruluk kaynağı veri tabanındaki `required_slots()`
  * fonksiyonudur; buradaki `kosul` onun aynasıdır ve **ikisi birlikte değişir**.

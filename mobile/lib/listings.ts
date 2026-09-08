@@ -30,8 +30,8 @@ export type CreateResult =
  * görünen ad ve değerleme izi orada oturumdan türetilir, istemcinin
  * yazabileceği alan değildir.
  *
- * İlan TASLAK olarak açılır — vitrine çıkmaz. Yayına girmesi için yedi karenin
- * zorunlu olanları çekilip incelemeden geçmelidir (`publishListing`).
+ * İlan TASLAK olarak açılır — vitrine çıkmaz. Zorunlu kareler çekilip ilan
+ * onaya gönderilir (`submitListing`); yönetici onaylayınca vitrine çıkar.
  */
 export async function createListing(l: NewListing): Promise<CreateResult> {
   if (!supabaseConfigured || !supabase) {
@@ -338,65 +338,6 @@ interface MyListingRow {
   created_at: string;
 }
 
-export interface DegerlemeSonuc {
-  bulundu: boolean;
-  urun?: string;
-  sifirFiyat?: number | null;
-  puan?: number | null;
-  /**
-   * Hesaplanan puan taban puanın altında kalıp yükseltildi mi.
-   *
-   * Puanın 50 olmasından çıkarılamaz: 80 TL'lik bir ürün de tam 50 puan eder
-   * ama orada yükseltme yoktur. Ayrımı yapan tek şey sunucunun değerleme
-   * anında koyduğu işaret.
-   */
-  tabanUygulandi?: boolean;
-}
-
-/**
- * İlanı değerletir — sıfır fiyatını buldurup puanı hesaplatır.
- *
- * Kareler onaylandıktan **sonra** çağrılıyor: model ürünü dört açıdan görmeden
- * tanıyamıyor. Yayından hemen önce çalışıyor çünkü yayın kapısı değerlenmemiş
- * ilanı geçirmiyor.
- *
- * Hata yutuluyor ve `bulundu: false` dönüyor: değerleme başarısız olduğunda
- * doğru davranış akışı durdurmak değil, ilanı taslakta bırakmak. Kullanıcı
- * kareleri boşuna çekmiş olmuyor, ilan insan kuyruğuna düşüyor.
- */
-export async function degerlet(productId: string): Promise<DegerlemeSonuc> {
-  if (!supabaseConfigured || !supabase) return { bulundu: false };
-  try {
-    const { data, error } = await supabase.functions.invoke('listing-value', {
-      body: { productId },
-    });
-    if (error) return { bulundu: false };
-
-    /* Taban işareti Edge Function'ın döndürdüğü gövdede yok; satırdan
-       okunuyor. Fonksiyonu yeniden yayınlamamak için böyle: işaret zaten
-       `degerleme_yaz` tarafından ürüne yazılıyor ve kullanıcı kendi ilanını
-       okuyabiliyor. Okunamazsa `undefined` kalır ve ekran hiçbir şey
-       söylemez — yanlış bir şey söylemektense susmak doğru. */
-    let tabanUygulandi: boolean | undefined;
-    const { data: satir } = await supabase
-      .from('products')
-      .select('taban_uygulandi')
-      .eq('id', productId)
-      .single();
-    if (satir) tabanUygulandi = Boolean(satir.taban_uygulandi);
-
-    return {
-      bulundu: data?.bulundu === true || data?.tekrar === true,
-      urun: data?.urun,
-      sifirFiyat: data?.sifirFiyat ?? null,
-      puan: data?.puan ?? null,
-      tabanUygulandi,
-    };
-  } catch {
-    return { bulundu: false };
-  }
-}
-
 /** Postgres hata metinlerini kullanıcıya gösterilebilir hâle çevirir. */
 function cevir(mesaj: string): string {
   if (mesaj.includes('oturum açmalısınız')) return 'İlan vermek için giriş yapmalısınız.';
@@ -406,13 +347,7 @@ function cevir(mesaj: string): string {
   if (mesaj.includes('bu kategoriye ait değil'))
     return 'Seçtiğiniz alt kategori bu kategoriye ait değil.';
   if (mesaj.includes('alt kategori seçilmeden'))
-    return 'İlanı yayına almak için bir alt kategori seçin.';
-  if (mesaj.includes('henüz değerlenmedi'))
-    return 'İlan değerleniyor, birkaç saniye sonra tekrar dene.';
-  if (mesaj.includes('piyasa değeri bulunamadı'))
-    return 'Bu ürünün piyasa değeri bulunamadı. İlan incelemeye alındı, sana haber vereceğiz.';
-  if (mesaj.includes('olağandışı yüksek'))
-    return 'Hesaplanan değer olağandışı yüksek çıktı. İlan incelemeye alındı.';
+    return 'İlanı onaya göndermek için bir alt kategori seçin.';
   if (mesaj.includes('ilan bulunamadı'))
     return 'Bu ilan bulunamadı. Taslaklar listesini yenileyip tekrar dene.';
   if (mesaj.includes('yayındaki ilanın durumu'))
@@ -424,7 +359,7 @@ function cevir(mesaj: string): string {
   if (mesaj.includes('yayındaki ilanın set beyanı'))
     return 'Yayındaki ilanın set beyanı değiştirilemiyor.';
   if (mesaj.includes('bu ilan düzenlenemez'))
-    return 'Bu ilan şu an düzenlenemiyor. Süren bir takası varsa takas bitince yeniden deneyebilirsin.';
+    return 'Bu ilan şu an düzenlenemiyor. İncelemedeyse önce geri çek; süren bir takası varsa takas bitince dene.';
   return 'İlan kaydedilemedi. Bağlantınızı kontrol edip tekrar deneyin.';
 }
 
@@ -432,21 +367,25 @@ export interface DraftListing {
   id: string;
   title: string;
   points: number;
+  /** `IN_REVIEW`: onaya gönderilmiş, yönetici bakıyor. Düzenlenemez, geri çekilebilir. */
+  status: 'DRAFT' | 'IN_REVIEW';
   hasDamage: boolean;
   isSet: boolean;
   cekilenKare: number;
   gerekenKare: number;
-  bekleyenKare: number;
   reddedilenKare: number;
+  /** Yöneticinin son ret gerekçesi; satıcı neyi düzelteceğini buradan okur. */
+  reviewReason: string | null;
+  submittedAt: string | null;
 }
 
 /**
- * Yarım kalmış taslak ilanlar.
+ * Yayında olmayan ilanlar: taslaklar ve incelemedekiler.
  *
- * Bunlar olmadan taslak bir ilana bir daha ulaşılamıyordu: çekim akışına
- * yalnızca ilan oluşturulduktan hemen sonra giriliyordu ve o ekrandan çıkan
- * kullanıcı ilanı yayına alacak düğmeyi bir daha hiçbir yerde bulamıyordu.
- * İlan veri tabanında DRAFT olarak sonsuza kadar duruyordu.
+ * Taslak ekranı bir çıkmazı kapatmak için doğdu: çekim akışına yalnızca ilan
+ * oluşturulduktan hemen sonra giriliyordu ve o ekrandan çıkan kullanıcı
+ * ilanına bir daha ulaşamıyordu. 2026-09-08'den beri incelemedeki ilanlar da
+ * burada — satıcının "gönderdim, ne oldu?" sorusunun cevabı bu liste.
  */
 export async function loadDrafts(): Promise<DraftListing[]> {
   if (!supabaseConfigured || !supabase) return [];
@@ -468,8 +407,10 @@ export async function loadDrafts(): Promise<DraftListing[]> {
 
   const { data, error } = await supabase
     .from('products')
-    .select('id, title, points, has_damage, is_set, product_photos(slot, moderation_status)')
-    .eq('status', 'DRAFT')
+    .select(
+      'id, title, points, status, has_damage, is_set, review_reason, submitted_at, product_photos(slot, moderation_status)',
+    )
+    .in('status', ['DRAFT', 'IN_REVIEW'])
     .eq('seller_id', uid)
     .order('created_at', { ascending: false });
 
@@ -490,13 +431,15 @@ export async function loadDrafts(): Promise<DraftListing[]> {
       id: r.id,
       title: r.title,
       points: Number(r.points),
+      status: r.status === 'IN_REVIEW' ? 'IN_REVIEW' : 'DRAFT',
       hasDamage: Boolean(r.has_damage),
       isSet: Boolean(r.is_set),
       // Reddedilen kare çekilmiş sayılmaz; yeniden çekilmesi gerekiyor.
       cekilenKare: gerekliCekilen.length,
       gerekenKare: gerekli.length,
-      bekleyenKare: kareler.filter((k) => k.moderation_status === 'pending').length,
       reddedilenKare: kareler.filter((k) => k.moderation_status === 'rejected').length,
+      reviewReason: r.review_reason ?? null,
+      submittedAt: r.submitted_at ?? null,
     };
   });
 }
@@ -505,7 +448,10 @@ interface DraftRow {
   id: string;
   title: string;
   points: number;
+  status: string;
   has_damage: boolean;
   is_set: boolean;
+  review_reason: string | null;
+  submitted_at: string | null;
   product_photos: { slot: string; moderation_status: string }[] | null;
 }

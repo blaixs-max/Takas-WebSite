@@ -22,7 +22,7 @@ import { useProduct } from '../../hooks/useProducts';
 import { useFavorites } from '../../lib/favorites';
 import { useCart } from '../../lib/cart';
 import { shareProduct } from '../../lib/share';
-import { startTrade, quotePrice } from '../../lib/trades';
+import { startTrade } from '../../lib/trades';
 import { conversationsForProduct, startConversation } from '../../lib/messages';
 import { loadUserAvatar } from '../../lib/avatar';
 import { useAuth } from '../../lib/auth';
@@ -164,7 +164,7 @@ export default function ProductDetail() {
 
     uyar(
       'Takası başlat',
-      `${product.points} Takas Puanın Güvenli Havuz’a alınacak. Ürün eline geçip onaylayana kadar satıcıya geçmez.`,
+      `${product.points} Takas Puanın Güvenli Havuz’a alınacak. Satıcı ürünü 4 gün içinde kargoya verir; kargo ücreti satıcıya ait. Ürün eline geçip onaylayana kadar puan satıcıya geçmez.`,
       [
         { text: 'Vazgeç', style: 'cancel' },
         {
@@ -172,31 +172,24 @@ export default function ProductDetail() {
           onPress: async () => {
             setTakasEdiliyor(true);
             const sonuc = await startTrade(product.id);
+            setTakasEdiliyor(false);
             if (!sonuc.ok) {
-              setTakasEdiliyor(false);
+              /* Adres yoksa hata değil bir sonraki adım: satıcı ürünü bir yere
+                 göndermek zorunda ve o yer takas açılırken belli olmalı. */
+              if (sonuc.kod === 'ADRES_YOK') {
+                uyar('Teslimat adresi gerekli', sonuc.message, [
+                  { text: 'Vazgeç', style: 'cancel' },
+                  { text: 'Adres ekle', onPress: () => router.push('/addresses') },
+                ]);
+                return;
+              }
               uyar('Takas başlatılamadı', sonuc.message);
               return;
             }
-            // Kargo bedeli sunucuda hesaplanır; kullanıcıya ödeyeceği tutarı
-            // tahminle değil o hesapla gösteriyoruz.
-            const fiyat = await quotePrice(sonuc.tradeId);
-            setTakasEdiliyor(false);
-            const satir = fiyat
-              ? `\n\nKargo ${fiyat.shippingTl.toFixed(2)} ₺ + hizmet ${fiyat.serviceFeeTl.toFixed(2)} ₺ + işlem payı ${fiyat.transactionFeeTl.toFixed(2)} ₺ = ${fiyat.totalTl.toFixed(2)} ₺`
-              : '';
-            // Doğrudan ödemeye götürüyoruz: ödeme penceresi dolarsa takas
-            // kendiliğinden iptal olur, kullanıcıyı arada bırakmayalım.
             uyar(
               'Takas açıldı',
-              `${sonuc.points} Takas Puanı Güvenli Havuz’da.${satir}\n\nSon adım kargo ödemesi.`,
-              [
-                { text: 'Sonra', style: 'cancel', onPress: () => router.replace('/trades') },
-                {
-                  text: 'Ödemeye geç',
-                  onPress: () =>
-                    router.replace({ pathname: '/payment', params: { trade: sonuc.tradeId } }),
-                },
-              ],
+              `${sonuc.points} Takas Puanı Güvenli Havuz’da. Satıcı kargoya verince takip numarasını Takaslarım’da göreceksin; ürün eline geçince orada onay ver.`,
+              [{ text: 'Takaslarım', onPress: () => router.replace('/trades') }],
             );
           },
         },

@@ -10,30 +10,6 @@ export type UploadResult =
   | { ok: false; message: string };
 
 /**
- * Bir kareyi depoya yükler, product_photos'a kaydeder ve **incelemeyi bekler.**
- *
- * Yol düzeni: {satici_id}/{ilan_id}/{slot}.jpg — ilk klasör sahibi belirtir,
- * depolama politikası da bunun üzerinden çalışır.
- *
- * Kayıt `pending` moderasyon durumuyla açılır. Bu ONAY DEĞİLDİR: yayın kapısı
- * yalnız `approved` kareyi geçirir. İnceleme photo-check fonksiyonunda yapılır.
- *
- * ## Neden artık sonucu bekliyoruz
- *
- * Bu çağrı "ateşle ve unut"tu: `invoke(...).catch(() => {})` yazılıp hemen
- * dönülüyordu. Çekim ekranı da kareyi yükler yüklemez bir sonraki slota
- * geçiyordu, yani kullanıcı kararı hiç görmüyordu. Ret ancak en sonda,
- * "Kontrole gönder"e basınca "bir kare incelemeden geçmedi" diye ortaya
- * çıkıyordu — beş kareyi bitirdiğini sanan kişi başa dönüyordu.
- *
- * Kıyaslamalı denetim bunu iyice tutarsız hâle getirdi: "bu kareyi öncekiyle
- * aynı açıdan çekmişsin" uyarısının işe yaradığı tek an, kullanıcının hâlâ
- * ürünün başında olduğu an. Bir-iki saniyelik bekleme bunun karşılığı.
- *
- * Fonksiyon yanıt vermezse `pending` dönüyor: akış durmuyor, kare kuyrukta
- * kalıyor, ekranda "İnceleniyor…" yazıyor ve elle tazeleme düğmesi çıkıyor.
- */
-/**
  * Depo hatasını kullanıcının yapabileceği bir şeye çevirir.
  *
  * Üç sebep gerçekten farklı davranış gerektiriyor: dosya çok büyükse yeniden
@@ -54,6 +30,18 @@ function yuklemeHatasiniCevir(ham: string): string {
   return 'Fotoğraf yüklenemedi. Tekrar dene.';
 }
 
+/**
+ * Bir kareyi depoya yükler ve product_photos'a kaydeder.
+ *
+ * Yol düzeni: {satici_id}/{ilan_id}/{slot}.jpg — ilk klasör sahibi belirtir,
+ * depolama politikası da bunun üzerinden çalışır.
+ *
+ * Kayıt `pending` durumuyla açılır. Bu ONAY DEĞİLDİR: kareyi ilanla birlikte
+ * **yönetici** inceler (2026-09-08'den beri; öncesinde bir görüntü modeli
+ * bakıyordu). Satıcı bütün kareleri çektikten sonra ilanı onaya gönderir
+ * (`submitListing`), yönetici onaylarsa kareler onaylanır ve ilan vitrine
+ * çıkar.
+ */
 export async function uploadPhoto(
   productId: string,
   slot: PhotoSlot,
@@ -87,13 +75,7 @@ export async function uploadPhoto(
     });
 
   if (yuklemeHatasi) {
-    /* Eskiden her yükleme hatasına "Bağlantınızı kontrol edin" deniyordu ve
-       bu 2026-08-16'da yarım saat kaybettirdi: gerçek sebep yetki hatasıydı
-       (kovada UPDATE politikası yoktu, yeniden çekim reddediliyordu) ama
-       ekran ağı suçluyordu. Kullanıcıyı çözemeyeceği bir yere bakmaya
-       göndermek, hiçbir şey söylememekten kötü.
-
-       Sebep ayrıştırılıyor, ham mesaj gösterilmiyor: depo hataları İngilizce
+    /* Sebep ayrıştırılıyor, ham mesaj gösterilmiyor: depo hataları İngilizce
        ve teknik. Tanımadığımız hatada nötr bir cümle kalıyor — ağı suçlamak
        yerine "tekrar dene". */
     console.error('[uploadPhoto] depo hatası', yuklemeHatasi.message);
@@ -112,113 +94,7 @@ export async function uploadPhoto(
 
   if (error || !data?.id) return { ok: false, message: 'Fotoğraf kaydedilemedi.' };
 
-  const photoId = data.id as string;
-
-  /* **Çekim sırasında inceleme çağrılmıyor** — bilerek.
-     Önceden her kare yüklenir yüklenmez `photo-check` çalışıyor ve
-     reddedebiliyordu. Kullanıcı yedi karenin her birinde tek tek bir kapıya
-     çarpıyordu: çek, bekle, reddedildi, yeniden çek. Ürün eklemek bir işlem
-     değil bir sınav gibi okunuyordu.
-     Artık kare yüklenir ve `pending` kalır; inceleme hepsi çekildikten sonra
-     `analizEt` ile toplu yapılıyor. Güvenlik zayıflamıyor: yayın kapısı hâlâ
-     yalnızca `approved` kareyi geçiriyor, yani incelenmemiş bir ilan vitrine
-     çıkamıyor. Değişen tek şey incelemenin **ne zaman** olduğu. */
-  return { ok: true, photoId, durum: 'pending' };
-}
-
-/** Toplu analizin ilan başına sonucu. */
-export interface AnalizSonuc {
-  onaylanan: number;
-  reddedilen: number;
-  /** Model karar veremedi ya da çağrı düştü — insan kuyruğuna gidiyor. */
-  bekleyen: number;
-  /** Reddedilen karelerin slotu ve gerekçesi; ekran bunları yeniden çektiriyor. */
-  retler: { slot: PhotoSlot; gerekce: string }[];
-  /**
-   * Geçen ama kusurlu bulunan kareler.
-   *
-   * Ret değil: kare onaylandı, ilan yayına girebilir. Satıcıya söyleniyor ki
-   * isterse düzeltsin. Yanlış açı, bulanıklık ve "aynı açı" buraya düşüyor —
-   * hepsi yalnızca ilanın kalitesini ilgilendiriyor.
-   */
-  uyarilar: { slot: PhotoSlot; uyari: string }[];
-}
-
-/**
- * İlanın bekleyen karelerini toplu inceler.
- *
- * Kareler paralel gidiyor: yedi kareyi sırayla beklemek, kullanıcıyı tek bir
- * ilerleme çubuğunun karşısında yedi kat uzun tutardı. `photo-check` kare
- * başına bağımsız çalışıyor, aralarında sıra bağımlılığı yok.
- *
- * Tek tek hatalar yutuluyor ve `bekleyen` sayılıyor — bir karenin çağrısı
- * düştü diye bütün analizi başarısız saymak, kullanıcıyı yeniden çekime
- * gönderirdi. Bekleyen kare yayını engelliyor ama ilanı kaybettirmiyor:
- * yönetim kuyruğunda insan onayına düşüyor.
- */
-export async function analizEt(productId: string): Promise<AnalizSonuc> {
-  const bos: AnalizSonuc = { onaylanan: 0, reddedilen: 0, bekleyen: 0, retler: [], uyarilar: [] };
-  if (!supabaseConfigured || !supabase) return bos;
-
-  const { data } = await supabase
-    .from('product_photos')
-    .select('id, slot, moderation_status')
-    .eq('product_id', productId)
-    .eq('moderation_status', 'pending');
-
-  if (!data?.length) return bos;
-
-  const sonuclar = await Promise.all(
-    data.map(async (r) => {
-      const slot = r.slot as PhotoSlot;
-      try {
-        const { data: karar } = await supabase!.functions.invoke('photo-check', {
-          body: { photoId: r.id as string },
-        });
-        const durum = karar?.status;
-        if (durum === 'approved') return { durum: 'approved' as const, slot, gerekce: '' };
-        if (durum === 'rejected') {
-          return {
-            durum: 'rejected' as const,
-            slot,
-            gerekce: (karar?.gerekce as string) || 'Kare geçmedi.',
-          };
-        }
-      } catch {
-        // yut: aşağıdaki 'pending' doğru cevap
-      }
-      return { durum: 'pending' as const, slot, gerekce: '' };
-    }),
-  );
-
-  /* Ret listesi bu turda incelenenlerden değil, ilanın **o anki** durumundan
-     okunuyor. Fark şurada: kullanıcı reddedilen kareyi yeniden çekmeden
-     tekrar "Kontrole gönder"e basarsa bekleyen kare yoktur, bu tur hiçbir şey
-     incelemez ve liste boş çıkardı — ekran da yayın kapısının ham hata
-     metnini gösterirdi. Durumu sormak, hatırlamaktan doğru. */
-  const { data: satirlar } = await supabase
-    .from('product_photos')
-    .select('slot, moderation_status, moderation_reason, uyari')
-    .eq('product_id', productId);
-
-  const retSatirlari = (satirlar ?? []).filter((r) => r.moderation_status === 'rejected');
-  const uyariSatirlari = (satirlar ?? []).filter(
-    (r) => r.moderation_status === 'approved' && r.uyari,
-  );
-
-  return {
-    onaylanan: sonuclar.filter((x) => x.durum === 'approved').length,
-    reddedilen: retSatirlari.length,
-    bekleyen: sonuclar.filter((x) => x.durum === 'pending').length,
-    retler: retSatirlari.map((r) => ({
-      slot: r.slot as PhotoSlot,
-      gerekce: (r.moderation_reason as string) || 'Kare geçmedi.',
-    })),
-    uyarilar: uyariSatirlari.map((r) => ({
-      slot: r.slot as PhotoSlot,
-      uyari: r.uyari as string,
-    })),
-  };
+  return { ok: true, photoId: data.id as string, durum: 'pending' };
 }
 
 export interface PhotoRow {
@@ -259,37 +135,39 @@ export async function loadPhotos(productId: string): Promise<PhotoRow[]> {
   }));
 }
 
-export type PublishResult = { ok: true } | { ok: false; message: string };
+export type SubmitResult = { ok: true } | { ok: false; message: string };
 
-/** İlanı yayına alır. Eksik ya da onaysız kare varsa sunucu reddeder. */
-export async function publishListing(
-  productId: string,
-  coverSlot: PhotoSlot,
-): Promise<PublishResult> {
+/**
+ * İlanı yönetici onayına gönderir.
+ *
+ * Sunucu yalnızca fiziksel gerçeklere bakar: zorunlu kareler yüklü mü,
+ * reddedilmiş zorunlu kare var mı, alt kategori seçili mi. Kalitesine karar
+ * vermek yöneticinin işi. Onaylanınca ilan kendiliğinden vitrine çıkar ve
+ * satıcıya bildirim gider; reddedilirse gerekçesiyle taslağa döner.
+ */
+export async function submitListing(productId: string): Promise<SubmitResult> {
   if (!supabaseConfigured || !supabase) return { ok: false, message: 'Sunucu bağlantısı yok.' };
+  const { error } = await supabase.rpc('submit_listing', { p_product_id: productId });
+  if (error) return { ok: false, message: cevir(error.message) };
+  return { ok: true };
+}
 
-  const { error } = await supabase.rpc('publish_listing', {
-    p_product_id: productId,
-    p_cover_slot: coverSlot,
-  });
+/** İncelemedeki ilanı taslağa geri çeker — satıcı bir şey değiştirmek istiyorsa. */
+export async function withdrawListing(productId: string): Promise<SubmitResult> {
+  if (!supabaseConfigured || !supabase) return { ok: false, message: 'Sunucu bağlantısı yok.' };
+  const { error } = await supabase.rpc('withdraw_listing', { p_product_id: productId });
   if (error) return { ok: false, message: cevir(error.message) };
   return { ok: true };
 }
 
 function cevir(mesaj: string): string {
   if (mesaj.includes('eksik kare')) return 'Zorunlu karelerden bazıları eksik.';
-  if (mesaj.includes('hâlâ inceleniyor')) {
-    /* "Birkaç saniye sonra tekrar deneyin" artık yanlış: bekleyen kare insan
-       onayına düşüyor ve o saatler sürebilir. Ekran bu yola normalde hiç
-       girmiyor — bekleyen kare varken kullanıcıyı çıkarıyoruz. Buraya ancak
-       yarış durumunda düşülür (kullanıcı gönderirken yönetici kareyi
-       incelemeye geri almışsa), o yüzden mesaj bekletmiyor. */
-    return 'İlanın incelemede. Onaylanınca kendiliğinden yayına girecek, sana bildireceğiz.';
+  if (mesaj.includes('reddedilen kare yeniden çekilmeli')) {
+    return 'Bir kare kabul edilmemiş. İşaretli kareyi yeniden çekip tekrar gönder.';
   }
-  if (mesaj.includes('moderasyondan geçmeyen')) {
-    return 'Bir kare incelemeden geçmedi. İşaretli kareyi yeniden çekin.';
-  }
+  if (mesaj.includes('alt kategori')) return 'Önce bir alt kategori seç.';
   if (mesaj.includes('ilan sahibi')) return 'Bu ilan size ait değil.';
-  if (mesaj.includes('taslak ilan')) return 'Bu ilan zaten yayında.';
-  return 'İlan yayına alınamadı. Tekrar deneyin.';
+  if (mesaj.includes('yalnızca taslak ilan')) return 'Bu ilan zaten onaya gönderilmiş ya da yayında.';
+  if (mesaj.includes('yalnızca incelemedeki ilan')) return 'Bu ilan incelemede değil.';
+  return 'İlan gönderilemedi. Tekrar dene.';
 }

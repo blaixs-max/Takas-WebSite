@@ -263,6 +263,12 @@ export async function imzaliBaglantilar(
 function cevir(mesaj: string): string {
   if (mesaj.includes('yönetici yetkisi')) return 'Bu işlem için yönetici yetkisi gerekiyor.';
   if (mesaj.includes('ret gerekçesi')) return 'Ret gerekçesi yazmalısınız.';
+  if (mesaj.includes('sıfır fiyatı ya da puan')) return 'Sıfır fiyatı ya da puan girmelisiniz.';
+  if (mesaj.includes('puan sıfırdan büyük')) return 'Puan sıfırdan büyük olmalı.';
+  if (mesaj.includes('eksik kare')) return 'İlanın zorunlu karesi eksik; reddedip satıcıya söyleyin.';
+  if (mesaj.includes('reddedilen kare var')) return 'Reddedilmiş kare var; ilanı reddedin ki satıcı yeniden çeksin.';
+  if (mesaj.includes('yalnızca incelemedeki ilan')) return 'Bu ilan artık incelemede değil; kuyruk tazelenecek.';
+  if (mesaj.includes('bekleyen avatar yok')) return 'Bu kullanıcının bekleyen avatarı yok; kuyruk tazelenecek.';
   if (mesaj.includes('karar gerekçesi')) return 'Karar gerekçesi yazmalısınız.';
   if (mesaj.includes('zaten sonuçlanmış')) return 'Bu itiraz başka biri tarafından sonuçlandırılmış.';
   if (mesaj.includes('bulunamadı')) return 'Kayıt bulunamadı, kuyruk tazelenecek.';
@@ -326,5 +332,181 @@ export async function resolveReport(
     p_not: not,
   });
   if (error) return { ok: false, message: cevir(error.message) };
+  return { ok: true };
+}
+
+// ============================================================================
+// İlan inceleme kuyruğu (2026-09-08 — elle onay)
+// ============================================================================
+
+export interface ReviewKare {
+  photoId: string;
+  slot: string;
+  path: string;
+  status: 'pending' | 'approved' | 'rejected';
+}
+
+export interface ReviewQueueRow {
+  productId: string;
+  title: string;
+  description: string | null;
+  category: string;
+  subCategory: string | null;
+  condition: string;
+  hasDamage: boolean;
+  isSet: boolean;
+  sizeClass: string;
+  location: string;
+  sellerId: string;
+  sellerName: string;
+  submittedAt: string | null;
+  beklemeSaati: number;
+  /** Daha önce reddedilip yeniden gönderilen ilanda eski değerleme kalır. */
+  sifirFiyat: number | null;
+  points: number | null;
+  kareler: ReviewKare[];
+}
+
+/**
+ * Onay bekleyen ilanlar — en eski en üstte.
+ *
+ * Kareler satırla birlikte geliyor; panel ilan başına ayrı sorgu atmıyor.
+ * Yollar dönüyor, bağlantı değil: imzalı bağlantıyı `imzaliBaglantilar`
+ * üretir ve depolama politikası yöneticiye zaten izin veriyor.
+ */
+export async function loadReviewQueue(): Promise<ReviewQueueRow[]> {
+  if (!supabaseConfigured || !supabase) return [];
+  const { data, error } = await supabase.rpc('admin_review_queue', { p_limit: 50 });
+  if (error || !data) return [];
+  return (data as Record<string, unknown>[]).map((r) => ({
+    productId: r.product_id as string,
+    title: (r.title as string) ?? 'İsimsiz ilan',
+    description: (r.description as string) ?? null,
+    category: (r.category as string) ?? '',
+    subCategory: (r.sub_category as string) ?? null,
+    condition: (r.condition as string) ?? '',
+    hasDamage: r.has_damage === true,
+    isSet: r.is_set === true,
+    sizeClass: (r.size_class as string) ?? '',
+    location: (r.location as string) ?? '',
+    sellerId: r.seller_id as string,
+    sellerName: (r.seller_name as string) ?? 'Üye',
+    submittedAt: (r.submitted_at as string) ?? null,
+    beklemeSaati: Number(r.bekleme_saati ?? 0),
+    sifirFiyat: r.sifir_fiyat == null ? null : Number(r.sifir_fiyat),
+    points: r.points == null ? null : Number(r.points),
+    kareler: ((r.kareler as Record<string, unknown>[]) ?? []).map((k) => ({
+      photoId: k.photo_id as string,
+      slot: k.slot as string,
+      path: k.path as string,
+      status: k.status as ReviewKare['status'],
+    })),
+  }));
+}
+
+/**
+ * Sıfır fiyatı → puan önizlemesi. Hesap sunucuda: formül ve katsayılar
+ * istemciye açık değil, panel yalnızca sonucu gösteriyor.
+ */
+export async function puanOnizle(
+  sifirFiyat: number,
+  condition: string,
+  hasDamage: boolean,
+): Promise<number | null> {
+  if (!supabaseConfigured || !supabase) return null;
+  if (!Number.isFinite(sifirFiyat) || sifirFiyat <= 0) return null;
+  const { data, error } = await supabase.rpc('admin_puan_hesapla', {
+    p_sifir_fiyat: sifirFiyat,
+    p_condition: condition,
+    p_has_damage: hasDamage,
+  });
+  if (error || data == null) return null;
+  return Number(data);
+}
+
+/**
+ * İlanı onaylar ve yayına alır.
+ *
+ * Sıfır fiyatı verilirse puanı formül hesaplar; `puan` verilirse o yazılır
+ * (formülün önüne geçer). İkisi de yoksa sunucu reddeder — puansız ilan
+ * vitrine çıkamaz. Onay bekleyen kareleri de onaylar.
+ */
+export async function approveListing(
+  productId: string,
+  sifirFiyat?: number,
+  puan?: number,
+): Promise<AdminResult> {
+  if (!supabaseConfigured || !supabase) return { ok: false, message: 'Sunucu bağlantısı yok.' };
+  const { error } = await supabase.rpc('admin_approve_listing', {
+    p_product_id: productId,
+    p_sifir_fiyat: sifirFiyat ?? null,
+    p_puan: puan ?? null,
+    p_cover_slot: 'front',
+  });
+  if (error) return { ok: false, message: cevir(error.message) };
+  return { ok: true };
+}
+
+/**
+ * İlanı gerekçeyle reddeder; taslağa döner, satıcıya bildirim gider.
+ * Kareler silinmez — satıcı yalnızca söyleneni yeniden çeker.
+ */
+export async function rejectListing(productId: string, gerekce: string): Promise<AdminResult> {
+  if (!supabaseConfigured || !supabase) return { ok: false, message: 'Sunucu bağlantısı yok.' };
+  const { error } = await supabase.rpc('admin_reject_listing', {
+    p_product_id: productId,
+    p_gerekce: gerekce,
+  });
+  if (error) return { ok: false, message: cevir(error.message) };
+  return { ok: true };
+}
+
+// ============================================================================
+// Avatar kuyruğu — profil fotoğrafı da elle
+// ============================================================================
+
+export interface AvatarQueueRow {
+  userId: string;
+  fullName: string | null;
+  avatarPath: string;
+  beklemeSaati: number;
+}
+
+export async function loadAvatarQueue(): Promise<AvatarQueueRow[]> {
+  if (!supabaseConfigured || !supabase) return [];
+  const { data, error } = await supabase.rpc('admin_avatar_queue', { p_limit: 50 });
+  if (error || !data) return [];
+  return (data as Record<string, unknown>[]).map((r) => ({
+    userId: r.user_id as string,
+    fullName: (r.full_name as string) ?? null,
+    avatarPath: r.avatar_path as string,
+    beklemeSaati: Number(r.bekleme_saati ?? 0),
+  }));
+}
+
+/**
+ * Avatar kararı.
+ *
+ * Ret, dosyayı **depodan da siler**: sunucu satırdaki yolu boşaltıyor ve eski
+ * yolu döndürüyor; dosya burada kaldırılıyor. Reddedilen görseli saklamamak
+ * gizlilik sayfasındaki bir taahhüt. Silme başarısız olsa karar geçerli
+ * kalıyor — dosya öksüz kalır ama kimseye görünmez (kova özel, yol satırdan
+ * silindi).
+ */
+export async function avatarKarari(
+  userId: string,
+  uygun: boolean,
+  gerekce?: string,
+): Promise<AdminResult> {
+  if (!supabaseConfigured || !supabase) return { ok: false, message: 'Sunucu bağlantısı yok.' };
+  const { data, error } = await supabase.rpc('admin_avatar_karar', {
+    p_user_id: userId,
+    p_uygun: uygun,
+    p_gerekce: gerekce ?? null,
+  });
+  if (error) return { ok: false, message: cevir(error.message) };
+  if (!uygun && typeof data === 'string' && data) {
+    void supabase.storage.from('avatars').remove([data]);
+  }
   return { ok: true };
 }

@@ -41,7 +41,6 @@ export const APP_SCHEME = 'eldenele';
 export const AUTH_REDIRECT_PATH = 'auth-callback';
 
 /** iyzico ödeme dönüşünün yakalandığı adres. Edge Function da bunu döndürür. */
-export const PAYMENT_RETURN_URL = `${APP_SCHEME}://payment-result`;
 
 /**
  * Paylaşım ve davet bağlantılarının gideceği adres.

@@ -12,7 +12,7 @@ import { colors, shape } from '../theme/tokens';
  * İngilizce, gri, "Unmatched Route" yazıyor ve altında dosya yolu gösteriyor.
  * Kullanıcının bunu göreceği yer teorik değil — uygulama derin bağlantı
  * alıyor: e-posta doğrulaması (`auth-callback`), şifre sıfırlama
- * (`yeni-sifre`), ödeme dönüşü (`payment-result`) ve paylaşılan ilan
+ * (`yeni-sifre`), ve paylaşılan ilan
  * bağlantıları. Bunlardan biri eski, kırık ya da elle kırpılmış geldiğinde
  * kullanıcı doğrudan buraya düşüyor.
  *

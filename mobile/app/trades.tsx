@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -13,7 +13,7 @@ import {
 import { uyar } from '../components/Dialog';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BosDurum } from '../components/BosDurum';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import {
@@ -22,6 +22,7 @@ import {
   cancelTrade,
   confirmDelivery,
   loadMyTrades,
+  markShipped,
   openDispute,
   uploadDisputeEvidence,
 } from '../lib/trades';
@@ -31,15 +32,20 @@ import { colors, elevation, shape } from '../theme/tokens';
 /**
  * Takaslarım — canlı `trades` tablosundan.
  *
- * Ekranın iki işi var: puanın nerede olduğunu göstermek ve alıcıya iki
- * aksiyonu vermek — teslim onayı ve itiraz. Onay puanı satıcıya geçirir,
- * itiraz 48 saatlik sayacı durdurur. İkisi de sunucudaki RPC'ye gider;
- * burada hiçbir durum değişikliği hesaplanmaz.
+ * Akış (2026-09-08): alıcı takası açar, puan havuza girer, **satıcı** kendi
+ * kargosuyla gönderir ve takip numarasını buradan girer, alıcı ürün gelince
+ * onaylar ya da itiraz eder. Alıcı TL ödemez; ödeme ekranı bu turda kalktı.
+ *
+ * Ekranın işi puanın nerede olduğunu göstermek ve iki tarafa kendi
+ * aksiyonunu vermek. Bütün durum değişiklikleri sunucudaki RPC'lerde; burada
+ * hiçbir şey hesaplanmaz.
  */
 
 interface DurumBilgi {
   etiket: string;
-  aciklama: string;
+  /** Rol'e göre metin: aynı durum alıcı ve satıcı için farklı bir iş demek. */
+  alici: string;
+  satici: string;
   ikon: keyof typeof MaterialIcons.glyphMap;
   ton: 'bekliyor' | 'yolda' | 'iyi' | 'dikkat';
 }
@@ -47,47 +53,71 @@ interface DurumBilgi {
 const DURUM: Record<TradeStatus, DurumBilgi> = {
   CREATED: {
     etiket: 'Başlatıldı',
-    aciklama: 'Takas açıldı, Takas Puanı Güvenli Havuz’a alınıyor.',
+    alici: 'Takas açıldı, Takas Puanı Güvenli Havuz’a alınıyor.',
+    satici: 'Takas açıldı, alıcının puanı Güvenli Havuz’a alınıyor.',
     ikon: 'hourglass-empty',
     ton: 'bekliyor',
   },
   POINTS_HELD: {
-    etiket: 'Güvenli Havuz’da',
-    aciklama: 'Kargo bedelini ödeyince satıcıya gönderim bildirilir.',
+    etiket: 'Kargo bekleniyor',
+    alici: 'Puanın Güvenli Havuz’da. Satıcı ürünü 4 gün içinde kargoya verecek; vermezse puanın geri döner.',
+    satici: 'Alıcının puanı Güvenli Havuz’da. Ürünü 4 gün içinde kargoya ver ve takip numarasını gir; kargo ücreti sana ait.',
     ikon: 'lock',
     ton: 'bekliyor',
   },
   SHIPPED: {
     etiket: 'Kargoda',
-    aciklama: 'Ürün yolda. Eline ulaşınca teslim onayı ver.',
+    alici: 'Ürün yolda. Eline ulaşınca "Teslim aldım" de; 7 gün içinde onay ya da itiraz gelmezse puan satıcıya geçer.',
+    satici: 'Kargo bilgisi alıcıya iletildi. Alıcı onaylayınca puan hesabına geçer.',
     ikon: 'local-shipping',
     ton: 'yolda',
   },
   DELIVERED: {
     etiket: 'Teslim edildi',
-    aciklama: '48 saat içinde onaylamazsanız puan satıcıya otomatik geçer.',
+    alici: 'Onayını bekliyoruz. Süre dolunca puan satıcıya kendiliğinden geçer.',
+    satici: 'Ürün teslim edildi; alıcının onayı bekleniyor.',
     ikon: 'inventory',
     ton: 'yolda',
   },
   COMPLETED: {
     etiket: 'Tamamlandı',
-    aciklama: 'Puan satıcıya geçti.',
+    alici: 'Puan satıcıya geçti. İyi günlerde kullan.',
+    satici: 'Puan hesabına geçti.',
     ikon: 'check-circle',
     ton: 'iyi',
   },
   DISPUTED: {
     etiket: 'İtiraz açık',
-    aciklama: 'Sayaç durdu. Ekibimiz inceliyor.',
+    alici: 'Sayaç durdu. Ekibimiz inceliyor.',
+    satici: 'Alıcı itiraz açtı, sayaç durdu. Ekibimiz inceliyor.',
     ikon: 'gavel',
     ton: 'dikkat',
   },
   REFUNDED: {
     etiket: 'İade edildi',
-    aciklama: 'Takas Puanın hesabına geri döndü.',
+    alici: 'Takas Puanın hesabına geri döndü.',
+    satici: 'Takas kapandı, ilanın yeniden vitrinde.',
     ikon: 'undo',
     ton: 'dikkat',
   },
 };
+
+/**
+ * Kargo firmaları — liste istemcide, sunucu doğrulamıyor. "Diğer" serbest:
+ * listede olmayan bir firmayla göndermek meşru, kullanıcıyı listeye
+ * hapsetmek değil.
+ */
+const KARGO_FIRMALARI = [
+  'Yurtiçi Kargo',
+  'Aras Kargo',
+  'MNG Kargo',
+  'PTT Kargo',
+  'Sürat Kargo',
+  'HepsiJet',
+  'Trendyol Express',
+  'Kolay Gelsin',
+  'Diğer',
+];
 
 /** Kalan süreyi Hermes'te Intl'e güvenmeden yazar. */
 function kalanSure(deadline: string | null): string | null {
@@ -113,6 +143,11 @@ export default function TradesScreen() {
   const [islemde, setIslemde] = useState<string | null>(null);
   const [itiraz, setItiraz] = useState<TradeRow | null>(null);
   const [gerekce, setGerekce] = useState('');
+  /* Kargo formu: hangi takas için açık, seçilen firma, yazılan numara. */
+  const [kargoIcin, setKargoIcin] = useState<TradeRow | null>(null);
+  const [firma, setFirma] = useState<string>(KARGO_FIRMALARI[0]);
+  const [digerFirma, setDigerFirma] = useState('');
+  const [takipNo, setTakipNo] = useState('');
 
   const getir = useCallback(async () => {
     const liste = await loadMyTrades();
@@ -120,9 +155,14 @@ export default function TradesScreen() {
     setYukleniyor(false);
   }, []);
 
-  useEffect(() => {
-    getir();
-  }, [getir]);
+  /* Odakta tazeleniyor: ürün sayfasından "Takaslarım"a gelen kullanıcı yeni
+     takası görmeli. Bu depoda beş kez çıkan kusur — yığında kalan ekran
+     veriyi odakta tazeler. */
+  useFocusEffect(
+    useCallback(() => {
+      getir();
+    }, [getir]),
+  );
 
   async function onayla(t: TradeRow) {
     uyar(
@@ -166,6 +206,41 @@ export default function TradesScreen() {
     );
   }
 
+  function kargoFormunuAc(t: TradeRow) {
+    setFirma(KARGO_FIRMALARI[0]);
+    setDigerFirma('');
+    setTakipNo('');
+    setKargoIcin(t);
+  }
+
+  /**
+   * Kargo bilgisini gönderir. Sunucu takası SHIPPED'e alır, alıcıya firma ve
+   * numara bildirimle gider, 7 günlük onay sayacı başlar. Geri alınamaz —
+   * yanlış numara girildiyse alıcıyla mesajlaşılır.
+   */
+  async function kargoyaVerdim() {
+    if (!kargoIcin) return;
+    const secilenFirma = firma === 'Diğer' ? digerFirma.trim() : firma;
+    if (!secilenFirma) {
+      uyar('Kargo firması', 'Firma adını yaz.');
+      return;
+    }
+    const hedef = kargoIcin;
+    setIslemde(hedef.id);
+    const s = await markShipped(hedef.id, secilenFirma, takipNo.trim());
+    setIslemde(null);
+    if (!s.ok) {
+      uyar('Kaydedilemedi', s.message);
+      return;
+    }
+    setKargoIcin(null);
+    await getir();
+    uyar(
+      'Kargo bilgisi alıcıya iletildi',
+      'Alıcı ürünü teslim alıp onaylayınca puan hesabına geçer. 7 gün içinde onay ya da itiraz gelmezse kendiliğinden geçer.',
+    );
+  }
+
   async function itirazGonder() {
     if (!itiraz) return;
     const hedef = itiraz;
@@ -195,18 +270,8 @@ export default function TradesScreen() {
   }
 
   /**
-   * İtiraz kanıtı ekler.
-   *
-   * Kamera tercih ediliyor, galeri **bilinçli bir yedek**: ilan karelerinin
-   * aksine kanıt fotoğrafı galeriden gelebilir, çünkü kullanıcı kargoyu açtığı
-   * anda çekmiş ve itirazı sonra açmış olabilir. İlan tarafında galeri bir
-   * sahtecilik kapısıydı; burada kanıt zaten alıcının elindeki üründen.
-   *
-   * Eskiden kamera izni reddedilince **galeri izni hiç istenmeden**
-   * `launchImageLibraryAsync` çağrılıyordu. iOS'ta bu sessizce boş dönüyor:
-   * kullanıcı "Fotoğraf ekle"ye basıyor, hiçbir şey açılmıyor, sebebini
-   * anlamıyor — üstelik 24 saatlik kanıt sayacı işlerken ve parası havuzda
-   * rehinken.
+   * İtiraz kanıtı ekler. Kamera tercih, galeri bilinçli bir yedek: kullanıcı
+   * kargoyu açtığı anda çekmiş ve itirazı sonra açmış olabilir.
    */
   async function kanitEkle(disputeId: string) {
     const secenekler: ImagePicker.ImagePickerOptions = {
@@ -279,7 +344,6 @@ export default function TradesScreen() {
           }
         >
           {bos && (
-            /* Rehber 12: boş durum ile bağlantı hatası aynı anda gösterilmez. */
             supabaseConfigured ? (
               <BosDurum
                 ikon="swap-horiz"
@@ -305,10 +369,17 @@ export default function TradesScreen() {
             const onaylanabilir =
               t.benAliciyim && (t.status === 'SHIPPED' || t.status === 'DELIVERED');
             const itirazEdilebilir = onaylanabilir;
-            // Ödeme yapılmadan takas ilerlemiyor ve süre dolunca iptal oluyor;
-            // bu yüzden ödeme kartın üzerindeki en görünür aksiyon.
-            const odenebilir =
+            const iptalEdilebilir =
               t.benAliciyim && (t.status === 'POINTS_HELD' || t.status === 'CREATED');
+            /* Satıcının tek işi: puan havuza girdiyse kargoya ver. */
+            const kargolanabilir = !t.benAliciyim && t.status === 'POINTS_HELD';
+            /* Adres yalnızca satıcıya ve yalnızca gönderi öncesinde/sırasında
+               anlamlı. Alıcı kendi adresini zaten biliyor. */
+            const adresGoster =
+              !t.benAliciyim &&
+              t.teslimat &&
+              (t.status === 'POINTS_HELD' || t.status === 'SHIPPED' || t.status === 'DISPUTED');
+            const kargoBilgisi = t.takipNo && t.status !== 'POINTS_HELD' && t.status !== 'CREATED';
 
             return (
               <View key={t.id} style={styles.kart}>
@@ -321,13 +392,36 @@ export default function TradesScreen() {
                 </View>
 
                 <Text style={styles.baslik}>{t.productTitle ?? 'İlan kaldırılmış'}</Text>
-                <Text style={styles.rol}>
-                  {t.benAliciyim ? 'Alıyorsun' : 'Satıyorsun'}
-                </Text>
-                <Text style={styles.aciklama}>{d.aciklama}</Text>
+                <Text style={styles.rol}>{t.benAliciyim ? 'Alıyorsun' : 'Satıyorsun'}</Text>
+                <Text style={styles.aciklama}>{t.benAliciyim ? d.alici : d.satici}</Text>
+
+                {kargoBilgisi && (
+                  <View style={styles.kargoSatir}>
+                    <MaterialIcons name="local-shipping" size={16} color={colors.onSurfaceVariant} />
+                    <Text style={styles.kargoText} selectable>
+                      {t.kargoFirmasi ?? 'Kargo'} · {t.takipNo}
+                    </Text>
+                  </View>
+                )}
+
+                {adresGoster && t.teslimat && (
+                  <View style={styles.adres}>
+                    <Text style={styles.adresBaslik}>Teslimat adresi</Text>
+                    <Text style={styles.adresText} selectable>
+                      {t.teslimat.adSoyad}
+                      {t.teslimat.telefon ? ` · ${t.teslimat.telefon}` : ''}
+                    </Text>
+                    <Text style={styles.adresText} selectable>
+                      {t.teslimat.acikAdres}
+                    </Text>
+                    <Text style={styles.adresText} selectable>
+                      {t.teslimat.ilce}, {t.teslimat.il}
+                    </Text>
+                  </View>
+                )}
 
                 {t.status === 'DISPUTED' && t.disputeReason && (
-                  <Text style={styles.gerekce}>Gerekçeniz: {t.disputeReason}</Text>
+                  <Text style={styles.gerekce}>Gerekçe: {t.disputeReason}</Text>
                 )}
 
                 {t.acikItiraz?.kanitBekleniyor && t.benAliciyim && (
@@ -347,18 +441,21 @@ export default function TradesScreen() {
                   </View>
                 )}
 
-                {odenebilir && (
+                {kargolanabilir && (
                   <View style={styles.aksiyonlar}>
                     <Pressable
                       style={styles.birincil}
                       disabled={islemde === t.id}
-                      onPress={() =>
-                        router.push({ pathname: '/payment', params: { trade: t.id } })
-                      }
+                      onPress={() => kargoFormunuAc(t)}
                     >
-                      <MaterialIcons name="credit-card" size={18} color="#fff" />
-                      <Text style={styles.birincilText}>Kargo bedelini öde</Text>
+                      <MaterialIcons name="local-shipping" size={18} color="#fff" />
+                      <Text style={styles.birincilText}>Kargoya verdim</Text>
                     </Pressable>
+                  </View>
+                )}
+
+                {iptalEdilebilir && (
+                  <View style={styles.aksiyonlar}>
                     <Pressable
                       style={styles.ikincil}
                       disabled={islemde === t.id}
@@ -430,6 +527,75 @@ export default function TradesScreen() {
         </ScrollView>
       )}
 
+      {/* Kargo bilgisi — satıcı */}
+      <Modal
+        visible={kargoIcin !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setKargoIcin(null)}
+      >
+        <Pressable style={styles.perde} onPress={() => setKargoIcin(null)}>
+          <Pressable
+            style={styles.sheet}
+            onPress={(e) => e.stopPropagation()}
+            accessibilityViewIsModal
+          >
+            <Text style={styles.sheetBaslik}>Kargoya verdim</Text>
+            <Text style={styles.sheetMetin}>
+              Firma ve takip numarası alıcıya iletilir; alıcı ürünü onaylayınca puan hesabına
+              geçer. Kargo ücreti sana ait.
+            </Text>
+            <View style={styles.firmalar}>
+              {KARGO_FIRMALARI.map((f) => (
+                <Pressable
+                  key={f}
+                  style={[styles.firmaCip, firma === f && styles.firmaCipSecili]}
+                  onPress={() => setFirma(f)}
+                >
+                  <Text style={[styles.firmaCipText, firma === f && styles.firmaCipTextSecili]}>
+                    {f}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            {firma === 'Diğer' && (
+              <TextInput
+                style={[styles.giris, { minHeight: 48 }]}
+                placeholder="Firma adı"
+                placeholderTextColor={colors.onSurfaceVariant}
+                value={digerFirma}
+                onChangeText={setDigerFirma}
+              />
+            )}
+            <TextInput
+              style={[styles.giris, { minHeight: 48 }]}
+              placeholder="Takip numarası"
+              placeholderTextColor={colors.onSurfaceVariant}
+              value={takipNo}
+              onChangeText={setTakipNo}
+              autoCapitalize="characters"
+              autoCorrect={false}
+            />
+            <View style={styles.sheetButonlar}>
+              <Pressable style={styles.ikincil} onPress={() => setKargoIcin(null)}>
+                <Text style={styles.ikincilText}>Vazgeç</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.birincil, takipNo.trim().length < 4 && styles.kapali]}
+                disabled={takipNo.trim().length < 4 || islemde !== null}
+                onPress={kargoyaVerdim}
+              >
+                {islemde !== null ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.birincilText}>Kaydet</Text>
+                )}
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       {/* İtiraz gerekçesi — sunucu boş gerekçeyi reddediyor, burada da soruyoruz */}
       <Modal
         visible={itiraz !== null}
@@ -445,7 +611,7 @@ export default function TradesScreen() {
           >
             <Text style={styles.sheetBaslik}>Neyi bildirmek istiyorsun?</Text>
             <Text style={styles.sheetMetin}>
-              İtiraz açınca 48 saatlik sayaç durur ve Takas Puanın Güvenli Havuz’da kalır. Ekibimiz
+              İtiraz açınca onay sayacı durur ve Takas Puanın Güvenli Havuz’da kalır. Ekibimiz
               kanıtları inceleyip karar verir.
             </Text>
             <TextInput
@@ -512,6 +678,24 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: 7,
   },
+  kargoSatir: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 9 },
+  kargoText: { fontSize: 13, fontWeight: '700', color: colors.onSurface },
+  adres: {
+    marginTop: 10,
+    padding: 11,
+    borderRadius: shape.sm,
+    backgroundColor: colors.surfaceContainerHigh,
+    gap: 2,
+  },
+  adresBaslik: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.onSurfaceVariant,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 3,
+  },
+  adresText: { fontSize: 13, fontWeight: '600', color: colors.onSurface, lineHeight: 18 },
   gerekce: { fontSize: 12.5, color: colors.onSurface, fontWeight: '600', marginTop: 7 },
   uyari: {
     flexDirection: 'row',
@@ -522,13 +706,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.errorContainer,
     marginTop: 10,
   },
-  uyariText: {
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 17,
-    fontWeight: '600',
-    color: colors.error,
-  },
+  uyariText: { flex: 1, fontSize: 12, lineHeight: 17, fontWeight: '600', color: colors.error },
   sayac: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 9 },
   sayacText: { fontSize: 12, fontWeight: '600', color: colors.onSurfaceVariant },
   aksiyonlar: { flexDirection: 'row', gap: 10, marginTop: 14 },
@@ -554,11 +732,7 @@ const styles = StyleSheet.create({
   },
   ikincilText: { color: colors.onSurface, fontWeight: '700', fontSize: 14 },
   kapali: { opacity: 0.45 },
-  perde: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'flex-end',
-  },
+  perde: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: colors.surfaceContainer,
     borderTopLeftRadius: shape.lg,
@@ -568,12 +742,21 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   sheetBaslik: { fontSize: 17, fontWeight: '800', color: colors.onSurface },
-  sheetMetin: {
-    fontSize: 13,
-    color: colors.onSurfaceVariant,
-    fontWeight: '500',
-    lineHeight: 19,
+  sheetMetin: { fontSize: 13, color: colors.onSurfaceVariant, fontWeight: '500', lineHeight: 19 },
+  firmalar: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  firmaCip: {
+    paddingHorizontal: 12,
+    height: 34,
+    borderRadius: shape.full,
+    borderWidth: 1.5,
+    borderColor: colors.outlineVariant,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceContainerLow,
   },
+  firmaCipSecili: { backgroundColor: colors.primaryContainer, borderColor: colors.primary },
+  firmaCipText: { fontSize: 12.5, fontWeight: '700', color: colors.onSurfaceVariant },
+  firmaCipTextSecili: { color: colors.onPrimaryContainer },
   giris: {
     minHeight: 88,
     borderRadius: shape.sm,

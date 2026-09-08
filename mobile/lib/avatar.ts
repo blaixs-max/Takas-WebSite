@@ -99,15 +99,14 @@ export async function loadUserAvatar(userId: string): Promise<string | null> {
 }
 
 /**
- * Avatarı yükler ve denetime gönderir.
+ * Avatarı yükler ve **yönetici kuyruğuna** bırakır.
  *
- * Denetim **beklenerek** çağrılıyor: kullanıcı fotoğrafını seçtikten sonra
- * birkaç saniye içinde geçip geçmediğini öğreniyor. Ateşle-ve-unut olsaydı
- * ekran "yüklendi" der, fotoğraf görünmez ve sebebi hiçbir yerde yazmazdı —
- * ilan karelerinde tam olarak bu yaşandı.
- *
- * Denetim çağrısı düşerse durum `pending` kalıyor ve bu doğru cevap: avatar
- * gösterilmiyor, insan kuyruğunda bekliyor. Sessiz otomatik onay yok.
+ * 2026-09-08'e kadar burada `avatar-check` uç fonksiyonu çağrılıyor ve bir
+ * görüntü modeli birkaç saniyede karar veriyordu. Yapay zekâ denetimi
+ * tamamen kapatıldı: yükleme tetikleyiciyle `pending`e düşüyor, karar
+ * yönetici panelinde (`admin_avatar_karar`) insan tarafından veriliyor.
+ * Dönen durum bu yüzden her zaman `pending`; ekran "inceleniyor" gösteriyor
+ * ve sonuç `avatar.approved` / `avatar.rejected` bildirimiyle geliyor.
  */
 export async function uploadAvatar(localUri: string): Promise<AvatarSonucu> {
   if (!supabaseConfigured || !supabase) {
@@ -166,16 +165,6 @@ export async function uploadAvatar(localUri: string): Promise<AvatarSonucu> {
     void supabase.storage.from('avatars').remove([eskiYol]);
   }
 
-  try {
-    const { data, error } = await supabase.functions.invoke('avatar-check', { body: {} });
-    if (error) return { ok: true, durum: 'pending', gerekce: null };
-    const durum = data?.status as AvatarDurumu;
-    if (durum === 'approved' || durum === 'rejected') {
-      return { ok: true, durum, gerekce: (data?.gerekce as string) || null };
-    }
-  } catch {
-    // yut: aşağıdaki 'pending' doğru cevap
-  }
   return { ok: true, durum: 'pending', gerekce: null };
 }
 

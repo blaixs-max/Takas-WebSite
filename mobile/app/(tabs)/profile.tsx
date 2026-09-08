@@ -70,6 +70,10 @@ export default function ProfileScreen() {
   const [istatistik, setIstatistik] = useState<ProfileStats | null>(null);
   const [yaptirim, setYaptirim] = useState<Sanction | null>(null);
   const [taslak, setTaslak] = useState(0);
+  /* Onaya gönderilmiş, yönetici kararını bekleyen ilanlar (IN_REVIEW).
+     2026-09-08'den beri yayın yönetici onayıyla; kullanıcı "gönderdim ama
+     nerede?" diye aramasın, satır ikisini ayrı sayıyor. */
+  const [onayda, setOnayda] = useState(0);
 
   /**
    * Sayaçlar ekrana her dönüşte tazeleniyor.
@@ -99,7 +103,9 @@ export default function ProfileScreen() {
         if (!iptal) setYaptirim(y);
       });
       loadDrafts().then((d) => {
-        if (!iptal) setTaslak(d.length);
+        if (iptal) return;
+        setTaslak(d.filter((x) => x.status === 'DRAFT').length);
+        setOnayda(d.filter((x) => x.status === 'IN_REVIEW').length);
       });
       return () => {
         iptal = true;
@@ -305,16 +311,21 @@ export default function ProfileScreen() {
             {/* Yalnızca yarım kalan ilan varsa görünür. Bu satır olmadan taslak
                 bir ilana ulaşmanın hiçbir yolu yoktu: çekim akışına sadece ilan
                 oluşturulduktan hemen sonra giriliyordu. */}
-            {taslak > 0 && (
+            {taslak + onayda > 0 && (
               <>
                 <Pressable style={styles.accRow} onPress={() => router.push('/drafts')}>
                   <View style={styles.accIc}>
                     <MaterialIcons name="inventory-2" size={19} color={colors.primary} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.accTitle}>Taslak ilanlar</Text>
+                    <Text style={styles.accTitle}>Taslak ve onaydaki ilanlar</Text>
                     <Text style={styles.accSub}>
-                      {taslak} ilan yayına alınmayı bekliyor
+                      {[
+                        taslak > 0 ? `${taslak} taslak` : null,
+                        onayda > 0 ? `${onayda} ilan onay bekliyor` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
                     </Text>
                   </View>
                   <MaterialIcons name="chevron-right" size={22} color={colors.outline} />

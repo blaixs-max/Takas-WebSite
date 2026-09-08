@@ -788,16 +788,16 @@ export default function AddListing() {
                 </>
               )}
 
-              {/* Değerleme neyin ne zaman olacağını burada anlatıyor: son
-                  adımdaki kullanıcı "devam" düğmesine basınca puan bekliyor
-                  ve puan orada çıkmıyor. Eskiden bu metnin yerinde uydurma
-                  bir puan tablosu vardı — sabit 500 taban, sahte çarpanlar. */}
+              {/* Puanın nasıl belirleneceği burada anlatılıyor: son adımdaki
+                  kullanıcı "devam" düğmesine basınca puan bekliyor ve puan orada
+                  çıkmıyor. 2026-09-08'den beri puanı ekibimiz belirliyor —
+                  öncesinde bir model sıfır fiyatını arıyordu. */}
               <View style={styles.degerlemeKutu}>
                 <Text style={styles.degerlemeBaslik}>Puanı sen belirlemiyorsun</Text>
                 <Text style={styles.degerlemeMetin}>
-                  Kareleri çektikten sonra ürünün sıfır fiyatı bulunacak ve durumuna göre
-                  takas puanı hesaplanacak. Bu, herkesin ilanının aynı ölçüyle değerlenmesi
-                  için.
+                  Kareleri çekip ilanı onaya gönderdikten sonra ekibimiz ürünün sıfır
+                  fiyatına ve durumuna bakıp takas puanını belirler. Bu, herkesin
+                  ilanının aynı ölçüyle değerlenmesi için.
                 </Text>
               </View>
             </>

@@ -20,28 +20,22 @@ import {
   gosterilecekSlotlar,
   zorunluSlotlar,
 } from '../data/photoSlots';
-import { PhotoRow, analizEt, loadPhotos, publishListing, uploadPhoto } from '../lib/photos';
-import { degerlet } from '../lib/listings';
+import { PhotoRow, loadPhotos, submitListing, uploadPhoto } from '../lib/photos';
 import { colors, elevation, shape } from '../theme/tokens';
 
 /**
  * Yedi kareyi tek tek gezdiren çekim akışı.
  *
  * Ekran bir seferde tek kare ister ve neden istediğini söyler. Kullanıcı
- * sırayı atlayabilir ama zorunlu kareler tamamlanmadan ilan yayına giremez —
- * o kararı sunucu veriyor, buradaki kontrol yalnızca kullanıcıyı boşuna
- * bekletmemek için.
- */
-/**
- * Taban puan — yalnızca kullanıcıya gösterilen metin için.
+ * sırayı atlayabilir ama zorunlu kareler tamamlanmadan ilan onaya
+ * gönderilemez — o kararı sunucu veriyor, buradaki kontrol yalnızca
+ * kullanıcıyı boşuna bekletmemek için.
  *
- * Gerçek taban `valuation_settings.taban_puan` (sunucu) ve hesap orada
- * yapılıyor; buradaki sayı hiçbir karara girmiyor. Ayarı değiştirirsen bu
- * cümle de güncellenmeli — istemciye ayar tablosunu açmak, ekonomiyi
- * istemciye açmak olurdu.
+ * Kareleri ilanla birlikte **yönetici** inceliyor (2026-09-08). Önceden her
+ * kare bir görüntü modeline gidiyor, sonra ilan değerleniyor, sonra yayına
+ * giriyordu; bu ekran o üç adımın hepsini taşıyordu. Artık tek iş var: kareleri
+ * çek, onaya gönder. Gerisi Taslaklar'da izlenir.
  */
-const TABAN_PUAN = 50;
-
 export default function ListingPhotos() {
   const { id, hasDamage, isSet, title } = useLocalSearchParams<{
     id: string;
@@ -54,7 +48,7 @@ export default function ListingPhotos() {
 
   /* Gösterilen liste opsiyonel kareyi de içeriyor, zorunluluk sayacı
      içermiyor. İkisini ayırmasaydık ya etiket akıştan tamamen düşerdi
-     (varsa çekmek istiyoruz) ya da "5/5 tamamlanmadı" diye yayını
+     (varsa çekmek istiyoruz) ya da "5/5 tamamlanmadı" diye gönderimi
      kilitlerdi. */
   const slotlar = gosterilecekSlotlar(hasDamage === '1', isSet === '1');
   const zorunlu = zorunluSlotlar(hasDamage === '1', isSet === '1');
@@ -62,12 +56,7 @@ export default function ListingPhotos() {
   const [kareler, setKareler] = useState<Record<string, PhotoRow>>({});
   const [yerel, setYerel] = useState<Record<string, string>>({});
   const [yukleniyor, setYukleniyor] = useState<PhotoSlot | null>(null);
-  const [yayinlaniyor, setYayinlaniyor] = useState(false);
-  const [degerleniyor, setDegerleniyor] = useState(false);
-  const [analizEdiliyor, setAnalizEdiliyor] = useState(false);
-  /* Kullanıcı uyarıları görüp "yine de yayınla" dedi mi. Bir kez true olunca
-     bu ilan için bir daha sorulmuyor. */
-  const [uyariGecildi, setUyariGecildi] = useState(false);
+  const [gonderiliyor, setGonderiliyor] = useState(false);
 
   const tazele = useCallback(async () => {
     if (!id) return;
@@ -84,7 +73,7 @@ export default function ListingPhotos() {
 
   /**
    * Reddedilen kare tamamlanmış sayılmaz. Sunucu zaten geçirmiyor; burada da
-   * saymazsak kullanıcı "yayına al"a basıp hata almak yerine hangi kareyi
+   * saymazsak kullanıcı "gönder"e basıp hata almak yerine hangi kareyi
    * yeniden çekeceğini görür.
    */
   const tamam = (s: PhotoSlot) =>
@@ -95,10 +84,7 @@ export default function ListingPhotos() {
    *
    * Üç durum var ve üçü farklı: gidilecek bir sonraki kare varsa oraya;
    * yoksa ama eksik bir zorunlu kare kaldıysa ona (kullanıcı sırayı
-   * atlamış olabilir); ikisi de yoksa iş bitmiştir, yayına gönderilir.
-   *
-   * İlk sürüm indeksi sona kadar artırıp orada kelepçeliyordu. Etiket zaten
-   * son slot olduğu için hiçbir şey olmuyor, düğme ölü görünüyordu.
+   * atlamış olabilir); ikisi de yoksa iş bitmiştir, onaya gönderilir.
    */
   function atlaVeIlerle() {
     const sonraki = slotlar.findIndex((s, i) => i > aktif && !tamam(s));
@@ -111,7 +97,7 @@ export default function ListingPhotos() {
       setAktif(eksikZorunlu);
       return;
     }
-    if (hepsiVar && !yayinlaniyor) void yayinla();
+    if (hepsiVar && !gonderiliyor) void gonder();
   }
 
   const cekilen = zorunlu.filter(tamam).length;
@@ -128,11 +114,8 @@ export default function ListingPhotos() {
    *
    * Tam güvence değil — kararlı biri ekranı fotoğraflayabilir. Ama kolay
    * yolu kapatmak, dolandırıcılığın büyük kısmını kolay olduğu için
-   * yapıldığından, tek başına ciddi bir fark yaratır.
-   *
-   * Sonucu: `NSPhotoLibraryUsageDescription` ve `READ_MEDIA_IMAGES` izinleri
-   * de düştü. Kullanılmayan izni istemek hem mağaza incelemesinde soru
-   * doğurur hem kullanıcıya haksız bir şey sorar.
+   * yapıldığından, tek başına ciddi bir fark yaratır. Artık kareye bir insan
+   * baktığı için ekran fotoğrafı da eskisinden zor geçer.
    */
   async function cek() {
     const izin = await ImagePicker.requestCameraPermissionsAsync();
@@ -141,18 +124,10 @@ export default function ListingPhotos() {
       return;
     }
 
-    /* `allowsEditing` + `aspect: [4,3]` kaldırıldı.
-     *
-       Bu ikisi, çekimden hemen sonra sistemin kırpma ekranını açıyor ve kareyi
-       zorla 4:3'e indiriyordu — telefon 16:9 çektiğinde altından belirgin bir
-       parça gidiyordu. Satıcı "kadrajı doldur" diye çektiği kareyi eksik
-       yüklüyordu ve kaybolan kısım çoğu zaman ürünün alt tarafı, yani
-       tekerlek, ayak, taban oluyordu.
-
-       Artık kamera karesi olduğu gibi yükleniyor. Kırpma yalnızca **gösterim
-       anında** yapılıyor (kart 1.5, hero 1.54, ikisi de `cover`) — ama asıl
-       dosya tam, tam ekran görüntüleyici bütün kareyi gösteriyor ve
-       moderasyon da tam kareyi görüyor. */
+    /* `allowsEditing` + `aspect: [4,3]` yok: sistemin kırpma ekranı kareyi
+       zorla 4:3'e indiriyor ve ürünün altını (tekerlek, ayak, taban)
+       kesiyordu. Kamera karesi olduğu gibi yükleniyor; kırpma yalnızca
+       gösterim anında, dosya tam. */
     const sonuc = await ImagePicker.launchCameraAsync({
       mediaTypes: ['images'],
       quality: 0.8,
@@ -178,150 +153,39 @@ export default function ListingPhotos() {
 
     await tazele();
 
-    /* Çekim sırasında artık **hiçbir kapı yok** — kare yüklendi, sıradakine
-       geçiliyor. Önceden her karede inceleme çalışıyor ve reddedebiliyordu;
-       kullanıcı yedi kez üst üste "bu kare geçmedi" duvarına çarpıyordu ve
-       ürün eklemek bir işlem değil bir sınav gibi okunuyordu.
+    /* Çekim sırasında hiçbir kapı yok — kare yüklendi, sıradakine geçiliyor.
        Yönlendirme duruyor: hangi açının çekileceği, çerçeveleme ipucu ve
-       ilerleme çubuğu aynen yerinde. Kalkan şey engel, rehberlik değil. */
+       ilerleme çubuğu aynen yerinde. */
     if (aktif < slotlar.length - 1) setAktif(aktif + 1);
   }
 
-  async function yayinla() {
-    setYayinlaniyor(true);
-
-    /* Toplu analiz burada: bütün kareler çekildi, model hepsini bir arada
-       inceliyor. Çekim akışından buraya taşındı çünkü kare kare engellemek
-       kullanıcıyı yoruyordu; sonuç aynı, zamanlaması farklı.
-
-       Reddedilen varsa yayına gidilmiyor ve hangi karelerin yeniden
-       çekileceği tek seferde söyleniyor — yedi ayrı uyarı yerine bir liste. */
-    setAnalizEdiliyor(true);
-    const analiz = await analizEt(id!);
-    setAnalizEdiliyor(false);
-    await tazele();
-
-    /* Yalnızca **zorunlu** slottaki ret akışı durduruyor. Zorunlu olmayan bir
-       karenin reddi (etiket gibi) yayını engellemiyor: sunucu o satırı yayın
-       anında siliyor. Kullanıcıya "etiketi yeniden çek" dedirtmek, zorunlu
-       olmadığını söyledikten sonra tam tersini istemek olurdu. */
-    /* Uyarılar yayını durdurmuyor, yalnızca söyleniyor. Kullanıcı "Yine de
-       yayınla" derse devam ediyor, "Düzeltmek istiyorum" derse ekranda
-       kalıyor ve o kareyi yeniden çekebiliyor.
-       Uyarı çekim anında değil burada çıkıyor ve bu bir tercih: çekim anında
-       göstermek için kare kare model çağırmak gerekirdi, ki bu sabah tam
-       onu kaldırdık. Geç uyarı, yedi ayrı duvardan iyi. */
-    const uyarilar = analiz.uyarilar;
-
-    const engelleyen = analiz.retler.filter((r) => zorunlu.includes(r.slot));
-    if (engelleyen.length > 0) {
-      setYayinlaniyor(false);
-      const liste = engelleyen
-        .map((r) => `• ${SLOT_INFO[r.slot].baslik}: ${r.gerekce}`)
-        .join('\n');
-      uyar(
-        engelleyen.length === 1 ? 'Bir kare geçmedi' : `${engelleyen.length} kare geçmedi`,
-        `${liste}\n\nBu kareleri yeniden çekip tekrar gönder.`,
-      );
-      return;
-    }
-
-    /* Değerleme **bekleyen kare kontrolünden önce** çalışıyor ve bu sıra
-       kritik. Kullanıcı bekleyen kare varken ekrandan çıkıyor; ilanı sonra
-       yönetici onayı yayına alacak. Ama otomatik yayın bir Edge Function
-       çağıramaz — değerlemesi olmayan ilan onaylansa bile yayına giremez ve
-       taslakta sonsuza kadar kalırdı.
-
-       Burada çağırmak işe yarıyor çünkü `listing-value` onaylı kare sayısına
-       takılmıyor: dördün üçü onaylıysa da ürünü tanıyor. Hiçbiri onaylı
-       değilse değerleme başarısız olur ve ilan taslaklarda kalır — kullanıcı
-       oradan tekrar deneyebilir.
-
-       Sonucuna bakıp akışı durdurmuyoruz: başarısızsa yayın kapısı zaten
-       geçirmez. Burada ayrıca kontrol etmek aynı kararı iki yerde vermek
-       olurdu. */
-    if (uyarilar.length > 0 && !uyariGecildi) {
-      setYayinlaniyor(false);
-      const liste = uyarilar
-        .map((u) => `• ${SLOT_INFO[u.slot].baslik}: ${u.uyari}`)
-        .join('\n');
-      uyar(
-        uyarilar.length === 1 ? 'Bir fotoğrafta not var' : `${uyarilar.length} fotoğrafta not var`,
-        `${liste}\n\nBunlar yayını engellemiyor — istersen düzelt, istersen böyle yayınla.`,
-        [
-          { text: 'Düzeltmek istiyorum', style: 'cancel' },
-          {
-            text: 'Yine de yayınla',
-            onPress: () => {
-              /* Bayrak ikinci turda uyarıyı atlatıyor. Olmasaydı "Yine de
-                 yayınla" aynı diyaloğu tekrar açar ve kullanıcı döngüye
-                 girerdi. */
-              setUyariGecildi(true);
-              void yayinla();
-            },
-          },
-        ],
-      );
-      return;
-    }
-
-    setDegerleniyor(true);
-    const degerleme = await degerlet(id!);
-    setDegerleniyor(false);
-
-    /* Taban uygulandıysa kullanıcıya söylenir — engellenmez.
-       Taban (50 puan) bir kelepçe: hesaplanan değer altında kalırsa puan
-       sessizce yükseliyordu ve satıcı ilanının neden "50 puan" dediğini
-       hiçbir yerde okumuyordu. Rakam açıklanmazsa keyfî görünür ve
-       değerlemeye güven aşınır.
-       Engellemek seçenek değildi: değerleme ancak bütün kareler çekildikten
-       sonra çalışıyor, yani buradaki bir duvar kullanıcının emeğini çöpe
-       atardı — bugün tavanda yaşananın aynısı. */
-    const tabanNotu = degerleme.tabanUygulandi
-      ? `\n\nBu ürünün hesaplanan değeri en düşük ilan değerinin altında kaldı; ilanın taban puan olan ${TABAN_PUAN} puanla listelendi.`
-      : '';
-
-    /* **Bekleyen kare kullanıcıyı ekranda tutmuyor.** Model bazı karelerde
-       karar veremiyor; o kareler yönetim kuyruğuna düşüyor ve insan onayı
-       saatler sürebilir. Eskiden yayın kapısı "kareler hâlâ inceleniyor,
-       birazdan tekrar deneyin" diyordu — kullanıcının elinde yapacak bir şey
-       yokken onu fotoğraf ekranına geri çağıran bir cümle.
-
-       Artık ilan taslakta kalıyor, kullanıcı çıkıyor, ve son kare onaylandığı
-       an sunucu ilanı kendisi yayına alıp bildirim gönderiyor
-       (`product_photos_karar_sonrasi` tetikleyicisi). */
-    if (analiz.bekleyen > 0) {
-      setYayinlaniyor(false);
-      uyar(
-        'İlanın incelemeye alındı',
-        (analiz.bekleyen === 1
-          ? 'Bir fotoğrafın kontrol ediliyor. Onaylanınca ilanın kendiliğinden yayına girecek ve sana bildirim göndereceğiz — burada beklemene gerek yok.'
-          : `${analiz.bekleyen} fotoğrafın kontrol ediliyor. Onaylanınca ilanın kendiliğinden yayına girecek ve sana bildirim göndereceğiz — burada beklemene gerek yok.`) +
-          tabanNotu,
-        [{ text: 'Tamam', onPress: () => router.replace('/') }],
-      );
-      return;
-    }
-
-    // Kapak: kullanıcı seçmediyse ön görünüm. Hangi kare kapak olursa olsun
-    // ürünün durumu kapağın üzerinde rozet olarak görünür.
-    const sonuc = await publishListing(id!, 'front');
-    setYayinlaniyor(false);
+  /**
+   * Onaya gönder.
+   *
+   * Sunucu zorunlu karelerin yüklü ve reddedilmemiş olduğuna bakar, ilanı
+   * incelemeye alır. Kullanıcı ekrandan çıkar; ekibimiz bakıp puanı belirler,
+   * onaylanınca ya da düzeltme istenince bildirim gelir. Burada beklemenin
+   * anlamı yok — kararı saatler sürebilen bir insan veriyor.
+   */
+  async function gonder() {
+    setGonderiliyor(true);
+    const sonuc = await submitListing(id!);
+    setGonderiliyor(false);
     if (!sonuc.ok) {
-      uyar('Yayına alınamadı', sonuc.message);
+      uyar('Gönderilemedi', sonuc.message);
       await tazele();
       return;
     }
-    uyar('İlan yayında', `${title ?? 'İlanın'} rafa eklendi.${tabanNotu}`, [
-      { text: 'Tamam', onPress: () => router.replace('/') },
-    ]);
+    uyar(
+      'İlanın incelemeye alındı',
+      `${title ?? 'İlanın'} ekibimize ulaştı. Ürünün durumuna ve piyasa fiyatına bakıp takas puanını belirleyeceğiz; onaylanınca vitrine çıkar ve sana bildirim gelir. Burada beklemene gerek yok.`,
+      [{ text: 'Tamam', onPress: () => router.replace('/') }],
+    );
   }
 
   const durum = kareler[slot];
   /* Gösterilecek kare: bu oturumda çekilen dosya, yoksa sunucudaki. */
   const onizlemeUri = yerel[slot] ?? durum?.url ?? null;
-  /* Bu kare bitti mi. Reddedilen hâlâ bitmiş sayılmıyor — ama ret artık
-     çekim anında değil, toplu analizden sonra oluşuyor. */
   const slotBitti = Boolean(durum) && durum.moderationStatus !== 'rejected';
 
   return (
@@ -367,28 +231,18 @@ export default function ListingPhotos() {
           </View>
         </View>
 
-
-        {/* Önizleme.
-
-            Buraya yalnızca `yerel[slot]` — yani o oturumda seçiciyle çekilen
-            dosya — çiziliyordu. Ekrana geri dönünce `yerel` boş olduğu için
-            çoktan yüklenmiş, hatta incelemeden geçmiş bir kare bile "Bu kare
-            henüz çekilmedi" diye görünüyordu: durum çipi "İncelemeden geçti"
-            derken hemen üstünde boş bir kutu duruyordu. Artık yerel dosya
-            yoksa sunucudaki kare gösteriliyor. */}
+        {/* Önizleme: yerel dosya yoksa sunucudaki kare. Yalnızca yerel dosya
+            çizilseydi ekrana geri dönen kullanıcı yüklenmiş kareyi bile
+            "çekilmedi" görürdü. */}
         <View style={styles.onizleme}>
           {onizlemeUri ? (
             <Image source={{ uri: onizlemeUri }} style={styles.onizlemeImg} resizeMode="contain" />
           ) : durum?.moderationStatus === 'rejected' ? (
-            /* Reddedilen kare depodan siliniyor; ekrana geri dönüldüğünde
-               gösterilecek bir görsel kalmıyor. "Önizleme açılamadı" demek
-               burada yanlış olur — kare açılamıyor değil, yok. */
             <View style={styles.onizlemeBos}>
               <MaterialIcons name="do-not-disturb-on" size={40} color={colors.outline} />
-              <Text style={styles.onizlemeBosText}>Bu kare kabul edilmedi ve silindi</Text>
+              <Text style={styles.onizlemeBosText}>Bu kare kabul edilmedi, yeniden çek</Text>
             </View>
           ) : durum ? (
-            /* Kare var ama bağlantı üretilemedi — "çekilmedi" demek yanlış olur. */
             <View style={styles.onizlemeBos}>
               <MaterialIcons name="image-not-supported" size={40} color={colors.outline} />
               <Text style={styles.onizlemeBosText}>Kare yüklendi, önizleme açılamadı</Text>
@@ -402,55 +256,26 @@ export default function ListingPhotos() {
           {yukleniyor === slot && (
             <View style={styles.yukleniyor}>
               <ActivityIndicator color="#fff" />
-              {/* Bekleme artık yükleme + inceleme; sürenin büyük kısmı
-                  ikincisi. "Yükleniyor" demek, iki saniye sonra çıkan ret
-                  mesajını beklenmedik hâle getiriyordu. */}
-              <Text style={styles.yukleniyorText}>Kare inceleniyor…</Text>
+              <Text style={styles.yukleniyorText}>Yükleniyor…</Text>
             </View>
           )}
         </View>
 
-        {/* İnceleme durumu */}
-        {durum && (
-          <View
-            style={[
-              styles.durum,
-              durum.moderationStatus === 'approved' && styles.durumOk,
-              durum.moderationStatus === 'rejected' && styles.durumRed,
-            ]}
-          >
-            <MaterialIcons
-              name={
-                durum.moderationStatus === 'approved'
-                  ? 'check-circle'
-                  : durum.moderationStatus === 'rejected'
-                    ? 'error'
-                    : 'hourglass-empty'
-              }
-              size={20}
-              color={
-                durum.moderationStatus === 'approved'
-                  ? colors.primary
-                  : durum.moderationStatus === 'rejected'
-                    ? colors.error
-                    : colors.onSurfaceVariant
-              }
-            />
+        {/* Kare durumu: yalnızca reddedilmişse söylenecek bir şey var.
+            "İnceleniyor" artık kare kare değil ilan düzeyinde ve Taslaklar'da
+            görünüyor; burada tekrarlamak kullanıcıyı bekletirdi. */}
+        {durum?.moderationStatus === 'rejected' && (
+          <View style={[styles.durum, styles.durumRed]}>
+            <MaterialIcons name="error" size={20} color={colors.error} />
             <Text style={styles.durumText}>
-              {durum.moderationStatus === 'approved' && 'İncelemeden geçti'}
-              {durum.moderationStatus === 'pending' && 'İnceleniyor…'}
-              {durum.moderationStatus === 'rejected' &&
-                (durum.moderationReason || 'Bu kare kabul edilmedi, yeniden çekin')}
+              {durum.moderationReason || 'Bu kare kabul edilmedi, yeniden çekin'}
             </Text>
           </View>
         )}
 
-        {/* Kare bitmişse düğme geri çekiliyor: dolu turkuaz bir düğme ekranın
-            ortasında dururken, kare çoktan onaylanmış olsa bile yapılacak iş
-            buymuş gibi okunuyordu. Bitmiş karede sönükleşiyor ve "Yeniden çek"
-            oluyor; asıl eylem alttaki "Kontrole gönder". Reddedilen kare bunun
-            dışında: orada gerçekten yeniden çekmek gerekiyor, düğme dolu
-            kalıyor. */}
+        {/* Kare bitmişse düğme geri çekiliyor: bitmiş karede sönükleşiyor ve
+            "Yeniden çek" oluyor; asıl eylem alttaki "Onaya gönder". Reddedilen
+            kare bunun dışında: orada gerçekten yeniden çekmek gerekiyor. */}
         <View style={styles.cekButonlar}>
           <Pressable style={[styles.cekBtn, slotBitti && styles.cekBtnSessiz]} onPress={cek}>
             <MaterialIcons
@@ -462,63 +287,35 @@ export default function ListingPhotos() {
               {slotBitti ? 'Yeniden çek' : 'Kamera ile çek'}
             </Text>
           </Pressable>
-
         </View>
 
-        {/* Atlama, çekmenin alternatifi — o yüzden çekim düğmesinin hemen
-            altında, kapsayıcının dışında (kapsayıcı satır düzeninde, içine
-            konsaydı kameranın yanına düşerdi). Rehber kartının altındayken
-            kullanıcı onu düğme değil açıklama sanıyordu.
-
-            Davranışı `atlaVeIlerle`de; ilk sürüm indeksi sona kelepçeliyordu
-            ve etiket zaten son slot olduğu için düğme hiçbir şey yapmıyordu. */}
         {atlanabilir(slot) && !tamam(slot) && (
           <Pressable style={styles.atla} onPress={atlaVeIlerle} accessibilityRole="button">
             <Text style={styles.atlaText}>Etiketim yok, atla</Text>
             <MaterialIcons name="arrow-forward" size={18} color={colors.primary} />
           </Pressable>
         )}
-
-        {/* Elle tazeleme yalnızca beklerken anlamlı. */}
-        {durum?.moderationStatus === 'pending' && (
-          <Pressable style={styles.tazele} onPress={tazele}>
-            <MaterialIcons name="refresh" size={16} color={colors.onSurfaceVariant} />
-            <Text style={styles.tazeleText}>İnceleme durumunu yenile</Text>
-          </Pressable>
-        )}
       </ScrollView>
 
       <View style={[styles.actionbar, { paddingBottom: insets.bottom + 14 }]}>
         <Pressable
-          style={[styles.cta, (!hepsiVar || yayinlaniyor) && styles.ctaOff]}
-          disabled={!hepsiVar || yayinlaniyor}
-          onPress={yayinla}
+          style={[styles.cta, (!hepsiVar || gonderiliyor) && styles.ctaOff]}
+          disabled={!hepsiVar || gonderiliyor}
+          onPress={gonder}
         >
-          {yayinlaniyor ? (
-            /* Değerleme internette arama yapıyor ve saniyeler sürebiliyor.
-               Boş bir dönen çarkın altında ne beklendiği belli olmuyor;
-               "Değerleniyor…" hem süreyi haklı çıkarıyor hem de kullanıcıya
-               puanı kendisinin belirlemediğini bir kez daha söylüyor. */
-            <>
-              <ActivityIndicator color="#fff" />
-              {analizEdiliyor && <Text style={styles.ctaText}>Fotoğraflar inceleniyor…</Text>}
-              {degerleniyor && <Text style={styles.ctaText}>Değerleniyor…</Text>}
-            </>
+          {gonderiliyor ? (
+            <ActivityIndicator color="#fff" />
           ) : (
             <>
-              <MaterialIcons name="publish" size={20} color="#fff" />
-              {/* Rehber 10: tamamlama CTA'sı "Kontrole gönder". Düğme
-                  `publish_listing`'i çağırıyor ama o kapı kareler
-                  moderasyondan geçmeden açılmıyor — yani kullanıcı açısından
-                  buradaki eylem gerçekten kontrole göndermek. */}
-              <Text style={styles.ctaText}>Kontrole gönder</Text>
+              <MaterialIcons name="send" size={20} color="#fff" />
+              <Text style={styles.ctaText}>Onaya gönder</Text>
             </>
           )}
         </Pressable>
-        {!hepsiVar && (
-          <Text style={styles.ctaHint}>
-            {zorunlu.length - cekilen} fotoğraf daha ekle
-          </Text>
+        {!hepsiVar ? (
+          <Text style={styles.ctaHint}>{zorunlu.length - cekilen} fotoğraf daha ekle</Text>
+        ) : (
+          <Text style={styles.ctaHint}>Ekibimiz bakıp puanı belirleyecek; onaylanınca haber vereceğiz</Text>
         )}
       </View>
     </View>
@@ -578,9 +375,7 @@ const styles = StyleSheet.create({
   rehberBaslik: { fontSize: 16, fontWeight: '800', color: colors.onSurface },
   rehberYonerge: { fontSize: 13.5, color: colors.onSurface, fontWeight: '500', marginTop: 3 },
   rehberNeden: { fontSize: 12, color: colors.onSurfaceVariant, fontWeight: '500', marginTop: 4 },
-  /* Önizleme `contain`: satıcı **yükleyeceği karenin tamamını** görsün.
-     `cover` olsaydı ekranda kırpılmış görünür, kırpma kalktığı hâlde satıcı
-     hâlâ kesiliyor sanırdı. */
+  /* Önizleme `contain`: satıcı yükleyeceği karenin tamamını görsün. */
   onizleme: {
     aspectRatio: 4 / 3,
     borderRadius: shape.lg,
@@ -618,11 +413,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceContainerLow,
     marginBottom: 14,
   },
-  durumOk: { backgroundColor: colors.primaryContainer },
   durumRed: { backgroundColor: colors.errorContainer },
   durumText: { flex: 1, fontSize: 13, fontWeight: '600', color: colors.onSurface },
-  /* Kare bitmişken iki düğme de sönükleşiyor: yapılacak iş artık çekmek
-     değil, yayına almak. Yetenek duruyor, vurgu gidiyor. */
   cekBtnSessiz: {
     backgroundColor: colors.surfaceContainerLow,
     borderWidth: 1.5,
@@ -641,8 +433,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   cekBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  tazele: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 16 },
-  tazeleText: { fontSize: 12.5, color: colors.onSurfaceVariant, fontWeight: '600' },
   actionbar: {
     position: 'absolute',
     left: 0,
