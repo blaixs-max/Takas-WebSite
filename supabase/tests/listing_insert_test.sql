@@ -9,6 +9,7 @@ insert into auth.users (id, email, raw_user_meta_data)
 values (:'s', 'zeynep.demir@example.com', '{"full_name":"Zeynep Demir"}'::jsonb),
        (:'b', 'alici@example.com', '{}'::jsonb)
 on conflict (id) do nothing;
+select test_adres(:'b');
 
 set session role authenticated;
 select set_config('test.uid', :'s', false);
@@ -21,7 +22,7 @@ select id, title, points, ai_suggested_points, size_class, status,
                       'Doğal ahşap, 12 parça, kutusunda.', p_sub_category => 'Yapı & inşa') \gset l_
 select title, points, ai_suggested_points, size_class, status, seller_name, seller_initials
   from products where id = :'l_id';
-\echo 'BEKLENEN: 380/380, M, DRAFT, Zeynep Demir, ZD'
+\echo 'BEKLENEN: puan boş (yönetici belirler), M, DRAFT, Zeynep Demir, ZD'
 
 \echo ''
 \echo '=== 1b) Vitrine çıkmak yedi kare kapısından geçmeyi gerektirir ==='
@@ -35,26 +36,23 @@ reset role;
 update product_photos set moderation_status = 'approved' where product_id = :'l_id';
 set session role authenticated;
 select set_config('test.uid', :'s', false);
-select test_degerle(:'l_id');
-select status from publish_listing(:'l_id', 'front');
-\echo 'BEKLENEN: ACTIVE'
+select test_yayinla(:'l_id', 380);
+select bekle_esit('yayına alındı', (select status from products where id = :'l_id'), 'ACTIVE');
 
 \echo ''
-\echo '=== 2) Yayına alınan ilan fiyatlanabiliyor ==='
+\echo '=== 2) Yayına alınan ilan satın alınabiliyor; teslimat adresi takasa kopyalanıyor ==='
 reset role;
 select available_points from earn_points(:'b', 1000, 'test:alici-bakiye');
 set session role authenticated;
 select set_config('test.uid', :'b', false);
 select id from create_trade(:'l_id', :'b') \gset t_
--- `authenticated` rolüyle `quote_trade_price` çağrılıyordu; `rpc_grants`
--- o yetkiyi bilerek geri aldı (kargo maliyetini ve komisyonu da döndürüyor).
--- Uygulamanın çağırdığı işlev `my_trade_quote` ve aynı beş sütunu veriyor —
--- test artık gerçekten kullanılan yolu ölçüyor.
-select size_class, shipping_tl, service_fee_tl, transaction_fee_tl, total_tl
-  from my_trade_quote(:'t_id');
-\echo 'BEKLENEN: M kademesi, kargo 78.00, hizmet 17.90, işlem payı 22.80, toplam 118.70'
+select bekle_esit('takas puanı ilandan geldi', (select points from trades where id = :'t_id'), 380);
+select bekle('teslimat adresi kopyalandı',
+             (select teslimat ->> 'il' is not null from trades where id = :'t_id'));
+-- Kargo ücreti artık alıcıdan alınmıyor; fiyat teklifi RPC'si istemciye kapalı.
+select bekle('my_trade_quote istemciye kapandı',
+             not has_function_privilege('authenticated', 'public.my_trade_quote(uuid)', 'execute'));
 
-\echo ''
 \echo '=== 3) Geçersiz desi reddedilir ==='
 select set_config('test.uid', :'s', false);
 do $$

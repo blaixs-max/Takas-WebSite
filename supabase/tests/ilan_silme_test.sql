@@ -15,6 +15,7 @@ insert into auth.users (id, email, phone, phone_confirmed_at, raw_user_meta_data
 values (:'s', 'silen@example.com',  '+905558890001', now(), '{"full_name":"Deniz Arı"}'::jsonb),
        (:'y', 'yabanci@example.com','+905558890002', now(), '{"full_name":"Yabancı Kişi"}'::jsonb)
 on conflict (id) do nothing;
+select test_adres(:'y');
 
 set session role authenticated;
 select set_config('test.uid', :'s', false);
@@ -66,8 +67,7 @@ reset role;
 update product_photos set moderation_status = 'approved' where product_id = :'a_id';
 set session role authenticated;
 select set_config('test.uid', :'s', false);
-select test_degerle(:'a_id', 300);
-select publish_listing(:'a_id', 'front');
+select test_yayinla(:'a_id', 300);
 select bekle_esit('önce yayında', (select status from products where id = :'a_id'), 'ACTIVE');
 select delete_listing(:'a_id');
 select bekle_esit('yayındaki ilan REMOVED oldu',
@@ -86,8 +86,7 @@ reset role;
 update product_photos set moderation_status = 'approved' where product_id = :'k_id';
 set session role authenticated;
 select set_config('test.uid', :'s', false);
-select test_degerle(:'k_id', 300);
-select publish_listing(:'k_id', 'front');
+select test_yayinla(:'k_id', 300);
 reset role;
 -- Alıcının cüzdanı boş; takas puanı havuza alamadan açılmıyor.
 select available_points from earn_points(:'y', 1000, 'test:silme');
@@ -120,8 +119,7 @@ reset role;
 update product_photos set moderation_status = 'approved' where product_id = :'c_id';
 set session role authenticated;
 select set_config('test.uid', :'s', false);
-select test_degerle(:'c_id', 300);
-select publish_listing(:'c_id', 'front');
+select test_yayinla(:'c_id', 300);
 
 -- Yabancı kullanıcı ilanı sepetine ve favorilerine ekliyor.
 select set_config('test.uid', :'y', false);

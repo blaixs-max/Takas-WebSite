@@ -68,20 +68,19 @@ select category, sub_category, status from products where id = :'a_id';
 \echo 'BEKLENEN: Oyun & Oyuncak | (boş) | DRAFT'
 
 \echo ''
-\echo '=== 7) ...ama yayına alınamaz ==='
+\echo '=== 7) ...ama onaya gönderilemez ==='
 -- Kapı alt kategoriyi karelerden ÖNCE denetler: kare olmadan da doğru hatayı
 -- vermeli, yoksa kullanıcı eksik kare sanıp fotoğraf çekmeye giderdi.
 do $$
 declare pid text;
 begin
   select deger into pid from t_kat where ad = 'ilan';
-  perform test_degerle(pid);
-  perform publish_listing(pid, 'front');
-  raise notice 'SONUÇ: HATA — alt kategorisiz ilan yayına girdi';
+  perform submit_listing(pid);
+  raise notice 'SONUÇ: HATA — alt kategorisiz ilan onaya gitti';
 exception when others then
   raise notice 'SONUÇ: doğru — reddedildi (%)', sqlerrm;
 end $$;
-\echo 'BEKLENEN: alt kategori seçilmeden ilan yayına alınamaz'
+\echo 'BEKLENEN: alt kategori seçilmeden ilan onaya gönderilemez'
 
 \echo ''
 \echo '=== 8) set_listing_category taslakta düzeltir ==='
@@ -106,9 +105,8 @@ do $$
 declare pid text;
 begin
   select deger into pid from t_kat where ad = 'ilan';
-  perform test_degerle(pid);
-  perform publish_listing(pid, 'front');
-  raise notice 'SONUÇ: HATA — karesiz ilan yayına girdi';
+  perform submit_listing(pid);
+  raise notice 'SONUÇ: HATA — karesiz ilan onaya gitti';
 exception when others then
   raise notice 'SONUÇ: doğru — reddedildi (%)', sqlerrm;
 end $$;

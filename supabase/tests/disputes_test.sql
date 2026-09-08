@@ -13,6 +13,7 @@ insert into auth.users (id, email, raw_user_meta_data)
 values (:'s', 'iade-satici@example.com', '{"full_name":"Zeynep Demir"}'::jsonb),
        (:'b', 'iade-alici@example.com',  '{"full_name":"Ali Kaya"}'::jsonb)
 on conflict (id) do nothing;
+select test_adres(:'b');
 
 select available_points as alici_baslangic
   from earn_points(:'b', 5000, 'test:iade-alici-bakiye');
@@ -26,8 +27,7 @@ begin
   insert into product_photos (product_id, slot, storage_path, moderation_status)
   select pid, s, sid || '/' || pid || '/' || s || '.jpg', 'approved'
     from unnest(array['front','back','left','right','label']::photo_slot[]) s;
-  perform test_degerle(pid);
-  perform publish_listing(pid, 'front');
+  perform test_yayinla(pid);
   return pid;
 end; $$;
 

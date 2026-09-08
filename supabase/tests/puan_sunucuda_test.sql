@@ -1,12 +1,14 @@
--- ELDENELE — Puan sunucuda, yayın kapısı değerleme istiyor
+-- ELDENELE — Puan sunucuda, ve onu yönetici belirliyor
 --
--- Kritik iddia 1: `create_listing` artık puan **kabul etmiyor**. Eski imza
+-- Kritik iddia 1: `create_listing` puan **kabul etmiyor**. Eski imza
 -- düşürülmeseydi PostgreSQL aşırı yükleme yapar, güncel olmayan istemci
 -- eskisini çağırmaya devam eder ve hiçbir şey değişmezdi.
 --
--- Kritik iddia 4: değerlenmemiş ilan yayına giremez. Bu, bütün turun sebebi —
--- puanı olmayan bir ilanı rafa koymak, kapalı devrede alıcının belirsiz
--- miktarda puan ödemesi demek.
+-- Kritik iddia 3: puansız onay yok. Yöneticinin "onayla"ya basıp fiyat
+-- girmeyi unutması, değeri belirsiz bir ilanı rafa koymak olurdu.
+--
+-- Kritik iddia 7: onay gövdesi istemciye kapalı. Puanı yazabilen istemci,
+-- puanı seçebilen istemcidir.
 
 \set s 'dd44dd44-0000-0000-0000-00000000a001'
 
@@ -17,13 +19,26 @@ values (:'s', 'deger-satici@example.com', '+905555550001', now(),
         '{"full_name":"Deniz Kaya"}'::jsonb)
 on conflict (id) do nothing;
 
+-- Onaya hazır ilan: dört kare yüklü, satıcı onaya göndermiş. Onayı iç gövdeyle
+-- (`ilan_onayla`) yetkili rolde çağırıyoruz; yönetici yetkisinin kendi testi var.
+create or replace function pg_temp.onaya_hazir(p_baslik text, p_kondisyon text)
+returns text language plpgsql security definer as $$
+declare pid text; sid text := 'dd44dd44-0000-0000-0000-00000000a001';
+begin
+  perform set_config('test.uid', sid, false);
+  select id into pid from create_listing(p_baslik, 'Oyun & Oyuncak', p_kondisyon, 'S', p_sub_category => 'Yapı & inşa');
+  insert into product_photos (product_id, slot, storage_path)
+  select pid, s, sid || '/' || pid || '/' || s || '.jpg'
+    from unnest(array['front','back','left','right']::photo_slot[]) s;
+  perform submit_listing(pid);
+  return pid;
+end; $$;
+
 set session role authenticated;
 select set_config('test.uid', :'s', false);
 
 \echo ''
 \echo '=== 1) ESKİ İMZA YOK ==='
--- Puanlı çağrı artık bulunmamalı. Bulunursa güncel olmayan istemci eski yolu
--- kullanmaya devam eder ve denetim hiç devreye girmez.
 select bekle('puanı istemciden alan eski imza düşürüldü',
              (select count(*) = 0
                 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -39,160 +54,109 @@ select bekle_esit('ilan puansız doğar', :'y_puan_bos'::text, 't');
 select bekle_esit('ilan değerlemesiz doğar', :'y_degerleme_yok'::text, 't');
 
 \echo ''
-\echo '=== 3) Kareler tamam ama değerleme yok — YAYIN REDDEDİLİR ==='
+\echo '=== 3) PUANSIZ ONAY YOK ==='
 reset role;
-insert into product_photos (product_id, slot, storage_path, moderation_status)
-select :'y_id', s, :'s' || '/' || :'y_id' || '/' || s || '.jpg', 'approved'
-  from unnest(array['front','back','left','right']::photo_slot[]) s;
-set session role authenticated;
-select set_config('test.uid', :'s', false);
+select pg_temp.onaya_hazir('Fiyatsız onay', 'İyi durumda') as pid \gset f_
+select set_config('test.pid', :'f_pid', false);
 do $$
-declare pid text;
+declare pid text := current_setting('test.pid');
 begin
-  select id into pid from products where title = 'Ahşap tren seti';
-  perform publish_listing(pid, 'front');
-  raise notice 'SONUÇ: HATA — değerlenmemiş ilan yayına girdi';
+  perform ilan_onayla(pid, null, null, 'front', null);
+  raise notice 'SONUÇ: HATA — fiyatsız ve puansız onay geçti';
 exception when others then
   raise notice 'SONUÇ: doğru — engellendi (%)', sqlerrm;
 end $$;
-\echo 'BEKLENEN: "ilan henüz değerlenmedi" ile engellendi'
+select bekle_esit('ilan incelemede kaldı',
+                  (select status from products where id = :'f_pid'), 'IN_REVIEW');
 
 \echo ''
-\echo '=== 4) DEĞERLEME YAZILINCA PUAN ÇIKIYOR ==='
-reset role;
-select points, sifir_fiyat, degerleme_guven
-  from degerleme_yaz(:'y_id', 1599, 'trendyol.com/superman-figur', 0.86, 'gemini-3.7-flash') \gset d_
+\echo '=== 4) SIFIR FİYATLA ONAY: FORMÜL PUANI HESAPLAR ==='
+select pg_temp.onaya_hazir('Süperman figürü', 'İyi durumda') as pid \gset sp_
+select points, sifir_fiyat, degerleme_kaynak, status
+  from ilan_onayla(:'sp_pid', 1599, null, 'front', null) \gset o_
 -- 1599 × %57 = 910. Sabit sayı bilerek: formül değişirse bu test düşmeli.
--- 2026-08-18'de katsayı 0.62 → 0.57 indi ve iddia doğru biçimde düştü.
-select bekle_esit('İyi durumda oranı puanı doğru veriyor', :d_points, 910);
+select bekle_esit('İyi durumda oranı puanı doğru veriyor', :o_points, 910);
+select bekle_esit('sıfır fiyatı saklanır', :o_sifir_fiyat::numeric, 1599::numeric);
+select bekle_esit('kaynak yönetici', :'o_degerleme_kaynak'::text, 'admin');
+select bekle_esit('ilan yayında', :'o_status'::text, 'ACTIVE');
+select bekle('kareler onaylandı',
+             (select count(*) = 0 from product_photos
+               where product_id = :'sp_pid' and moderation_status <> 'approved'));
 
 \echo ''
-\echo '=== 5) Değerlemeden sonra yayın geçiyor ==='
-set session role authenticated;
-select set_config('test.uid', :'s', false);
-select status from publish_listing(:'y_id', 'front') \gset p_
-select bekle_esit('değerlenmiş ilan yayına girer', :'p_status'::text, 'ACTIVE');
+\echo '=== 5) ELLE PUAN: FORMÜL DEVRE DIŞI, TAVAN YOK ==='
+-- Yönetici sayıyı kendisi yazarsa o yazılır. Tavan bilerek yok: platform her
+-- fiyat aralığındaki ürüne açık ve kararı veren zaten insan.
+select pg_temp.onaya_hazir('Çok pahalı şey', 'Yeni gibi') as pid \gset b_
+select points from ilan_onayla(:'b_pid', 100000, 74000, 'front', null) \gset x_
+select bekle_esit('elle yazılan puan aynen', :x_points, 74000);
+select bekle_esit('yüksek puanlı ilan yayına girer',
+                  (select status from products where id = :'b_pid'), 'ACTIVE');
+select pg_temp.onaya_hazir('Formülü ezen', 'İyi durumda') as pid \gset e_
+select points from ilan_onayla(:'e_pid', 1599, 1200, 'front', null) \gset ez_
+select bekle_esit('elle puan formülün önüne geçer (910 değil 1200)', :ez_points, 1200);
 
 \echo ''
-\echo '=== 6) FİYAT BULUNAMAYAN İLAN YAYINA GİREMEZ ==='
--- Model ürünü tanıyamazsa `puan_hesapla` null döner. O ilan taslakta kalmalı;
--- aksi hâlde değeri belirsiz bir şey rafa çıkardı.
-select id from create_listing('Tanınmayan nesne', 'Oyun & Oyuncak', 'İyi durumda', 'M',
-                              p_sub_category => 'Yapı & inşa') \gset t_
-reset role;
-insert into product_photos (product_id, slot, storage_path, moderation_status)
-select :'t_id', s, :'s' || '/' || :'t_id' || '/' || s || '.jpg', 'approved'
-  from unnest(array['front','back','left','right']::photo_slot[]) s;
-select points is null as puan_yok from degerleme_yaz(:'t_id', null, 'bulunamadı', 0.10, 'gemini-3.7-flash');
-set session role authenticated;
-select set_config('test.uid', :'s', false);
+\echo '=== 6) Sıfır elle puan reddedilir ==='
+select pg_temp.onaya_hazir('Sıfır puan', 'İyi durumda') as pid \gset z_
+select set_config('test.pid', :'z_pid', false);
 do $$
-declare pid text;
+declare pid text := current_setting('test.pid');
 begin
-  select id into pid from products where title = 'Tanınmayan nesne';
-  perform publish_listing(pid, 'front');
-  raise notice 'SONUÇ: HATA — puansız ilan yayına girdi';
+  perform ilan_onayla(pid, null, 0, 'front', null);
+  raise notice 'SONUÇ: HATA — sıfır puanla onaylandı';
 exception when others then
   raise notice 'SONUÇ: doğru — engellendi (%)', sqlerrm;
 end $$;
-\echo 'BEKLENEN: "piyasa değeri bulunamadı" ile engellendi'
+select bekle_esit('sıfır puan denemesi ilanı incelemede bıraktı',
+                  (select status from products where id = :'z_pid'), 'IN_REVIEW');
 
 \echo ''
-\echo '=== 7) TAVAN YOKKEN YÜKSEK PUAN YAYINA GİRER ==='
--- 2026-08-17'de tavan kaldırıldı: platform her fiyat aralığındaki ürüne açık.
--- Önceden bu iddia tersineydi ve canlıda üç ilanı sessizce taslakta bıraktı;
--- kullanıcı sebebini bilemedi çünkü hiçbir kuyruğa da düşmüyorlardı.
-select id from create_listing('Çok pahalı şey', 'Oyun & Oyuncak', 'Yeni gibi', 'M',
-                              p_sub_category => 'Yapı & inşa') \gset b_
-reset role;
-insert into product_photos (product_id, slot, storage_path, moderation_status)
-select :'b_id', s, :'s' || '/' || :'b_id' || '/' || s || '.jpg', 'approved'
-  from unnest(array['front','back','left','right']::photo_slot[]) s;
-select points from degerleme_yaz(:'b_id', 100000, 'pahalı ürün', 0.90, 'gemini-3.7-flash') \gset x_
-set session role authenticated;
-select set_config('test.uid', :'s', false);
-select bekle_esit('100.000 TL × %74 = 74.000 puan', :x_points, 74000);
-select publish_listing(:'b_id', 'front');
-select bekle_esit('tavan yokken yüksek puanlı ilan yayına girer',
-                  (select status from products where id = :'b_id'), 'ACTIVE');
+\echo '=== 7) ONAY GÖVDESİ İSTEMCİYE KAPALI ==='
+select bekle('ilan_onayla authenticated''a kapalı',
+             not has_function_privilege('authenticated',
+               'public.ilan_onayla(text, numeric, integer, public.photo_slot, uuid)', 'execute'));
+select bekle('ilan_onayla anon''a kapalı',
+             not has_function_privilege('anon',
+               'public.ilan_onayla(text, numeric, integer, public.photo_slot, uuid)', 'execute'));
+select bekle('set_product_points istemciye kapandı',
+             not has_function_privilege('authenticated',
+               'public.set_product_points(text, integer)', 'execute'));
+select bekle('publish_listing istemciye kapandı',
+             not has_function_privilege('authenticated',
+               'public.publish_listing(text, public.photo_slot)', 'execute'));
 
 \echo ''
-\echo '=== 7b) TAVAN KONULURSA MEKANİZMA HÂLÂ ÇALIŞIR ==='
--- Tavan bugün null ama kod yolu duruyor. Biri ileride sınır koyarsa
--- çalıştığından emin olalım — ölü bir kontrol, olmayan kontrolden kötüdür
--- çünkü var sanılır.
-reset role;
-update valuation_settings set tavan_puan = 5000 where id = 1;
-select id from create_listing('Tavanlı deneme', 'Oyun & Oyuncak', 'Yeni gibi', 'M',
-                              p_sub_category => 'Yapı & inşa') \gset t_
-insert into product_photos (product_id, slot, storage_path, moderation_status)
-select :'t_id', s, :'s' || '/' || :'t_id' || '/' || s || '.jpg', 'approved'
-  from unnest(array['front','back','left','right']::photo_slot[]) s;
-select points from degerleme_yaz(:'t_id', 100000, 'pahalı ürün', 0.90, 'gemini-3.7-flash') \gset y_
-set session role authenticated;
-select set_config('test.uid', :'s', false);
-do $$
-declare pid text;
-begin
-  select id into pid from products where title = 'Tavanlı deneme';
-  perform publish_listing(pid, 'front');
-  raise notice 'SONUÇ: HATA — tavan varken bant dışı puan yayına girdi';
-exception when others then
-  raise notice 'SONUÇ: doğru — engellendi (%)', sqlerrm;
-end $$;
-select bekle_esit('tavan varken ilan taslakta kalır',
-                  (select status from products where id = :'t_id'), 'DRAFT');
--- Tavanı geri kaldır: sonraki testler bugünkü ayarla koşmalı. Doğrulama rol
--- değişmeden yapılıyor — `valuation_settings` authenticated'e kapalı ve
--- kapalı olması doğru: puan ayarlarını okuyabilen istemci, ekonomiyi
--- okuyabilen istemcidir.
-reset role;
-update valuation_settings set tavan_puan = null where id = 1;
-select bekle('tavan yeniden kaldırıldı',
-             (select tavan_puan is null from valuation_settings where id = 1));
-set session role authenticated;
-select set_config('test.uid', :'s', false);
-
-\echo ''
-\echo '=== 8) degerleme_yaz istemciye kapalı ==='
-reset role;
-select has_function_privilege('authenticated', p.oid, 'execute') as authenticated,
-       has_function_privilege('anon', p.oid, 'execute') as anon
-  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
- where n.nspname = 'public' and p.proname = 'degerleme_yaz';
-\echo 'BEKLENEN: ikisi de f — puanı yazabilen istemci, puanı seçebilir demektir'
-
-\echo ''
-\echo '=== 9) TABAN UYGULANINCA İŞARETLENİR ==='
+\echo '=== 8) TABAN UYGULANINCA İŞARETLENİR ==='
 -- Taban (50) bir kelepçe: hesaplanan puan altında kalırsa sessizce yükseltir.
 -- Satıcı ilanının neden 50 puan dediğini bilmeli, yoksa rakam keyfî görünür.
--- İşaret puanın 50 olmasından çıkarılamaz — 80 TL'lik ürün de tam 50 eder ama
--- orada yükseltme yoktur; ayrımı yapan tek şey bu kolon.
-reset role;
-select id from create_listing('Ucuz oyuncak', 'Oyun & Oyuncak', 'İyi durumda', 'S',
-                              p_sub_category => 'Yapı & inşa') \gset u_
-select points from degerleme_yaz(:'u_id', 25, 'test', 0.9, 'test') \gset uc_
+select pg_temp.onaya_hazir('Ucuz oyuncak', 'İyi durumda') as pid \gset u_
+select points from ilan_onayla(:'u_pid', 25, null, 'front', null) \gset uc_
 select bekle_esit('25 TL tabana yükseltilir', :uc_points, 50);
 select bekle('taban işareti konur',
-             (select taban_uygulandi from products where id = :'u_id'));
+             (select taban_uygulandi from products where id = :'u_pid'));
 
 \echo ''
-\echo '=== 9b) TAM TABANDA İŞARET KONMAZ ==='
--- 80 TL × %62 = 49,6 → 50. Yuvarlamayla tabana ulaşıyor, yükseltilmiyor.
-select id from create_listing('Tam tabanda', 'Oyun & Oyuncak', 'İyi durumda', 'S',
-                              p_sub_category => 'Yapı & inşa') \gset tt_
-select points from degerleme_yaz(:'tt_id', 81, 'test', 0.9, 'test') \gset tp_
-select bekle_esit('81 TL zaten 50 puan eder', :tp_points, 50);
+\echo '=== 8b) KELEPÇESİZ TAM 50''DE İŞARET KONMAZ ==='
+-- 88 TL × 0,57 = 50,16 → 50. Tabana yuvarlamayla ulaşıyor, yükseltilmiyor.
+select pg_temp.onaya_hazir('Tam tabanda', 'İyi durumda') as pid \gset tt_
+select points from ilan_onayla(:'tt_pid', 88, null, 'front', null) \gset tp_
+select bekle_esit('88 TL zaten 50 puan eder', :tp_points, 50);
 select bekle('yükseltme olmadığı için işaret konmaz',
-             (select not taban_uygulandi from products where id = :'tt_id'));
+             (select not taban_uygulandi from products where id = :'tt_pid'));
 
 \echo ''
-\echo '=== 9c) TABAN ÜSTÜ ÜRÜNDE İŞARET YOK ==='
-select id from create_listing('Normal ürün', 'Oyun & Oyuncak', 'İyi durumda', 'S',
-                              p_sub_category => 'Yapı & inşa') \gset n_
-select points from degerleme_yaz(:'n_id', 1000, 'test', 0.9, 'test') \gset np_
+\echo '=== 8c) Elle puanda taban işareti hiç konmaz ==='
+select pg_temp.onaya_hazir('Elle elli', 'İyi durumda') as pid \gset el_
+select points from ilan_onayla(:'el_pid', 25, 50, 'front', null) \gset elp_
+select bekle_esit('elle 50', :elp_points, 50);
+select bekle('elle puanda işaret yok — yönetici sayıyı kendisi seçti',
+             (select not taban_uygulandi from products where id = :'el_pid'));
+
+\echo ''
+\echo '=== 9) TABAN ÜSTÜ ÜRÜNDE İŞARET YOK ==='
+select pg_temp.onaya_hazir('Normal ürün', 'İyi durumda') as pid \gset n_
+select points from ilan_onayla(:'n_pid', 1000, null, 'front', null) \gset np_
 select bekle_esit('1000 TL × %57 = 570 puan', :np_points, 570);
 select bekle('taban devreye girmedi',
-             (select not taban_uygulandi from products where id = :'n_id'));
-set session role authenticated;
-select set_config('test.uid', :'s', false);
+             (select not taban_uygulandi from products where id = :'n_pid'));

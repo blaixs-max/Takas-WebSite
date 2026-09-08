@@ -1,6 +1,6 @@
 -- KIDS TRADE — Bildirim kuyruğu testleri
 --
--- Kritik iddialar: 4 (teslimat bildirimi gerçekten gidiyor — 48 saatlik sayacın
+-- Kritik iddialar: 4 (teslimat bildirimi gerçekten gidiyor — onay sayacının
 -- anlamı buna bağlı), 7 (kimse başkasının bildirimini göremez) ve 8 (okundu
 -- işaretlemek başkasının kaydına dokunamaz).
 
@@ -15,6 +15,7 @@ values (:'s', 'bildirim-satici@example.com', '+905557770001', now(),
        (:'b', 'bildirim-alici@example.com',  '+905557770002', now(),
         '{"full_name":"Ali Kaya"}'::jsonb)
 on conflict (id) do nothing;
+select test_adres(:'b');
 
 select available_points from earn_points(:'b', 3000, 'test:bildirim-alici-bakiye');
 
@@ -27,8 +28,7 @@ begin
   insert into product_photos (product_id, slot, storage_path, moderation_status)
   select pid, s, sid || '/' || pid || '/' || s || '.jpg', 'approved'
     from unnest(array['front','back','left','right','label']::photo_slot[]) s;
-  perform test_degerle(pid);
-  perform publish_listing(pid, 'front');
+  perform test_yayinla(pid);
   return pid;
 end; $$;
 
@@ -59,7 +59,7 @@ select kind from notifications where user_id = :'s' and kind = 'trade.created';
 update trades set status = 'SHIPPED' where id = :'t1_id';
 select status from mark_delivered(:'t1_id');
 select body from notifications where user_id = :'b' and kind = 'trade.delivered';
-\echo 'BEKLENEN: 48 saat uyarısını içeren metin alıcıya gitti'
+\echo 'BEKLENEN: onay çağrısı içeren metin alıcıya gitti'
 
 \echo ''
 \echo '=== 5) Kargo bildirimi iki tarafa da gider ==='

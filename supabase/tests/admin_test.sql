@@ -15,6 +15,7 @@ values (:'a', 'yonetici@example.com', '{"full_name":"Yönetici Kişi"}'::jsonb),
        (:'s', 'admin-satici@example.com', '{"full_name":"Zeynep Demir"}'::jsonb),
        (:'b', 'admin-alici@example.com',  '{"full_name":"Ali Kaya"}'::jsonb)
 on conflict (id) do nothing;
+select test_adres(:'b');
 
 insert into admins (user_id, note) values (:'a', 'test yöneticisi')
 on conflict (user_id) do nothing;
@@ -93,8 +94,7 @@ select count(*) as onaylanan from (
   select admin_moderate_photo(id, true) from product_photos where product_id = :'p1_pid'
 ) x;
 select set_config('test.uid', :'s', false);
-select test_degerle(:'p1_pid');
-select status from publish_listing(:'p1_pid', 'front');
+select test_yayinla(:'p1_pid');
 \echo 'BEKLENEN: 5 onaylandı, ACTIVE'
 
 \echo ''
@@ -106,8 +106,7 @@ select id as pid from create_listing('Pahalı ürün', 'Oyun & Oyuncak', 'İyi d
 insert into product_photos (product_id, slot, storage_path, moderation_status)
 select :'p2_pid', s, :'s' || '/' || :'p2_pid' || '/' || s || '.jpg', 'approved'
   from unnest(array['front','back','left','right','label']::photo_slot[]) s;
-select test_degerle(:'p2_pid');
-select status from publish_listing(:'p2_pid', 'front');
+select test_yayinla(:'p2_pid');
 set session role authenticated;
 select set_config('test.uid', :'b', false);
 select id from create_trade(:'p2_pid', :'b') \gset t2_

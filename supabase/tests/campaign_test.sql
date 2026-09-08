@@ -34,8 +34,7 @@ begin
   insert into product_photos (product_id, slot, storage_path, moderation_status)
   select pid, s, p_sahip || '/' || pid || '/' || s || '.jpg', 'approved'
     from unnest(array['front','back','left','right','label']::photo_slot[]) s;
-  perform test_degerle(pid);
-  perform publish_listing(pid, 'front');
+  perform test_yayinla(pid);
   return pid;
 end; $$;
 
@@ -79,6 +78,7 @@ insert into auth.users (id, email, phone, phone_confirmed_at)
 values ('a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1', 'kampanya-alici@example.com',
         '+905551119999', now())
 on conflict (id) do nothing;
+select test_adres('a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1');
 select available_points from earn_points('a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1', 3000,
                                          'test:kampanya-alici-bakiye');
 set session role authenticated;

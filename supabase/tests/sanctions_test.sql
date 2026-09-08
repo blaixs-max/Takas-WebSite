@@ -18,6 +18,7 @@ values (:'s', 'ceza-satici@example.com', '+905554440001', now(),
         '{"full_name":"Ali Kaya"}'::jsonb),
        (:'y', 'ceza-yonetici@example.com', '+905554440003', now(), '{}'::jsonb)
 on conflict (id) do nothing;
+select test_adres(:'b');
 
 insert into admins (user_id, note) values (:'y', 'yaptırım testi')
 on conflict (user_id) do nothing;
@@ -33,8 +34,7 @@ begin
   insert into product_photos (product_id, slot, storage_path, moderation_status)
   select pid, s, sid || '/' || pid || '/' || s || '.jpg', 'approved'
     from unnest(array['front','back','left','right','label']::photo_slot[]) s;
-  perform test_degerle(pid);
-  perform publish_listing(pid, 'front');
+  perform test_yayinla(pid);
   return pid;
 end; $$;
 
@@ -197,8 +197,7 @@ select id as pid from create_listing('Kapatma testi', 'Oyun & Oyuncak', 'İyi du
 insert into product_photos (product_id, slot, storage_path, moderation_status)
 select :'pk_pid', s, :'s' || '/' || :'pk_pid' || '/' || s || '.jpg', 'approved'
   from unnest(array['front','back','left','right','label']::photo_slot[]) s;
-select test_degerle(:'pk_pid');
-select status from publish_listing(:'pk_pid', 'front');
+select test_yayinla(:'pk_pid');
 do $$
 declare pid text;
 begin

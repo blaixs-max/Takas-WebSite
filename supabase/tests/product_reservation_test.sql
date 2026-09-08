@@ -8,6 +8,8 @@
 
 \echo ''
 \echo '=== Hazırlık: iki alıcıya puan, satıcıya bir ilan ==='
+select test_adres(:'b1');
+select test_adres(:'b2');
 select available_points from earn_points(:'b1', 1000, 'test:b1');
 select available_points from earn_points(:'b2', 1000, 'test:b2');
 insert into products (id, title, points, ai_suggested_points, condition, category,

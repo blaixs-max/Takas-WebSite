@@ -52,13 +52,13 @@ select puan_hesapla(1599, 'İyi durumda', true, 1.0) < puan_hesapla(1599, 'İyi 
 \echo ''
 \echo '=== 6) Taban uygulanıyor, tavan KIRPILMIYOR ==='
 -- Taban: çok ucuz ürün sıfır puana yuvarlanmasın.
--- Tavan: kırpmak, 50.000'lik bir hatayı sessizce 5.000 yapıp geçirmek olurdu.
--- Bant dışı değer olduğu gibi dönüyor ve çağıran onu insan onayına düşürüyor.
-select puan_hesapla(10, 'İyi durumda') as ucuz,
-       puan_hesapla(10, 'İyi durumda') >= 50 as taban_var,
-       puan_hesapla(100000, 'Yeni gibi') as pahali,
-       puan_bandi_disinda(puan_hesapla(100000, 'Yeni gibi')) as bant_disi_isaretlendi;
-\echo 'BEKLENEN: taban_var = t, bant_disi_isaretlendi = t (kırpılmadı, işaretlendi)'
+-- Tavan: yok. Kırpmak, 50.000'lik bir hatayı sessizce 5.000 yapıp geçirmek
+-- olurdu. Puanı zaten bir insan (yönetici) onaylıyor; bant kontrolü
+-- (`puan_bandi_disinda`) 2026-09-08'de kalktı.
+select bekle('taban: çok ucuz ürün 50 puanın altına düşmez',
+             puan_hesapla(10, 'İyi durumda') >= 50);
+select bekle_esit('tavan yok: 100.000 TL × %74 olduğu gibi döner',
+                  puan_hesapla(100000, 'Yeni gibi'), 74000);
 
 \echo ''
 \echo '=== 7) AYARLAR VE FORMÜL İSTEMCİYE KAPALI ==='
@@ -72,9 +72,9 @@ select p.proname,
        has_function_privilege('anon', p.oid, 'execute') as anon
   from pg_proc p join pg_namespace n on n.oid = p.pronamespace
  where n.nspname = 'public'
-   and p.proname in ('puan_hesapla','puan_bandi_disinda','admin_degerleme_ayarla')
+   and p.proname in ('puan_hesapla','admin_degerleme_ayarla','admin_puan_hesapla')
  order by p.proname;
-\echo 'BEKLENEN: yalnızca admin_degerleme_ayarla authenticated = t; anon her yerde f'
+\echo 'BEKLENEN: admin_* authenticated = t (içinde is_admin kontrolü var), puan_hesapla f; anon her yerde f'
 
 \echo ''
 \echo '=== 8) Ayar değişince puan değişiyor ==='

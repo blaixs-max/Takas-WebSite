@@ -27,10 +27,9 @@ select :'a_id', s, :'s' || '/' || :'a_id' || '/' || s || '.jpg'
   from unnest(array['front','back','left','right']::photo_slot[]) s;
 reset role;
 update product_photos set moderation_status = 'approved' where product_id = :'a_id';
-select test_degerle(:'a_id', 900);
 set session role authenticated;
 select set_config('test.uid', :'s', false);
-select publish_listing(:'a_id', 'front');
+select test_yayinla(:'a_id', 900);
 select set_config('test.pid', :'a_id', false);
 select bekle_esit('ilan yayında', (select status from products where id = :'a_id'), 'ACTIVE');
 

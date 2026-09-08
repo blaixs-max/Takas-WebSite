@@ -40,6 +40,65 @@ end; $$;
 grant execute on function public.test_degerle(text, integer) to authenticated;
 
 -- ============================================================================
+-- Test yardımcısı: ilanı yönetici onayından geçirip yayına al
+-- ============================================================================
+--
+-- 2026-09-08'den beri satıcı ilanı yayına alamıyor; yönetici onaylıyor
+-- (`docs/plan-elle-onay-2026-09.md`). On sekiz test "ilan aç, yayına al,
+-- konuya geç" desenindeydi ve hepsi `publish_listing` çağırıyordu. Bu yardımcı
+-- o deseni tek satırda koruyor: taslağı incelemeye alır, iç onay gövdesini
+-- (`ilan_onayla`) verilen puanla çağırır. Yönetici kimliği kurmaz — yetki
+-- kontrolünün kendi testi var (`elle_onay_test.sql`).
+--
+-- `security definer` şart: `ilan_onayla` istemci rollerine kapalı; yardımcı
+-- sahibinin (postgres) yetkisiyle çalışmalı ki `authenticated` rolündeki bir
+-- testten de çağrılabilsin.
+create or replace function public.test_yayinla(p_product_id text, p_puan integer default 300)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  perform set_config('kt.bypass_product_guard', 'on', true);
+  update public.products
+     set status = 'IN_REVIEW', submitted_at = now()
+   where id = p_product_id and status = 'DRAFT';
+  perform set_config('kt.bypass_product_guard', 'off', true);
+
+  /* Sıfır fiyatı da puan olarak yazılıyor — `test_degerle` da öyle yapıyordu
+     ve birkaç test `sifir_fiyat is not null` diye bakıyor. Elle puan verildiği
+     için formül devreye girmiyor; puan tam olarak istenen sayı oluyor. */
+  perform public.ilan_onayla(p_product_id, p_puan, p_puan, 'front', null);
+end; $$;
+grant execute on function public.test_yayinla(text, integer) to authenticated;
+
+-- ============================================================================
+-- Test yardımcısı: kullanıcıya varsayılan teslimat adresi
+-- ============================================================================
+--
+-- 2026-09-08'den beri `create_trade` adres istiyor: satıcı ürünü bir yere
+-- göndermek zorunda. On takas testi alıcıyı adres defteri olmadan kuruyordu.
+-- Bu yardımcı bir varsayılan adres ekler; kullanıcı `auth.users`ta yoksa onu da
+-- açar (adres tablosunun yabancı anahtarı var ve bazı testler alıcıyı başka
+-- bir dosyanın açmış olmasına güveniyor).
+create or replace function public.test_adres(p_user uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into auth.users (id, email) values (p_user, p_user::text || '@test.example')
+  on conflict (id) do nothing;
+  insert into public.addresses (user_id, baslik, ad_soyad, telefon, il, ilce, acik_adres, varsayilan)
+  select p_user, 'Ev', 'Test Alıcı', '+905550000000', 'İstanbul', 'Kadıköy',
+         'Test Mah. Deneme Sk. No:1', true
+   where not exists (select 1 from public.addresses a where a.user_id = p_user);
+end; $$;
+grant execute on function public.test_adres(uuid) to authenticated;
+
+-- ============================================================================
 -- İddia yardımcıları — testler kendi kendini denetlesin
 -- ============================================================================
 --

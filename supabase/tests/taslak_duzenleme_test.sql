@@ -110,8 +110,7 @@ select set_config('test.uid', :'s', false);
 insert into product_photos (product_id, slot, storage_path, moderation_status)
 select :'d_id', s, :'s' || '/' || :'d_id' || '/' || s || '.jpg', 'approved'
   from unnest(array['front','back','left','right']::photo_slot[]) s;
-select test_degerle(:'d_id', 700);
-select publish_listing(:'d_id', 'front');
+select test_yayinla(:'d_id', 700);
 select status = 'ACTIVE' as yayinda from products where id = :'d_id';
 do $$
 declare pid text;
