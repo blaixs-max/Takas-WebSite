@@ -3,48 +3,32 @@
 # Bu dosya olmadan JWT muafiyeti dağıtım komutundaki bir bayrağa bağlıydı
 # (`--no-verify-jwt`). Bir sonraki dağıtımda unutulduğunda iyzico callback'i
 # 401 alıp ödeme akışı sessizce kırılırdı. Karar artık repoda yazılı.
+#
+# 2026-09-08: dört uç emekli edildi ve girdileri buradan kalktı —
+# `photo-check`, `listing-value`, `avatar-check` (üçü Gemini'ye giden yapay
+# zekâ denetimi; ilan ve avatar onayı artık yönetici panelinde insan
+# tarafından veriliyor) ve `cargo-payment-init` (alıcı artık kargo bedeli
+# ödemiyor, kargoyu satıcı kendi gönderiyor). Klasörleri de silindi; git
+# geçmişinde duruyorlar. Yayında birer 410 taslağı ile üstlerine yazıldı,
+# panelden kaldırılmaları bekleniyor.
+#
+# Buradan bir ders kalıyor ve yeni bir uç yazılırken geçerli: **`verify_jwt`
+# sahiplik doğrulamaz.** Yalnızca *birinin* giriş yaptığını kanıtlar, gelen
+# kimliğin çağırana ait olduğunu değil — ve fonksiyon `service_role` ile
+# çalıştığı için RLS de devrede olmaz. Sahiplik kontrolü fonksiyonun içinde
+# `auth.getUser()` ile yapılır; `verify_jwt = true` onun yerine geçmez.
 
 project_id = "kids-trade"
-
-[functions.cargo-payment-init]
-# Çağıran oturumlu bir kullanıcı olmalı; fonksiyon ayrıca çağıranın takasın
-# alıcısı olduğunu kendi içinde doğrular.
-verify_jwt = true
 
 [functions.iyzico-callback]
 # iyzico bir Supabase oturumu taşıyamaz; bu uç JWT'siz olmak ZORUNDA.
 # Güvenlik iki şeye dayanır: token'ın gizliliği ve sonucun iyzico'ya
 # RETRIEVE ile doğrulanması. Gövdeye asla güvenilmez.
+#
+# 2026-09-08'den beri takasa dokunmuyor; kredi kartıyla puan satışı için
+# yuva (nereden satılacağı kararlaştırılmadı). Bkz. fonksiyonun başındaki not.
 verify_jwt = false
-
-[functions.photo-check]
-# Kareyi yükleyen kullanıcı çağırır; oturum zorunlu.
-#
-# DİKKAT: bu satır tek başına yetmiyor ve bir tur boyunca yettiği sanıldı.
-# verify_jwt yalnızca *birinin* giriş yaptığını kanıtlar, gelen photoId'nin
-# sahibi olduğunu değil — üstelik fonksiyon service_role ile çalıştığı için
-# RLS de devrede değil. Sahiplik kontrolü fonksiyonun içinde, auth.getUser()
-# ile çözülen çağıranın products.seller_id ile karşılaştırılmasıyla yapılıyor.
-# İkisi birden gerekli; bu satırı kaldırmak kimliği tamamen düşürür.
-verify_jwt = true
-
-[functions.avatar-check]
-# Profil fotoğrafını yükleyen kullanıcı çağırır; oturum zorunlu.
-#
-# Burada ayrıca bir sahiplik kontrolü YOK ve bu bilinçli: fonksiyon gövdeden
-# bir kullanıcı kimliği almıyor, çağıranın kendi avatarına bakıyor.
-# photo-check'teki tuzak (verify_jwt "birisi giriş yaptı" der, "bu kayıt onun"
-# demez) burada oluşamıyor. Gövdeye bir userId alanı eklenirse OLUŞUR — o gün
-# sahiplik kontrolü de yazılmalı.
-verify_jwt = true
 
 [functions.send-sms]
 # Supabase Auth Hook'u çağırır; imza doğrulaması fonksiyonun içindedir.
 verify_jwt = false
-
-[functions.listing-value]
-# İlan sahibi çağırır; oturum zorunlu. Aynı uyarı photo-check'te olduğu gibi
-# burada da geçerli: verify_jwt yalnızca birinin giriş yaptığını kanıtlar,
-# bu ilanın sahibi olduğunu değil. Sahiplik kontrolü fonksiyonun içinde,
-# products.seller_id ile karşılaştırılarak yapılıyor. İkisi birden gerekli.
-verify_jwt = true

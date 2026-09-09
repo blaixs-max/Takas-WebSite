@@ -52,8 +52,8 @@ değildir, uygulama paketine zaten gömülür. `service_role` anahtarı repoda
 **Göçler ve testler yerelde koşturulabilir: `supabase/tests/kosu.sh`.**
 Temiz bir veri tabanı kurar, `00_yerel_kurulum.sql` ile Supabase'e özgü şeyleri
 (auth/storage/cron şemaları, üç rol, `auth.uid()`, **varsayılan yetkiler**)
-taklit eder, bütün göçleri uygular, sonra test paketini koşar. Bugün: 45 göç,
-23 test, sıfır hata.
+taklit eder, bütün göçleri uygular, sonra test paketini koşar. Bugün
+(2026-09-08): 63 göç, 31 test, 235 makine denetimli iddia, sıfır hata.
 
 **Betik "hata yok" derken sözdizimini kastediyor, iddiaları değil.** Sayaç
 psql'in hata verip vermediğine bakıyor; `BEKLENEN` satırları göz kararı
@@ -86,10 +86,14 @@ bir uygulama, ikiye bölünmüş bir dosya ister.
 **Yayında duran bir cümle, kodda kapatılmamış bir borç bırakamaz.**
 `/gizlilik/` "reddedilen kare anında silinir" diyor. Silme çağrısı düştüğünde
 kod yalnızca `console.error` yazıyordu: dosya depoda kalıyor, kimse bilmiyor
-ve yayındaki cümle sessizce yanlış hâle geliyordu. Artık borç satıra yazılıyor
-(`product_photos.deletion_pending_at`) ve her `photo-check` çağrısı en eski
-beşini yeniden deniyor. Kimsenin bakmadığı bir günlük satırı, kapatılmamış bir
-borçtur — bir vaadi tutan mekanizma, vaadin kendisi kadar görünür olmalı.
+ve yayındaki cümle sessizce yanlış hâle geliyordu. Borç satıra yazıldı
+(`product_photos.deletion_pending_at`) ve `photo-check` her çağrıda en eski
+beşini yeniden deniyordu. `photo-check` 2026-09-08'de emekli oldu; silme
+artık ret kararıyla birlikte yapılıyor (`admin_moderate_photo` sunucuda,
+avatar için `avatarKarari` istemcide) ve **yeniden deneyen kimse yok** —
+kolon duruyor, mekanizma yok. Kimsenin bakmadığı bir günlük satırı, kapatılmamış bir borçtur — bir
+vaadi tutan mekanizma, vaadin kendisi kadar görünür olmalı; bu borç cihaz
+turunda kapatılacak.
 
 **Edge Function'lar repodan otomatik yayına gitmiyor.** `supabase/functions/`
 altındaki dosyayı değiştirmek canlıyı değiştirmez; ayrıca deploy edilir ve
@@ -97,7 +101,92 @@ altındaki dosyayı değiştirmek canlıyı değiştirmez; ayrıca deploy edilir
 repodakiyle aynı mı, `get_edge_function` ile okunup doğrulanır — commit'in
 yeşil olması fonksiyonun güncel olduğu anlamına gelmez.
 
-## Değerleme (2026-08-16)
+## Elle onay ve satıcı kargosu (2026-09-08)
+
+Ürün akışı bu tarihte **yeniden kuruldu**; kararların tamamı ve gerekçeleri
+`docs/plan-elle-onay-2026-09.md` ile Ana Doküman v2.0'da
+(`docs/ana-dokuman.md`). Aşağıdaki "Değerleme", "Denetim: altı engel",
+"Metin denetimi", "Puan tavanı yok", "Bekleyen kare" bölümleri ve "Kritik iş
+kuralları"ndaki bazı maddeler **tarihsel** olarak işaretlendi — silinmedi,
+çünkü neden vazgeçildiği de bir karar.
+
+**Yapay zekâ tamamen kapalı.** `photo-check`, `listing-value`, `avatar-check`
+emekli: repodan silindi, yayında 410 döndüren taslaklarla üstlerine yazıldı
+(panelden silinmeleri ve `AI_VISION_*` / `AI_VALUE_*` sırlarının kaldırılması
+bekleniyor). Hiçbir kare, metin ya da avatar dışarıya gitmiyor. Neden
+vazgeçildi: canlıdaki sekiz reddin sekizi kadraj yüzündendi, denetimin
+varlık sebebi bir kez bile devreye girmedi; değerleme bir kez ürünü yanlış
+tanıyıp puanı yanlış basma riskini taşıyordu ve bu risk kapalı devrede
+basılmış para demek; ve gizlilik sayfası her yeni alanda "Google'a
+gönderilir" cümlesini güncellemek zorunda kalıyordu.
+
+**İlan yaşam döngüsü:** `DRAFT` → `submit_listing()` → `IN_REVIEW` →
+yönetici `admin_approve_listing()` → `ACTIVE`, ya da `admin_reject_listing()`
+→ `DRAFT` (+ `listing.rejected` bildirimi, `review_reason` dolu). Satıcı
+`withdraw_listing()` ile geri çekebilir. **`publish_listing` artık bir taslak**
+ve çağrılınca "ilanlar yönetici onayıyla yayına girer" diye reddediyor;
+otomatik yayın tetikleyicisi (`product_photos_karar_sonrasi`) kalktı.
+Onaylayan yönetici kareleri de onaylamış sayılır — kare düzeyinde ayrı bir
+denetim adımı yok; yönetici bir kareyi reddederse satıcı `photo.rejected`
+bildirimi alır.
+
+**Puanı yönetici belirler, formül kalır.** Panel "sıfır fiyatı" alıyor ve
+`admin_puan_hesapla()` aynı katsayılarla (0.74/0.65/0.57/0.41, taban 50)
+puanı önizliyor; yönetici isterse elle yazıyor. `puan_hesapla`nın kendisi
+değişmedi, yalnızca fiyatı kimin söylediği değişti: eskiden model, şimdi
+insan. **Fiyatı kim söylerse söylesin puanı istemci seçemez** — `ilan_onayla`
+iç fonksiyon, `admin_approve_listing` `is_admin()` ile sarıyor.
+
+**Avatar da aynı kuyrukta.** Yükleme tetikleyiciyle `pending`e düşüyor,
+`admin_avatar_queue()` listeliyor, `admin_avatar_karar()` karar veriyor ve
+reddedilen dosyayı istemci siliyor. `uploadAvatar` artık her zaman `pending`
+döndürüyor.
+
+**Takas akışı:** `create_trade(p_product_id, p_buyer_id, p_address_id)` —
+**adres zorunlu**, alıcının seçtiği adres `trades.teslimat` alanına **anlık
+görüntü** olarak yazılıyor (defterdeki adres sonradan silinse de gönderi
+adresi kalır). Puan iç emanette (`wallets`/`wallet_entries`), iyzico takasa
+hiç dokunmuyor. Satıcının **4 günü** var (`trade_timings.dropoff_window`):
+`mark_shipped(trade, firma, takip_no)` ile `POINTS_HELD → SHIPPED`; süre
+dolarsa `expire_stale_trades()` takası `REFUNDED` yapıyor, puanı alıcıya
+iade ediyor ve `teslimat`ı **boşaltıyor** (kargolanmamış bir takasın adresi
+saklanacak bir şey değil). Alıcı `confirm_delivery()` ile `COMPLETED`;
+onaylamazsa takip numarasından **7 gün** sonra (`confirm_window`) otomatik
+aktarım. `DELIVERED` durumu kullanılmıyor. İtiraz sayacı durdurma kuralı
+aynı; `itiraz_oncesi_durum()` reddedilen itirazın hangi duruma döneceğini
+`delivered_at`tan türetiyor (eskiden sabit `DELIVERED` yazıyordu, hataydı).
+
+**Alıcının adresi satıcıya açılıyor — ilk kez bir kullanıcı başka bir
+kullanıcının kişisel verisini görüyor.** Sınırı: yalnızca o takasın satıcısı,
+yalnızca `POINTS_HELD` ve sonrası, yalnızca `my_trades()` üzerinden (RLS
+değil RPC süzüyor — RLS bir sınırdır, filtre değil). Gizlilik sayfası aynı
+gün güncellendi.
+
+**Gelir yalnızca kredi kartıyla puan satışından, marjlı** (1 puan = 1 TL
+harcama değeri, satış fiyatı üstünde). Nereden satılacağı **kararlaştırılmadı**
+— dijital ürünü uygulama içinde satmak mağazaların IAP kuralına (%15–30)
+girer, web'den satmak giriş gerektiren bir mini-site ister, e-para lisansı
+sorusu hukukçuya gidecek. `iyzico-callback` bu satış için yuva olarak
+duruyor. Kargo bedeli **alıcıdan alınmıyor**, satıcı kendi kargosunu kendi
+ödüyor; `cargo-payment-init`, `payment.tsx`, `payment-result.tsx`,
+`lib/payment.ts`, `my_trade_quote` emekli.
+
+**Emekli ama silinmeyen:** `cargo_payments`, `fee_settings`,
+`photo_check_events`, `ai_suggested_points`, `degerleme_*` kolonları,
+`puan_bandi_disinda`, `metin_uygun` — geçmiş kayıt. `set_product_points`
+artık çağrılmıyor.
+
+**Test takımı:** 63 göç, 31 test, 235 makine denetimli iddia. Dört yapay
+zekâ testi silindi; `elle_onay_test.sql` gönder/onayla/reddet/geri çek,
+`mark_shipped` yetki ve durum kontrolleri, 4 gün iade, 7 gün aktarım ve
+adresin yalnızca satıcıya görünmesini sınıyor.
+
+## Değerleme (2026-08-16) — kısmen tarihsel
+
+> **2026-09-08:** fiyatı artık model değil yönetici söylüyor. Formül,
+> katsayılar, taban, "puan istemciden gelmez" kuralı ve merdiven kararı
+> **geçerli**; `listing-value`, `degerleme_yaz` sırası, "fiyat bulunamazsa
+> null", hasar şiddetini modelin okuması ve bant dışı işareti **tarihsel**.
 
 **Puan sunucuda hesaplanır, istemcide değil.** `add-listing.tsx` şunu
 yapıyordu: `BASE = 500` sabit, `× durum katsayısı`, `+ 20 foto bonusu`. Üç
@@ -278,6 +367,13 @@ repodaki politika **aynı turda** güncellenir. Yeni bir dış çağrı eklerken
 sorulacak soru: bu veri kimin sunucusuna gidiyor, ne kadar kalıyor, ve
 politika bunu söylüyor mu.
 
+Kural 2026-09-08'de **ters yönde** işledi: üç model çağrısı kalktı ve
+alıcının adresi satıcıya açıldı (dışarıya değil, üyeler arasına bir akış).
+Sayfa aynı gün yeniden yazıldı — Google ve iyzico satırları düştü, "Satıcı"
+satırı geldi. Bir akışın kalkması da beyanı değiştirir: uygulama modeli
+çağırmayı bıraktığı hâlde sayfa "Google'a gönderilir" deseydi, bu da yanlış
+beyan olurdu.
+
 ## Terimler
 **"Mobil"** dendiğinde kastedilen `mobile/` klasöründeki **Expo uygulamasıdır** —
 kullanıcının elindeki ekranlar. `supabase/` bundan ayrıdır ve "arka uç" diye anılır.
@@ -287,7 +383,8 @@ Bu ayrım her zaman geçerlidir.
 | Klasör | Ne |
 |--------|----|
 | `mobile/` | Expo SDK **54** + RN 0.81 + Expo Router (TS strict). Material Design 3 v2. Aktif proje. |
-| `supabase/` | Postgres migrations + Edge Functions (Deno). Puan defteri + iyzico kargo + products. |
+| `supabase/` | Postgres migrations + Edge Functions (Deno). Puan defteri, ilan/takas durum makineleri, yönetici RPC'leri. İki uç kaldı: `iyzico-callback` (puan satışı yuvası), `send-sms`. |
+| `docs/` | `ana-dokuman.md` (Ana Doküman v2.0 — ürün kararlarının tek kaynağı) ve plan dosyaları. |
 | `screens/`, `rn-screens/`, `test-screens/` | Render edilmiş tasarım/uygulama görüntüleri. |
 | `archive/` | Eski HTML prototipi + mockup (referans). Yeni kod buraya YAZILMAZ. |
 
@@ -303,7 +400,8 @@ Bu ayrım her zaman geçerlidir.
   eşlemeli. Her ürün tam olarak bir ana ve bir alt kategoriye aittir; "Tümü"
   kategori değil, süzgecin kapalı hâlidir. Ürün görselleri `data/productImages.ts`.
 - İlan açma iki adımdır: `add-listing` (altı adımlık sihirbaz) →
-  `listing-photos` (kareler + kontrole gönderme). **Kareler yalnızca kamerayla
+  `listing-photos` (kareler + **onaya gönderme**; 2026-09-08'den beri
+  analiz/değerleme çağrısı yok, `submitListing` → `IN_REVIEW`). **Kareler yalnızca kamerayla
   çekilir** — galeriden seçmek 2026-08-14'te kaldırıldı. Bu bir sadeleştirme
   değil, sahteciliğe karşı bir kapı: galeri açıkken satıcı üreticinin stok
   fotoğrafını ya da başka bir ilanın karesini yükleyebiliyordu ve ikinci elde
@@ -415,23 +513,30 @@ eski taslak veri tabanında sonsuza kadar kalıyordu.
 ## Kritik iş kuralları (mimariyi belirler)
 - **Güvenli havuz = PUAN tutar, gerçek para DEĞİL.** Escrow kendi çift girişli
   defterimizdedir (`wallets` + `wallet_entries`), PSP escrow'u kullanılmaz.
-- **Gerçek para yalnızca KARGO için akar.** iyzico **tek üye işyeri** (Pazaryeri/
-  alt-üye YOK). Komisyon = alıcı kargo fiyatı − anlaşmalı kargo maliyeti.
-- Puanlar **parayla satın alınmaz** → e-para lisansı gerekmez. Kargo fiziksel
-  hizmet → App Store/Play **IAP zorunlu değil** (iyzico serbest).
-- **İlan `DRAFT` doğar.** Vitrine çıkmanın tek yolu `publish_listing()`; kapı
-  zorunlu kareler eksikse ya da bir kare `approved` değilse reddeder. Zorunluluk
-  kuralının tek kaynağı `required_slots()`, `data/photoSlots.ts` onun aynasıdır.
-- **Puanı havuzdan yalnızca iki şey çıkarır:** alıcının onayı (`confirm_delivery`)
-  ya da süresi dolan sayaç (`expire_stale_trades`). Satıcı kendi takasını
-  onaylayamaz — onaylayabilseydi ürünü göndermeden puanı alırdı.
-- **Kart bilgisi uygulamadan geçmez.** Ödeme `openAuthSessionAsync` ile sistem
+- **Gerçek para yalnızca puan satışında akar** (2026-09-08). Kargo bedeli
+  alıcıdan alınmıyor, satıcı kendi kargosunu kendi ödüyor; iyzico takasa
+  dokunmuyor. ~~"Gerçek para yalnızca KARGO için akar; komisyon = alıcı kargo
+  fiyatı − kargo maliyeti"~~ — tarihsel.
+- **Puanlar kredi kartıyla satın alınacak, marjlı; yeri kararlaştırılmadı.**
+  Uygulama içi satış mağazaların IAP kuralına girer (%15–30, dijital ürün);
+  web'den satış giriş gerektirir; e-para lisansı sorusu hukukçuya gidecek.
+  ~~"Puanlar parayla satın alınmaz → e-para lisansı gerekmez, IAP zorunlu
+  değil"~~ — tarihsel. Karar verilene kadar tek puan kaynağı kampanya.
+- **İlan `DRAFT` doğar, `IN_REVIEW`dan geçer, `ACTIVE`e yönetici alır.**
+  `submit_listing()` → `admin_approve_listing()` / `admin_reject_listing()`.
+  Kapı hâlâ zorunlu kareleri sayıyor (`required_slots()`, `data/photoSlots.ts`
+  onun aynası) ama onayın kendisi insan kararı; `publish_listing` taslak.
+- **Puanı havuzdan yalnızca üç şey çıkarır:** alıcının onayı
+  (`confirm_delivery`), süresi dolan sayaç (`expire_stale_trades` — 7 gün
+  sonra satıcıya aktarım, ya da 4 günde kargolanmadıysa alıcıya **iade**) ve
+  çözülen itiraz. Satıcı kendi takasını onaylayamaz — onaylayabilseydi ürünü
+  göndermeden puanı alırdı. Satıcı yalnızca `mark_shipped` çağırır.
+- **Kart bilgisi uygulamadan geçmez.** Puan satışı açıldığında ödeme sistem
   tarayıcısında açılır, uygulama içi WebView'de değil. Tarayıcıdan dönen sonuç
   bilgilendirmedir, kanıt değildir — gerçeği RETRIEVE ile doğrulayan
-  `iyzico-callback` belirler.
-- **Fatura bilgisi ve T.C. kimlik numarası saklanmaz.** Her ödemede sorulur ve
-  yalnızca o istekte iletilir. Saklamaya geçmek bir KVKK kararıdır, kod kararı
-  değil — adres tablosu bu karar verilmeden açılmaz.
+  `iyzico-callback` belirler. (Bugün çağrılan bir ödeme akışı yok.)
+- **T.C. kimlik numarası istenmez ve saklanmaz.** Adres defteri var (2026-08-18)
+  ve `adres_defteri_test.sql` kimlik kolonu eklenirse düşüyor.
 - **Her açık takasın bir sayacı vardır.** `deadline_at` doluysa takas bir şey
   bekliyordur; kapanınca null olur. Damgaları trigger basar, çağıran yer değil.
 - **İtiraz sayacı durdurur, SIFIRLAMAZ.** Kalan süre `deadline_remaining`'e
@@ -457,10 +562,10 @@ eski taslak veri tabanında sonsuza kadar kalıyordu.
   yazma yarım oturum bırakmasın). Web'de SecureStore yok, orada
   `AsyncStorage`'a düşülüyor. Eski şifresiz kayıt taşınmıyor, **siliniyor** —
   taşımak, şifresiz kopyayı yerinde bırakmak olurdu.
-- **Fatura bilgisi ve T.C. kimlik numarası saklanmayacak — karar verildi**
-  (2026-08-16). Her ödemede sorulur, yalnızca o istekte iletilir. `addresses`
-  tablosu açılmayacak. Bu artık açık bir soru değil: saklamadığın veri sızmaz
-  ve KVKK yükümlülüğü, VERBİS eşiği, ihlal riski birden düşük kalıyor.
+- ~~**Fatura bilgisi ve T.C. kimlik numarası saklanmayacak; `addresses`
+  tablosu açılmayacak** (2026-08-16)~~ — yarısı tersine döndü: adres defteri
+  2026-08-18'de açıldı (aşağıda), kimlik numarası hâlâ saklanmıyor. Gerekçe
+  aynı: saklamadığın veri sızmaz.
 - **Yaptırım merdiveni kapalı kalacak — karar verildi** (2026-08-16).
   `sanction_settings.active = false` eksik bir iş değil, bilinçli bir durum:
   kullanıcı ve güven skoru yokken merdiven boşa çalışır ve ilk dürüst
@@ -472,10 +577,10 @@ eski taslak veri tabanında sonsuza kadar kalıyordu.
   kural moderasyonda zaten uygulanıyor (anahtar yoksa kare `pending` kalır,
   onaylanmaz); ikisi aynı kuralın iki yüzü.
 - **Ödemede "başarılı mı" yetmez, "ne kadar" da sorulur.** `iyzico-callback`
-  yalnızca `paymentStatus`'e bakıyordu; `paidPrice` artık
-  `cargo_payments.amount` ile karşılaştırılıyor. Ayrıca takas **`trade_id`**
-  ile anahtarlanır — `conversation_id` iyzico'ya bakan referanstır ve bugün
-  aynı değeri taşıması bir tesadüftür, sözleşme değil.
+  yalnızca `paymentStatus`'e bakıyordu; `paidPrice` bizim satırımızdaki tutarla
+  karşılaştırılır. Kayıt kendi anahtarımızla anahtarlanır — `conversation_id`
+  iyzico'ya bakan referanstır, sözleşme değil. Kargo ödemesi kalktı; kural
+  puan satışı yuvasında (`iyzico-callback` başındaki üç madde) duruyor.
 - **Hesap silme geri alınamaz ve üç durumda reddedilir.** `delete_own_account`
   açık takas, rezerve ilan ya da ödenmemiş borç varsa hata veriyor — hesap
   silerek yükümlülükten kurtulmak ya da karşı tarafı ortada bırakmak mümkün
@@ -542,10 +647,19 @@ eski taslak veri tabanında sonsuza kadar kalıyordu.
 - **İtiraza makine karar vermez.** `resolve_dispute` yalnızca `service_role`'da.
   Otomatik olan tek şey kanıtsız talebin reddi — değerlendirilecek bir şey
   olmadığı için. Ürünün ayıplı olup olmadığına her zaman insan karar verir.
-- **Moderasyonda şüphe onay değildir.** Yapay zekâ erişilemezse, anahtar yoksa ya
-  da yanıt çözümlenemezse kare `pending` kalır — bu "geçti" demek değildir. Hiçbir
-  kod yolu kareyi kendiliğinden `approved` yapmaz.
-- **Model bir env değeridir, bir karar değil** (2026-08-16). Sağlayıcı Gemini
+- **Moderasyonda şüphe onay değildir.** Kare ve avatar `pending` doğar ve
+  yalnızca bir yöneticinin kararıyla `approved` olur. Hiçbir kod yolu kareyi
+  kendiliğinden `approved` yapmaz — yapay zekâ varken de böyleydi (anahtar
+  yoksa `pending` kalıyordu), şimdi tek yol insan.
+
+  > **Aşağıdaki on madde tarihsel** (2026-08-16 → 2026-09-08): Gemini
+  > denetimi, ikinci görüş, geçici hata/ret ayrımı, kare kıyası, küçültme,
+  > toplu inceleme, ret cümleleri. Fonksiyonlar emekli; dersler kalıyor —
+  > özellikle "`verify_jwt` sahiplik doğrulamaz" ve "reddedilen kare depoda
+  > tutulmaz" bugün de geçerli, ikincisi artık `admin_moderate_photo` ve
+  > `admin_avatar_karar` yolunda.
+
+- ~~**Model bir env değeridir, bir karar değil**~~ (2026-08-16, tarihsel). Sağlayıcı Gemini
   API (ücretli katman — ücretsiz katmanda gönderilen içerik ürün geliştirmede
   kullanılabiliyor ve bizim gönderdiğimiz şey **çocuk yüzü içerdiğinden
   şüphelenilen fotoğraflar**; onları bir eğitim havuzuna sokmak, önlemeye
@@ -742,14 +856,14 @@ de olur (kullanıcı kararı). Denetlenen şey kimlik değil içerik: müstehcen
 şiddet, nefret sembolü, **çocuk yüzü** ve görselin üzerine yazılmış iletişim
 bilgisi engelliyor. Kalite denetlenmiyor; bulanık avatar kimseye zarar vermez.
 
-`avatar-check`, `photo-check`ten ayrı bir fonksiyon ve ayrı olmasının sebebi
-denetimlerin aynı şeye bakmaması: ilan karesinde soru "ürünü doğru gösteriyor
-mu" (açı, kadraj, kıyas), avatarda tek soru "yayınlanabilir mi". Uyarı katmanı
-da yok — bir profil fotoğrafı ya yayınlanabilir ya değil.
+**Kararı yönetici veriyor** (2026-09-08'den beri). `avatar-check` emekli;
+`admin_avatar_queue()` bekleyenleri listeliyor, `admin_avatar_karar()` onay
+ya da gerekçeli ret yazıyor, reddedilen dosyayı istemci depodan siliyor.
+Uyarı katmanı yok — bir profil fotoğrafı ya yayınlanabilir ya değil.
 
 **Üç durumlu alan, iki değil.** `profiles.avatar_status`: null · pending ·
-approved · rejected. `pending` şart: denetim saniyeler sürüyor ve o pencerede
-görselin görünmemesi gerekiyor.
+approved · rejected. `pending` şart: karar saatler sürebilir ve o pencerede
+görselin başkasına görünmemesi gerekiyor.
 
 İki koruma, ikisi de tek başına yetmez:
 
@@ -790,9 +904,12 @@ saklanacak, düzenlenebilecek, silinebilecek, birden fazla olabilecek.
 olarak koruyor, yani ileride biri "fatura için lazım" diye eklerse test düşer
 ve karar yeniden konuşulur.
 
-Adres **hiçbir yüzeyde başkasına gösterilmiyor**: vitrin okumuyor, ilan kartı
-okumuyor, pazarlama sitesi veri tabanına hiç bağlanmıyor. Tek okuyucusu
-sahibinin ödeme formu.
+Adres **tek bir yüzeyde başkasına gösteriliyor** (2026-09-08'den beri):
+süren takasın satıcısı, `POINTS_HELD` ve sonrasında, `my_trades()` içindeki
+`teslimat` anlık görüntüsünü görüyor — kargoyu o gönderiyor. Vitrin
+okumuyor, ilan kartı okumuyor, pazarlama sitesi veri tabanına hiç
+bağlanmıyor. Bir tur boyunca "hiçbir yüzeyde" idi; değişince gizlilik
+sayfası aynı gün güncellendi.
 
 RPC yok, doğrudan tablo + RLS: satırın her alanı kullanıcının kendi yazdığı,
 kendi okuduğu veri. Yazılamaması gereken bir alan olsaydı (satıcı kimliği,
@@ -800,9 +917,11 @@ puan, değerleme izi gibi) RPC şart olurdu. Tek istisna varsayılan işareti ve
 o bir tetikleyicide: iki ayrı `update`e bölünseydi arada uygulama
 kapandığında iki varsayılan kalırdı.
 
-**Ödeme formu deftere bağlı.** Bağlamamak defteri süs yapardı — varlık sebebi
-adresi ikinci kez yazdırmamak. Varsayılan adres formu kendiliğinden dolduruyor
-ama alanlar kilitli değil: bu gönderi başka bir yere gidebilir.
+**Takas başlatma deftere bağlı.** `startTrade(productId, addressId)` —
+adres yoksa `ADRES_YOK` dönüyor ve ürün sayfası "Adres ekle" ile deftere
+gönderiyor. Seçilen adres `trades.teslimat`a kopyalanıyor; defterdeki satır
+sonradan silinse de süren gönderinin adresi kalıyor. (Eskiden ödeme formuna
+bağlıydı; ödeme formu kalktı.)
 
 ## İlan kaldırma (2026-08-18)
 
@@ -942,7 +1061,12 @@ gösterilir.
 - İkonlar: `@expo/vector-icons/MaterialIcons`.
 - Para olmayan model: cüzdan anahtarsızken **DEMO** veriye düşer (kırılmaz).
 
-## Denetim: altı engel, üç uyarı (2026-08-17)
+## Denetim: altı engel, üç uyarı (2026-08-17) — TARİHSEL
+
+> **2026-09-08:** yapay zekâ denetimi kapatıldı; bu bölüm ve "Metin
+> denetimi" o dönemin kararlarını anlatıyor. Tablo bugün yöneticinin
+> inceleme ölçütü olarak okunabilir — engel/uyarı ayrımı hâlâ mantıklı, ama
+> kararı veren insan.
 
 Canlıdaki ilk gerçek kullanımda **sekiz reddin sekizi de kadraj yüzündendi**.
 Denetimin var olma sebebi (çocuk yüzü, uygunsuz içerik, dolandırıcılık) bir kez
@@ -1001,7 +1125,12 @@ eklemek ek maliyet getirmiyor.
 `true` yazılıyor: **modelin susması kullanıcının ilanını engellememeli.**
 Sonraki değerlemede karar `coalesce` ile korunuyor.
 
-## Puan tavanı yok (2026-08-17)
+## Puan tavanı yok (2026-08-17) — kısmen tarihsel
+
+> **2026-09-08:** tavanın koruduğu hata sınıfı ("model ürünü yanlış tanır")
+> ortadan kalktı — fiyatı insan giriyor ve panel puanı yazmadan önce
+> gösteriyor. `tavan_puan` null kalıyor; "sınır koyacaksan önce kuyruğu kur"
+> dersi geçerli, kuyruk artık var.
 
 `valuation_settings.tavan_puan` **null** ve bu bilinçli: platform her fiyat
 aralığındaki ürüne açık. Karar iş tarafına ait ve alındı.
@@ -1089,7 +1218,14 @@ ilk oran değişikliğinde ayrışma demekti.
 gerekti (`p_hasar_siddeti default 1.0` gibi); `drop` etmek çağıranları
 kırardı.
 
-## Bekleyen kare kullanıcıyı ekranda tutmaz (2026-08-17)
+## Bekleyen kare kullanıcıyı ekranda tutmaz (2026-08-17) — TARİHSEL
+
+> **2026-09-08:** otomatik yayın tetikleyicisi kalktı; ilan artık yönetici
+> onayıyla `ACTIVE` oluyor. Kalan ders: kullanıcı onaya gönderdikten sonra
+> **çıkar**, sonucu bildirimle öğrenir — o kural bugün de aynen geçerli.
+> "Yayın kapısının gövdesi tek yerde" (`ilan_yayina_al`) ve "`publish_listing`
+> fikirsiz" maddeleri artık `ilan_onayla` / `admin_approve_listing` için
+> geçerli.
 
 Model bazı karelerde karar veremiyor; o kareler `pending` kalıp yönetim
 kuyruğuna düşüyor. Yayın kapısı ise "kareler hâlâ inceleniyor, birazdan
@@ -1232,9 +1368,9 @@ psql "$DB" -v ON_ERROR_STOP=1 -f supabase/tests/<takım>_test.sql
 ```
 
 ## Git akışı
-- Geliştirme branch'i her turda kullanıcının verdiği daldır (şu an
-  `claude/kategori-paritesi`). Burada geliştir, commit, push.
-- `main`'e merge yalnızca kullanıcı isteyince (fast-forward tercih).
+- Bu repoda doğrudan `main` (2026-08-18'den beri; karşı repoda dal + PR).
+  Kullanıcı başka bir dal verirse o dalda geliştir, commit, push.
+- Karşı repoda `main`'e merge yalnızca kullanıcı isteyince.
 - Commit mesajları Türkçe + açıklayıcı.
 
 ## Çalışma alışkanlığı

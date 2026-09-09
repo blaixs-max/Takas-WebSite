@@ -1,6 +1,55 @@
 # ELDENELE — Yol Haritası / TODO
 
-Son güncelleme: 2026-08-18 · Branch: `main`
+Son güncelleme: 2026-09-08 · Branch: `main`
+
+## 🆕 Elle onay ve satıcı kargosu (2026-09-08)
+
+Ürün akışı yeniden kuruldu; plan ve gerekçeler `docs/plan-elle-onay-2026-09.md`,
+kararlar Ana Doküman v2.0 (`docs/ana-dokuman.md` — **ilk kez repoda**).
+Üç tur, üçü de aynı gün:
+
+- [x] **Tur 1 — arka uç** (`20260908120000_elle_onay.sql`, canlıda).
+      `IN_REVIEW` durumu; `submit_listing` / `withdraw_listing` /
+      `admin_review_queue` / `admin_puan_hesapla` / `admin_approve_listing` /
+      `admin_reject_listing` / `admin_avatar_queue` / `admin_avatar_karar` /
+      `mark_shipped`; `create_trade` adres ister ve `trades.teslimat`a anlık
+      görüntü yazar; `trade_timings` 4 gün kargo / 7 gün onay;
+      `expire_stale_trades` iki yönlü (iade + otomatik aktarım);
+      `publish_listing` taslak; otomatik yayın tetikleyicisi kalktı.
+      63 göç, 31 test, 235 iddia; dört yapay zekâ testi silindi.
+- [x] **Tur 2 — mobil.** Çekim ekranı "Onaya gönder"; taslaklar `IN_REVIEW`
+      rozeti + geri çek + ret gerekçesi; profil satırı taslak/onayda ayrı
+      sayıyor; takaslar ekranı satıcıya alıcı adresi + "Kargoya verdim"
+      (firma çipleri + takip no), alıcıya takip bilgisi; yönetici paneli
+      "İlanlar" (kareler, sıfır fiyat → puan önizleme, elle puan, onayla /
+      reddet) ve "Avatarlar" sekmeleri; ödeme ekranları silindi; avatar
+      yüklemesi `avatar-check` çağırmıyor. `tsc` temiz.
+- [x] **Tur 3 — emeklilik + dokümanlar + site.** `photo-check`,
+      `listing-value`, `avatar-check`, `cargo-payment-init` repodan silindi ve
+      yayında **410 döndüren taslaklarla üstlerine yazıldı**;
+      `iyzico-callback` takastan ayrıldı (puan satışı yuvası); `config.toml`
+      sadeleşti; `CLAUDE.md` tarihsel bölümleri işaretledi; karşı repoda
+      `/gizlilik/` yeniden yazıldı (PR açık).
+- [ ] **Sende, panelden (MCP silemiyor):** Edge Functions → dört emekli ucu
+      **sil**; Edge Function Secrets → `AI_VISION_API_KEY`,
+      `AI_VISION_BASE_URL`, `AI_VISION_MODEL`, `AI_VISION_MODEL_STRICT`,
+      `AI_VISION_SAATLIK_LIMIT`, `AI_VISION_TIMEOUT_MS`, `AI_VALUE_MODEL`,
+      `AI_VALUE_TIMEOUT_MS`, `APP_RETURN_URL` sil; Google AI Studio'da
+      anahtarı iptal et. Taslaklar 410 döndürdüğü için anahtar
+      **çağrılmıyor**, ama duran anahtar duran risktir.
+- [ ] **Cihazda tek tur:** ilan gönder → panelde onayla → vitrine düştü mü;
+      reddet → taslakta gerekçe; takas başlat (adressiz → "Adres ekle");
+      satıcıda adres kartı + kargoya verdim; alıcıda takip + onay; avatar
+      yükle → panelde onayla/reddet.
+- [ ] **Puan satışı — karar bekliyor** (Ana Doküman §7.1, §7.2): satış yeri
+      (web mini-site A / uygulama içi IAP B) ve **hukukçu görüşü** (e-para,
+      6493). Karar verilene kadar tek puan kaynağı kampanya; 7000 puanlık
+      ilanı alacak cüzdan yok.
+- [ ] **İnceleme süresi ölçümü.** Panel "kaç saattir bekliyor" gösteriyor;
+      bir hafta sonra ortalama bekleme süresine bakılmalı. Saatleri aşıyorsa
+      bu ürünün kendisi olur.
+- [ ] `npx expo install --check` — paket sürüm uyuşmazlıkları (Tur 2'de
+      görüldü, dokunulmadı).
 
 ## 🆕 Dört madde (2026-08-18)
 
@@ -106,12 +155,13 @@ dediğinin kaydıydı. Taslak/yayın oranına bakmasaydık bu kusur görünmezdi
 
 ### Bu turda kapanmayan
 
-- [ ] **Ana Doküman'ın adres kararı** hâlâ eski metni taşıyor (docx bu repoda
-      değil). "Fatura bilgisi ve T.C. kimlik numarası saklanmaz — adres
-      tablosu bu karar verilmeden açılmaz" cümlesi güncellenmeli: adres
-      tablosu açıldı, kimlik numarası saklanmıyor.
-- [ ] Avatar denetimi **hiç canlıda çalışmadı**; ret yolu (dosyanın depodan
-      silinmesi) gerçek bir istekle doğrulanmadı.
+- [x] **Ana Doküman'ın adres kararı** — v2.0 ile kapandı (2026-09-08):
+      kaynak artık `docs/ana-dokuman.md`, §2.5 adres defterini ve kimlik
+      numarasının hiç istenmediğini yazıyor.
+- [x] ~~Avatar denetimi hiç canlıda çalışmadı~~ — ve çalışmayacak:
+      `avatar-check` 2026-09-08'de emekli edildi, kararı yönetici veriyor.
+      Ret yolu (dosyanın depodan silinmesi) artık `avatarKarari` içinde,
+      cihaz turunda denenecek.
 - [ ] Süzgeç istemcide süzüyor. İlan sayısı binleri bulunca sorguya çevrilmeli;
       `lib/suzgec.ts` o dönüşümün tek yeri.
 
@@ -599,11 +649,9 @@ hiçbir sır konulamıyor — Vercel deploy hook URL'si bir kez yazıldı, commi
 - [ ] **Supabase Auth → Redirect URLs.** İzin listesine `eldenele://auth-callback`
       eklenmeli. Eklenmezse Google/Apple ile giriş tarayıcıdan geri dönemez;
       kullanıcı açık bir sekmeyle kalır, hata da görmez.
-- [ ] **`iyzico-callback` Edge Function → `APP_RETURN_URL` sırrı.** Fonksiyonun
-      koddaki varsayılanı güncellendi, ama ortamda bir değer **atanmışsa** o
-      kazanır ve hâlâ `kidstrade://payment-result` döndürür. Ödeme sonrası
-      uygulamaya dönüş kırılır. Değeri `eldenele://payment-result` yapın ya da
-      sırrı tamamen silin.
+- [x] ~~`iyzico-callback` → `APP_RETURN_URL` sırrı~~ — geçersiz (2026-09-08):
+      fonksiyon artık uygulamaya yönlendirmiyor, `payment-result` ekranı
+      silindi. Sır panelden silinmeli (yukarıdaki liste).
 
 Uygulama mağazalarda olmadığı için paket kimliği (`com.kidstrade.app` →
 `com.eldenele.app`) ve slug bu turda değiştirildi; yayımlandıktan sonra ikisi de
@@ -661,11 +709,11 @@ değiştirilemez.
       hâlâ e-postadan türüyor ve vitrin bunu **"Üye"** diye yazıyor — doğru
       davranış, ama gerçek ad değil. Uygulamada Profil → Profili düzenle'den ad
       kaydedilince tetikleyici vitrini tazeliyor ve kart "Emrah A." çıkıyor.
-- [ ] **Edge Function ortam değişkenleri** — fonksiyonlar yayında ama gizli
-      değerleri yok. Panelden girilecek: `IYZICO_API_KEY`, `IYZICO_SECRET_KEY`,
-      `IYZICO_CALLBACK_URL`, `APP_RETURN_URL`, `AI_VISION_API_KEY`,
-      `NETGSM_USERCODE`, `NETGSM_PASSWORD`, `NETGSM_HEADER`,
-      `SEND_SMS_HOOK_SECRET`
+- [ ] **Edge Function ortam değişkenleri** (2026-09-08'de daraldı — iki uç
+      kaldı). `send-sms` için `NETGSM_USERCODE`, `NETGSM_PASSWORD`,
+      `NETGSM_HEADER`, `SEND_SMS_HOOK_SECRET`; `iyzico-callback` için
+      `IYZICO_API_KEY`, `IYZICO_SECRET_KEY`, `IYZICO_BASE_URL` — puan satışı
+      açılınca. `AI_*` ve `APP_RETURN_URL` artık okunmuyor, silinecek.
 - [x] **Kare akışı cihazda çalıştı** (2026-08-09) — ilk gerçek ilan verildi:
       beş kare çekildi, depoya yüklendi, `product_photos` satırları düştü.
       Kamera akışının cihazda ilk koşusu
@@ -768,29 +816,30 @@ değiştirilemez.
       20 KB'lik dosyayı elle kopyalayarak deploy etmek repo/canlı ayrışması
       riski taşıyordu — bu deponun iki kez yandığı hata tam olarak o. Deploy
       sonrası `get_edge_function` ile doğrulanır.
-- [ ] **Flash yeterli mi — bir hafta sonra `admin_foto_denetim_ozeti()` ile
-      karar ver.** Model seçimi tahminle değil sayıyla kapanmalı. Bakılacak
-      iki şey: red sebeplerinin dağılımı (`yanlis_aci` baskınsa çekim ekranının
-      yönlendirmesi zayıf, `stok_gorsel` baskınsa dolandırma denemesi var) ve
-      `AI_VISION_MODEL_STRICT` açıldığında ikinci görüşün reddi ne sıklıkta
-      bozduğu. Bozma oranı yüksekse Flash yanlış reddediyor demektir ve ana
-      modeli yükseltmek gerekir; düşükse Flash yetiyor demektir.
-- [ ] **iyzico sandbox ucundan uca test** — ödeme akışı yazıldı ama gerçek bir
-      kartla hiç koşmadı. Sandbox anahtarları olmadan 3D Secure dönüşü, callback
-      ve `SHIPPED`'e geçiş doğrulanamıyor
+- [x] ~~**Flash yeterli mi — `admin_foto_denetim_ozeti()` ile karar ver.**~~
+      Geçersiz (2026-09-08): yapay zekâ denetimi kapatıldı. Ölçüm tablosu
+      (`photo_check_events`) geçmiş kayıt olarak duruyor; sekiz reddin
+      sekizinin kadraj olması kararın kendisini verdi.
+- [ ] **iyzico sandbox ucundan uca test** — artık kargo için değil, **puan
+      satışı** için (Ana Doküman §7.1 kararından sonra). `iyzico-callback`
+      yuvası hazır, yazacağı tablo yok.
 - [x] **Adres defteri — KARAR VERİLDİ (2026-08-16): saklanmayacak.** Fatura
       bilgisi ve T.C. kimlik numarası her ödemede sorulmaya devam edecek,
       yalnızca o istekte iyzico'ya iletilecek. Her seferinde sormak biraz
       sürtünme ama **saklamadığın veri sızmaz**: KVKK yükümlülüğü, VERBİS
       eşiği ve ihlal riski hep birden düşük kalıyor. Bu artık açık bir soru
       değil, verilmiş bir karar — `addresses` tablosu açılmayacak.
-- [ ] **Kargo aggregator** (Navlungo/Kolay Gelsin) — `iyzico-callback` etiket üretimi.
-      Teslimat webhook'u `mark_delivered()` çağıracak; şu an o fonksiyonu
-      çağıran kimse yok, yani 48 saatlik sayaç pratikte hiç başlamıyor
+- [x] ~~**Kargo aggregator** (Navlungo/Kolay Gelsin)~~ — **kapsam dışı**
+      (2026-09-08). Satıcı kendi kargosunu gönderip takip numarasını giriyor
+      (`mark_shipped`); `DELIVERED` durumu kullanılmıyor, sayaç takip
+      numarasından başlıyor. Entegrasyon istenirse ayrı karar (Ana Doküman §7.6).
 - [x] **pg_cron doğrulaması** — canlıda bakıldı: `kt-expire-stale-trades`
       (`7 * * * *`) ve `kt-expire-stale-disputes` (`22 * * * *`), ikisi de aktif
 
-## 🧪 Vercel AI Gateway — A/B testi (2026-08-17 · beklemede)
+## 🧪 Vercel AI Gateway — A/B testi (2026-08-17 · KAPANDI 2026-09-08)
+
+> Yapay zekâ denetimi ve değerlemesi tamamen kapatıldı; Google'a giden çağrı
+> kalmadı, test edilecek bir şey yok. Aşağısı geçmiş kayıt.
 
 Gemini 3.7 Flash, AI Gateway üzerinde **31 Aralık 2026'ya kadar %50 indirimli**.
 Şu an iki Edge Function da Google'a doğrudan gidiyor (`x-goog-api-key`).
