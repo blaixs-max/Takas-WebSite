@@ -120,7 +120,7 @@ export default function Addresses() {
             <BosDurum
               ikon="location-on"
               baslik="Kayıtlı adresin yok"
-              metin="Adres eklersen ödeme adımında her seferinde yeniden yazmak zorunda kalmazsın."
+              metin="Takas başlatmak için bir teslimat adresi gerekir; eklersen her seferinde yeniden yazmak zorunda kalmazsın."
               cta="Adres ekle"
               onCta={() => router.push('/address-edit')}
             />
@@ -218,12 +218,12 @@ export default function Addresses() {
           <View style={styles.gizlilik}>
             <MaterialIcons name="lock-outline" size={17} color={colors.accent} style={styles.noteIc} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.gizlilikBaslik}>Adresini kimse görmez</Text>
+              <Text style={styles.gizlilikBaslik}>Adresini yalnızca satıcı görür</Text>
               <Text style={styles.gizlilikText}>
-                Kayıtlı adreslerin yalnızca senin hesabında durur; ilanlarında ve
-                mesajlarında görünmez. Karşı tarafa yalnızca gönderi oluşturulduğunda,
-                kargo etiketi için iletilir. T.C. kimlik numarası burada tutulmaz —
-                fatura için her ödemede ayrıca sorulur.
+                Kayıtlı adreslerin senin hesabında durur; ilanlarında ve mesajlarında
+                görünmez. Bir takas başlattığında seçtiğin adres, ad ve telefon yalnızca o
+                ürünün satıcısına, yalnızca takas sürerken gösterilir — kargoyu o gönderiyor.
+                T.C. kimlik numarası istenmez ve tutulmaz.
               </Text>
             </View>
           </View>

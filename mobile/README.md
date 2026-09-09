@@ -26,7 +26,7 @@ Ortadaki "Ürün Ekle" yükseltilmiş primary buton, `/add-listing` modalını a
 | `app/(tabs)/favorites.tsx` | Favoriler (kalp deposu) |
 | `app/(tabs)/profile.tsx` | Hesabım — güven skoru, Cüzdanım/Takaslarım/Mesajlarım, ayarlar |
 | `app/product/[id].tsx` | Ürün detayı (galeri, güvenli havuz, sepete ekle, paylaş) |
-| `app/add-listing.tsx` | Ürün Ekle (foto + AI + kategori/kondisyon + puan) |
+| `app/add-listing.tsx` · `app/listing-photos.tsx` | Ürün Ekle (altı adımlık sihirbaz) · kareler + onaya gönderme; puanı yönetici belirler |
 | `app/trades.tsx` · `app/wallet.tsx` | Takas durumu · Cüzdan (Hesabım altından) |
 | `app/messages.tsx` · `app/chat/[id].tsx` | Mesajlarım · Sohbet |
 | `app/addresses.tsx` · `app/security.tsx` · `app/help.tsx` · `app/invite.tsx` · `app/edit-profile.tsx` | Hesap alt sayfaları |

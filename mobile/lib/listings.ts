@@ -355,7 +355,7 @@ function cevir(mesaj: string): string {
   if (mesaj.includes('yayındaki ilanın kategorisi'))
     return 'Yayındaki ilanın kategorisi değiştirilemiyor. Değiştirmen gerekiyorsa ilanı kaldırıp yeniden ekle.';
   if (mesaj.includes('yayındaki ilanın boyutu'))
-    return 'Yayındaki ilanın boyutu değiştirilemiyor — kargo bedeli buna bağlı.';
+    return 'Yayındaki ilanın boyutu değiştirilemiyor — alıcı ona bakarak karar veriyor.';
   if (mesaj.includes('yayındaki ilanın set beyanı'))
     return 'Yayındaki ilanın set beyanı değiştirilemiyor.';
   if (mesaj.includes('bu ilan düzenlenemez'))

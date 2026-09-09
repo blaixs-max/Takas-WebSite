@@ -238,7 +238,7 @@ export default function AddressEdit() {
           <View style={styles.varsayilanSatir}>
             <View style={{ flex: 1 }}>
               <Text style={styles.varsayilanBaslik}>Varsayılan adres</Text>
-              <Text style={styles.varsayilanAlt}>Ödeme formu bu adresle açılır.</Text>
+              <Text style={styles.varsayilanAlt}>Takas başlatırken bu adres seçili gelir.</Text>
             </View>
             <Switch
               value={form.varsayilan}
@@ -259,8 +259,8 @@ export default function AddressEdit() {
               <Text style={styles.gizlilikBaslik}>Adresini kimse görmez</Text>
               <Text style={styles.gizlilikText}>
                 Adres yalnızca senin hesabında saklanır ve gönderi etiketinde kullanılır.
-                İlanlarında görünmez. T.C. kimlik numarası burada tutulmaz — fatura için her
-                ödemede ayrıca sorulur.
+                İlanlarında görünmez; yalnızca takas başlattığında o ürünün satıcısına
+                gösterilir. T.C. kimlik numarası istenmez ve tutulmaz.
               </Text>
             </View>
           </View>

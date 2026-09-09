@@ -10,9 +10,9 @@ import { EN_BUYUK_KUTU } from '../data/sizeClasses';
  *
  * Kademe seçimi altı harften ibaretti (XS…XXL) ve altında "4–10 desi" yazıyordu.
  * Desi türetilmiş bir birim: kimse elindeki kutuya bakıp desisini bilmiyor.
- * Yanlış kademe seçmenin bedeli de küçük değil — kargo bedelini alıcı ödüyor
- * ve eksik seçilen kademe teslimatta farkı satıcıya bırakıyor. Santimetre
- * herkesin ölçebildiği bir şey; ekran onu göstermeli.
+ * Yanlış kademe seçmenin bedeli de küçük değil — alıcı boyuta bakarak karar
+ * veriyor ve kargoyu satıcı kendi ödüyor; eksik seçilen kademe kargo gişesinde
+ * sürpriz demek. Santimetre herkesin ölçebildiği bir şey; ekran onu göstermeli.
  *
  * ## Neden ortak ölçek
  *

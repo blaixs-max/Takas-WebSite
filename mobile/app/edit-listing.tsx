@@ -33,7 +33,7 @@ import { colors, elevation, shape } from '../theme/tokens';
  * Puanı besleyen bir alanı (kondisyon, kategori) değiştirip puanı sabit
  * bırakmak ilanı olduğundan başka göstermek; puanı yeniden hesaplamak ise
  * alıcının gördüğü fiyatı altından çekmek olurdu. Desi de kilitli çünkü
- * kargo bedelini o belirliyor.
+ * alıcı ürünün boyutunu ona bakarak öğreniyor.
  *
  * Ekran kilitli alanları **gizlemiyor, gösterip kilitli olduğunu söylüyor**.
  * Gizleseydi kullanıcı onları değiştirmenin bir yolu olduğunu sanıp arardı.
@@ -212,7 +212,7 @@ export default function EditListing() {
             <KilitliSatir etiket="Boyut (desi)" deger={ilan.sizeClass} />
 
             <Text style={styles.kilitliNot}>
-              Bunlar ilanın puanını ve kargo bedelini belirliyor; alıcı onlara bakarak karar
+              Bunlar ilanın puanını ve boyutunu belirliyor; alıcı onlara bakarak karar
               veriyor. Değiştirmen gerekiyorsa ilanı kaldırıp yeniden ekle.
             </Text>
           </View>

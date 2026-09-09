@@ -113,7 +113,7 @@ export async function loadAddress(id: string): Promise<Address | null> {
   return cevir(data as unknown as AddressRow);
 }
 
-/** Ödeme formunu dolduran adres. Yoksa null — form boş açılır. */
+/** Takas başlatırken seçili gelen adres. Yoksa null — ürün sayfası "Adres ekle" der. */
 export async function varsayilanAdres(): Promise<Address | null> {
   const liste = await loadAddresses();
   return liste.find((a) => a.varsayilan) ?? liste[0] ?? null;

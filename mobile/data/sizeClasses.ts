@@ -1,10 +1,11 @@
 /**
  * Desi kademeleri — `shipping_rates` tablosunun aynası.
  *
- * Buradaki değerler yalnızca ilan formunda seçim göstermek ve kabaca kargo
- * bedelini önizlemek içindir. Alıcının ödeyeceği gerçek tutarı HER ZAMAN
- * sunucu hesaplar (`quote_trade_price`); bu dosyadaki rakamlar hiçbir ödemeye
- * girdi olmaz. Tarife değişirse burası da elle güncellenir.
+ * Buradaki değerler yalnızca ilan formunda seçim göstermek ve satıcıya kabaca
+ * kargo bedelini önizlemek içindir. 2026-09-08'den beri kargoyu **satıcı**
+ * kendi firmasıyla gönderip kendi ödüyor; platform tahsilat yapmıyor
+ * (`quote_trade_price` / `my_trade_quote` emekli). Rakamlar piyasa tahmini,
+ * hiçbir hesaba girdi olmaz. Tarife değişirse burası da elle güncellenir.
  *
  * ## Santimetreler nereden geliyor
  *
@@ -38,7 +39,7 @@ interface SizeInfo {
   /** Kullanıcının tanıyacağı bir örnek — desi soyut bir kavram. */
   ornek: string;
   desi: string;
-  /** Alıcıya yansıyan kargo bedeli, TL. Yalnızca önizleme. */
+  /** Satıcının ödeyeceği tahmini kargo bedeli, TL. Yalnızca önizleme. */
   kargoTl: number;
   /** Kademenin üst sınırındaki kutu, santimetre. Teknik çizim bunu kullanıyor. */
   enCm: number;

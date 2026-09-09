@@ -230,8 +230,8 @@ export default function Security() {
         </View>
 
         <Text style={styles.notice}>
-          Telefon, IBAN ve kimlik doğrulaması henüz toplanmıyor. Fatura bilgisi ve T.C. kimlik
-          numarası saklanmıyor; ödeme sırasında sorulur ve yalnızca o işlemde iletilir.
+          Telefon, IBAN ve kimlik doğrulaması henüz toplanmıyor. T.C. kimlik numarası ve
+          fatura bilgisi istenmiyor ve saklanmıyor.
         </Text>
 
         {/* Hesap silme en altta ve kırmızı: aranınca bulunabilecek kadar

@@ -477,8 +477,8 @@ export default function AddListing() {
             <>
               <Text style={styles.soru}>Ürünün adı ne?</Text>
               <Text style={styles.yardim}>
-                Alıcılar arama kutusuna bunu yazacak. Marka ve model biliyorsan yaz — ürünün
-                değerlemesi de kolaylaşır.
+                Alıcılar arama kutusuna bunu yazacak. Marka ve model biliyorsan yaz —
+                ekibimizin puanı belirlemesi de kolaylaşır.
               </Text>
               <View style={styles.field}>
                 <TextInput
@@ -654,8 +654,9 @@ export default function AddListing() {
             <>
               <Text style={styles.soru}>Kutulanmış hâli ne kadar yer tutuyor?</Text>
               <Text style={styles.yardim}>
-                Kargo bedelini bu belirliyor ve alıcı ödüyor. Ürünü paketledikten sonraki
-                kutuyu düşün; emin değilsen bir üst kademeyi seç.
+                Alıcı boyutu görüp karar veriyor; kargoyu sen gönderdiğin için bedelini de
+                sen ödüyorsun. Ürünü paketledikten sonraki kutuyu düşün; emin değilsen bir
+                üst kademeyi seç.
               </Text>
 
               {SIZE_CLASSES.map((sc) => {
@@ -700,7 +701,7 @@ export default function AddListing() {
                     />
 
                     <Text style={styles.kutuOrnek}>
-                      {bilgi.ornek} · alıcı yaklaşık {bilgi.kargoTl} ₺ kargo öder
+                      {bilgi.ornek} · kargo yaklaşık {bilgi.kargoTl} ₺ (sen ödersin)
                     </Text>
                   </Pressable>
                 );

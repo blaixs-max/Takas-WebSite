@@ -18,18 +18,25 @@ import { colors, elevation, shape } from '../theme/tokens';
  * - "Güvenli havuz" küçük harfliydi. Marka terimi: her iki kelime de büyük
  *   harfle başlar.
  */
+/*
+ * 2026-09-08: akış değişti — kargoyu satıcı kendi gönderiyor, alıcı bedel
+ * ödemiyor, anlaşmalı kargo yok. Adımlar ve sorular yeni akışa göre yeniden
+ * yazıldı; süre sözleri (4 gün / 7 gün) yürürlükteki operasyon kuralı olduğu
+ * için (`trade_timings`) artık yazılabiliyor.
+ */
 const STEPS = [
-  { icon: 'lock', title: 'Takas Puanı havuza alınır', body: 'Takas başladığında ürünü alanın Takas Puanı Güvenli Havuz’da bekletilir.' },
-  { icon: 'inventory-2', title: 'Gönderi hazırlanır', body: 'İlan sahibi ürünü paketler, kargo etiketini oluşturur ve gerekli gönderi fotoğraflarını ekler.' },
-  { icon: 'local-shipping', title: 'Kargo izlenir', body: 'Anlaşmalı kargo ile gönderinin durumu uygulamadan takip edilir.' },
-  { icon: 'verified', title: 'Teslimat tamamlanır', body: 'Teslimden sonra sorun bildirilmezse Takas Puanı ilan sahibine aktarılır.' },
+  { icon: 'lock', title: 'Takas Puanı havuza alınır', body: 'Takas başladığında ürünü alanın Takas Puanı Güvenli Havuz’da bekletilir; ürün vitrinden ayrılır.' },
+  { icon: 'inventory-2', title: 'Satıcı kargoya verir', body: 'İlan sahibi alıcının adresini görür, ürünü kendi seçtiği kargoyla gönderir ve takip numarasını uygulamaya girer. Bunun için 4 günü vardır; süre dolarsa takas iptal olur ve puan alıcıya döner.' },
+  { icon: 'local-shipping', title: 'Kargo izlenir', body: 'Alıcı kargo firmasını ve takip numarasını uygulamada görür.' },
+  { icon: 'verified', title: 'Teslimat onaylanır', body: 'Alıcı "Teslim aldım" der ya da 7 gün içinde sorun bildirmezse Takas Puanı ilan sahibine aktarılır.' },
 ] as const;
 
 const FAQ = [
-  { q: 'Takas Puanı nedir?', a: 'Ürünlerini takasa açarak kazandığın ve başka ürünleri takas etmek için kullandığın platform içi değerdir. Parayla satın alınmaz, nakde çevrilmez.' },
-  { q: 'Güvenli Havuz neyi korur?', a: 'Takas Puanını teslimat tamamlanana kadar bekletir. Sorun bildirildiğinde aktarım durur ve inceleme başlar.' },
-  { q: 'Kargo ve hizmet bedelini kim öder?', a: 'Ürünü alan kullanıcı, takası başlatırken gösterilen kargo ve hizmet bedelini öder.' },
-  { q: 'Ürün ilana uymazsa ne olur?', a: 'Teslim ekranından sorun bildir. İnceleme tamamlanana kadar Takas Puanı Güvenli Havuz’da kalır.' },
+  { q: 'Takas Puanı nedir?', a: 'Ürünlerini takasa açarak kazandığın ve başka ürünleri takas etmek için kullandığın platform içi değerdir. Nakde çevrilmez.' },
+  { q: 'Güvenli Havuz neyi korur?', a: 'Takas Puanını teslimat onaylanana kadar bekletir. Sorun bildirildiğinde aktarım durur ve ekibimiz inceler.' },
+  { q: 'Kargo bedelini kim öder?', a: 'Ürünü gönderen satıcı. Alıcı yalnızca Takas Puanı öder; ayrıca bir kargo ya da hizmet bedeli yoktur.' },
+  { q: 'İlanım neden hemen yayına girmiyor?', a: 'Her ilanı ekibimiz inceler ve puanını belirler. Onaylanınca bildirim alırsın; reddedilirse gerekçesi taslaklarında yazar.' },
+  { q: 'Ürün ilana uymazsa ne olur?', a: 'Takaslarım ekranından süre dolmadan "Sorun var" de. İnceleme tamamlanana kadar Takas Puanı Güvenli Havuz’da kalır.' },
 ];
 
 export default function Help() {

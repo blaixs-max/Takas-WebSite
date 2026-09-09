@@ -40,8 +40,6 @@ export const APP_SCHEME = 'eldenele';
 /** Supabase OAuth dönüş adresi. Supabase panelindeki izin listesinde de olmalı. */
 export const AUTH_REDIRECT_PATH = 'auth-callback';
 
-/** iyzico ödeme dönüşünün yakalandığı adres. Edge Function da bunu döndürür. */
-
 /**
  * Paylaşım ve davet bağlantılarının gideceği adres.
  *
