@@ -67,7 +67,7 @@ const DURUM: Record<TradeStatus, DurumBilgi> = {
   },
   SHIPPED: {
     etiket: 'Kargoda',
-    alici: 'Ürün yolda. Eline ulaşınca "Teslim aldım" de; 7 gün içinde onay ya da itiraz gelmezse puan satıcıya geçer.',
+    alici: 'Ürün yolda. Eline ulaşınca "Teslim aldım" de; 7 gün içinde onay ya da itiraz gelmezse puan satıcıya geçer. Ürün gelmediyse süre dolmadan "Sorun var"a bas.',
     satici: 'Kargo bilgisi alıcıya iletildi. Alıcı onaylayınca puan hesabına geçer.',
     ikon: 'local-shipping',
     ton: 'yolda',
@@ -225,9 +225,20 @@ export default function TradesScreen() {
       uyar('Kargo firması', 'Firma adını yaz.');
       return;
     }
+    if (secilenFirma.length > 40 || !/^[\p{L}\p{N} .&'-]+$/u.test(secilenFirma)) {
+      uyar('Kargo firması', 'Firma adı en fazla 40 harf; yalnızca harf, rakam, boşluk, nokta, & ve tire.');
+      return;
+    }
+    /* Sunucuyla aynı kural: boşluklar ayıklanır, yalnızca harf-rakam-tire,
+       4–64 karakter. Bildirime gömüldüğü için serbest metin olamaz. */
+    const takip = takipNo.replace(/\s+/g, '');
+    if (!/^[A-Za-z0-9-]{4,64}$/.test(takip)) {
+      uyar('Takip numarası', '4–64 karakter; yalnızca harf, rakam ve tire.');
+      return;
+    }
     const hedef = kargoIcin;
     setIslemde(hedef.id);
-    const s = await markShipped(hedef.id, secilenFirma, takipNo.trim());
+    const s = await markShipped(hedef.id, secilenFirma, takip);
     setIslemde(null);
     if (!s.ok) {
       uyar('Kaydedilemedi', s.message);
@@ -371,8 +382,11 @@ export default function TradesScreen() {
             const itirazEdilebilir = onaylanabilir;
             const iptalEdilebilir =
               t.benAliciyim && (t.status === 'POINTS_HELD' || t.status === 'CREATED');
-            /* Satıcının tek işi: puan havuza girdiyse kargoya ver. */
-            const kargolanabilir = !t.benAliciyim && t.status === 'POINTS_HELD';
+            /* Satıcının tek işi: puan havuza girdiyse kargoya ver. Adres
+               kopyası yoksa (göç öncesi açılmış takas) sunucu da reddediyor;
+               düğme yerine açıklama gösteriliyor. */
+            const kargolanabilir = !t.benAliciyim && t.status === 'POINTS_HELD' && !!t.teslimat;
+            const adresBekleniyor = !t.benAliciyim && t.status === 'POINTS_HELD' && !t.teslimat;
             /* Adres yalnızca satıcıya ve yalnızca gönderi öncesinde/sırasında
                anlamlı. Alıcı kendi adresini zaten biliyor. */
             const adresGoster =
@@ -438,6 +452,16 @@ export default function TradesScreen() {
                   <View style={styles.sayac}>
                     <MaterialIcons name="schedule" size={14} color={colors.onSurfaceVariant} />
                     <Text style={styles.sayacText}>{sure}</Text>
+                  </View>
+                )}
+
+                {adresBekleniyor && (
+                  <View style={styles.sayac}>
+                    <MaterialIcons name="location-off" size={14} color={colors.onSurfaceVariant} />
+                    <Text style={styles.sayacText}>
+                      Alıcının teslimat adresi yok. Mesajla adres eklemesini iste; adres gelmeden
+                      kargoya verilemez.
+                    </Text>
                   </View>
                 )}
 
@@ -575,14 +599,15 @@ export default function TradesScreen() {
               onChangeText={setTakipNo}
               autoCapitalize="characters"
               autoCorrect={false}
+              maxLength={72}
             />
             <View style={styles.sheetButonlar}>
               <Pressable style={styles.ikincil} onPress={() => setKargoIcin(null)}>
                 <Text style={styles.ikincilText}>Vazgeç</Text>
               </Pressable>
               <Pressable
-                style={[styles.birincil, takipNo.trim().length < 4 && styles.kapali]}
-                disabled={takipNo.trim().length < 4 || islemde !== null}
+                style={[styles.birincil, takipNo.replace(/\s+/g, '').length < 4 && styles.kapali]}
+                disabled={takipNo.replace(/\s+/g, '').length < 4 || islemde !== null}
                 onPress={kargoyaVerdim}
               >
                 {islemde !== null ? (

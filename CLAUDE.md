@@ -21,7 +21,9 @@ Her push ve her merge öncesinde, sırayla:
 3. **Kontroller geçiyor mu?** `cd mobile && npx tsc --noEmit`, ve para
    fonksiyonlarına dokunulduysa pgTAP testleri.
 4. **Göç uygulandıysa yetki denetimi.** Yeni bir fonksiyon canlıya çıktıysa
-   `anon`'un çağırabildiği fonksiyon sayısı **0** olmalı (sorgu aşağıda).
+   `anon`'un çağırabildiği **istemci RPC'si** yalnızca `hata_bildir` olmalı
+   (giriş öncesi çökme kaydı için bilinçli istisna, `20260818130000`); sorgu
+   aşağıda, tetikleyici fonksiyonları ve test yardımcıları sayıma girmez.
 
 Dördü de doğrulanmadan push yok; push edilmeden merge yok. Bu sıra kısaltılmaz.
 
@@ -53,7 +55,7 @@ değildir, uygulama paketine zaten gömülür. `service_role` anahtarı repoda
 Temiz bir veri tabanı kurar, `00_yerel_kurulum.sql` ile Supabase'e özgü şeyleri
 (auth/storage/cron şemaları, üç rol, `auth.uid()`, **varsayılan yetkiler**)
 taklit eder, bütün göçleri uygular, sonra test paketini koşar. Bugün
-(2026-09-08): 63 göç, 31 test, 235 makine denetimli iddia, sıfır hata.
+(2026-09-13): 64 göç, 31 test, 271 makine denetimli iddia, sıfır hata.
 
 **Betik "hata yok" derken sözdizimini kastediyor, iddiaları değil.** Sayaç
 psql'in hata verip vermediğine bakıyor; `BEKLENEN` satırları göz kararı
@@ -157,10 +159,16 @@ aynı; `itiraz_oncesi_durum()` reddedilen itirazın hangi duruma döneceğini
 `delivered_at`tan türetiyor (eskiden sabit `DELIVERED` yazıyordu, hataydı).
 
 **Alıcının adresi satıcıya açılıyor — ilk kez bir kullanıcı başka bir
-kullanıcının kişisel verisini görüyor.** Sınırı: yalnızca o takasın satıcısı,
-yalnızca `POINTS_HELD` ve sonrası, yalnızca `my_trades()` üzerinden (RLS
-değil RPC süzüyor — RLS bir sınırdır, filtre değil). Gizlilik sayfası aynı
-gün güncellendi.
+kullanıcının kişisel verisini görüyor.** Sınırı: yalnızca o takasın tarafları
+(satır RLS'i: "taraf olduğun takası gör"), yalnızca takas sürerken —
+`trades.teslimat` kopyası **kapanışta siliniyor** (`trades_stamp_timeline`,
+COMPLETED ve REFUNDED). Plan "`my_trades()` RPC süzer" diyordu; o fonksiyon
+hiç yazılmadı ve 2026-09-13 denetimi bunu yakaladı: RLS satır düzeyindedir,
+kolon süzemez, yani "kapanınca görünmez" taahhüdünü politika değil silme
+yerine getirir. `create_trade` alıcıyı istemciden almıyor (`p_buyer_id`
+yalnızca `auth.uid()` boşken, yani sunucu yollarında anlamlı) — bir tur
+boyunca alıyordu ve bu, başkasının adresini kendi ilanına kopyalatmanın
+yoluydu. Gizlilik sayfası aynı gün güncellendi.
 
 **Gelir yalnızca kredi kartıyla puan satışından, marjlı** (1 puan = 1 TL
 harcama değeri, satış fiyatı üstünde). Nereden satılacağı **kararlaştırılmadı**
@@ -176,10 +184,36 @@ duruyor. Kargo bedeli **alıcıdan alınmıyor**, satıcı kendi kargosunu kendi
 `puan_bandi_disinda`, `metin_uygun` — geçmiş kayıt. `set_product_points`
 artık çağrılmıyor.
 
-**Test takımı:** 63 göç, 31 test, 235 makine denetimli iddia. Dört yapay
+**Test takımı:** 64 göç, 31 test, 271 makine denetimli iddia (2026-09-13). Dört yapay
 zekâ testi silindi; `elle_onay_test.sql` gönder/onayla/reddet/geri çek,
 `mark_shipped` yetki ve durum kontrolleri, 4 gün iade, 7 gün aktarım ve
 adresin yalnızca satıcıya görünmesini sınıyor.
+
+## Denetim ve düzeltmeler (2026-09-13)
+
+Elle onay değişikliği yayına girdikten beş gün sonra sekiz boyutlu bağımsız
+bir kod denetimi yapıldı; rapor `docs/denetim-2026-09-13.md`, düzeltmeler
+`20260913132351_denetim_duzeltmeleri.sql` (canlıda). 51 bulgunun 41'i
+kapatıldı; en ağırları:
+
+- `create_trade` alıcıyı istemciden alıyordu → yalnızca kendi adına.
+- Onaylı karenin dosyası üzerine yazılabiliyordu → depo politikası yalnızca
+  DRAFT ilana yazıyor.
+- IN_REVIEW ilan satırı doğrudan güncellenebiliyordu → politika DRAFT'a
+  daraldı, koruma tetikleyicisi kondisyon/hasar/set/desi ve inceleme
+  kolonlarını kilitliyor.
+- Adres kopyası kapanan takasta kalıyordu → COMPLETED/REFUNDED'da siliniyor.
+- "Reddedilen kare silinir" taahhüdünün kod yolu yoktu → panelde kare
+  düzeyinde ret + silme.
+
+**Dört ders**, kısa: istemciye açılan fonksiyonun her parametresi çağıranla
+ilişkilendirilir; RLS kolon süzemez, gizlenmesi gereken kolon silinir ya da
+ayrı RPC'den verilir; satır kilidi dosya kilidi değildir; gizlilik
+sayfasındaki her cümle için "hangi satır bunu yerine getiriyor" sorulur.
+
+**Karar bekleyen dört madde** raporda: kampanya puanının telefon şartı
+(bugün kimse puan alamıyor), takas başlatırken adres seçimi, yeniden itiraz
+döngüsü, negatif testlerin iddia sayacına girmesi.
 
 ## Değerleme (2026-08-16) — kısmen tarihsel
 
@@ -316,11 +350,13 @@ ilk takası yaptırmak kritik; kampanya rakamı ayrı bir karar olarak duruyor.
   (`auth.uid()` ya da `is_admin()`). Doğrulamayan fonksiyon iç fonksiyondur;
   yalnızca `service_role` ve tetikleyiciler üzerinden çalışır. Kalıp:
   iç fonksiyon denetimsiz kalır, üstüne ince bir sarmalayıcı yazılır
-  (`resolve_dispute` / `admin_resolve_dispute`, `quote_trade_price` /
-  `my_trade_quote`).
+  (`resolve_dispute` / `admin_resolve_dispute`, `ilan_onayla` /
+  `admin_approve_listing`).
 
-- **anon'a hiçbir RPC açılmaz.** Giriş yapmamış kullanıcı vitrini tablo SELECT
-  politikalarıyla görür; RPC'ye ihtiyacı yoktur.
+- **anon'a RPC açılmaz — tek istisna `hata_bildir`.** Giriş yapmamış kullanıcı
+  vitrini tablo SELECT politikalarıyla görür; RPC'ye ihtiyacı yoktur. Giriş
+  ekranındaki çökmenin kaydedilebilmesi için `hata_bildir` anon'a açık
+  (2026-08-18); başka istisna eklenirse buraya yazılır.
 
 - **Görünümlerde RLS yoktur.** `public` şemasına eklenen her görünüm
   `security_invoker = on` alır ve istemci rollerinden revoke edilir; yoksa
@@ -406,8 +442,9 @@ Bu ayrım her zaman geçerlidir.
   değil, sahteciliğe karşı bir kapı: galeri açıkken satıcı üreticinin stok
   fotoğrafını ya da başka bir ilanın karesini yükleyebiliyordu ve ikinci elde
   alıcının tek dayanağı fotoğraf. Galeri izinleri `app.json`'da duruyor ama
-  yalnızca **itiraz kanıtı** için (`app/trades.tsx`) — orada alıcı hasarı
-  kutuyu açarken çekmiş olabilir. **Dört kare her ilanda zorunlu** (ön, arka,
+  yalnızca **itiraz kanıtı** (`app/trades.tsx` — orada alıcı hasarı kutuyu
+  açarken çekmiş olabilir) ve **profil fotoğrafı** (`app/edit-profile.tsx`)
+  için; iOS izin metni ikisini de sayıyor. **Dört kare her ilanda zorunlu** (ön, arka,
   sol, sağ); etiket karesi opsiyonel, hasar karesi 'Hasarlı' seçilmişse ve
   parça karesi ürün setse isteniyor. Arayüzde "yedi" ya da "beş" yazmak
   yanlış; tek doğruluk kaynağı veri tabanındaki `required_slots()`,
@@ -480,9 +517,13 @@ doğrudan kare çekimine düşüyordu. Başlığını yanlış yazmışsa ya da 
 karıştırmışsa hiçbir yolu yoktu; tek çare ilanı bırakıp yenisini açmaktı ve
 eski taslak veri tabanında sonsuza kadar kalıyordu.
 
-- **`update_listing` yalnızca DRAFT'ı ve yalnızca sahibini kabul ediyor.**
-  Yayındaki ilanın kondisyonunu değiştirmek puanını değiştirir ve o puanla
-  birinin sepetinde ya da açık takasında olabilir; o ayrı bir karar. Sahibi
+- **`update_listing` DRAFT ve ACTIVE'i, yalnızca sahibini kabul ediyor;
+  IN_REVIEW ve RESERVED düzenlenemez.** Yayındaki ilanda yalnızca başlık,
+  açıklama ve konum değişir (`20260818140000_yayindaki_ilan_duzenleme`):
+  kondisyon, kategori, boyut ve set beyanı puanı ya da alıcının gördüğü
+  bilgiyi değiştirir ve reddedilir. İncelemedeki ilan hiç değişmez —
+  yönetici baktığı şeyin altından kaymamalı (satır düzeyinde politika da
+  yalnızca DRAFT'ta açık, 2026-09-13). Sahibi
   olmayana "senin değil" değil **"bulunamadı"** deniyor — ilki geçerli bir
   ilan kimliğini doğrulamak olurdu (`photo-check`teki 404 ile aynı gerekçe).
 - **Değerlemeyi besleyen alan değişirse puan siliniyor.** Fonksiyonun asıl işi
@@ -526,10 +567,12 @@ eski taslak veri tabanında sonsuza kadar kalıyordu.
   `submit_listing()` → `admin_approve_listing()` / `admin_reject_listing()`.
   Kapı hâlâ zorunlu kareleri sayıyor (`required_slots()`, `data/photoSlots.ts`
   onun aynası) ama onayın kendisi insan kararı; `publish_listing` taslak.
-- **Puanı havuzdan yalnızca üç şey çıkarır:** alıcının onayı
+- **Puanı havuzdan yalnızca dört şey çıkarır:** alıcının onayı
   (`confirm_delivery`), süresi dolan sayaç (`expire_stale_trades` — 7 gün
-  sonra satıcıya aktarım, ya da 4 günde kargolanmadıysa alıcıya **iade**) ve
-  çözülen itiraz. Satıcı kendi takasını onaylayamaz — onaylayabilseydi ürünü
+  sonra satıcıya aktarım, ya da 4 günde kargolanmadıysa alıcıya **iade**),
+  çözülen itiraz ve alıcının **kargo öncesi iptali** (`cancel_trade`,
+  yalnızca CREATED/POINTS_HELD — kargolandıktan sonra iptal değil itiraz
+  işler). Satıcı kendi takasını onaylayamaz — onaylayabilseydi ürünü
   göndermeden puanı alırdı. Satıcı yalnızca `mark_shipped` çağırır.
 - **Kart bilgisi uygulamadan geçmez.** Puan satışı açıldığında ödeme sistem
   tarayıcısında açılır, uygulama içi WebView'de değil. Tarayıcıdan dönen sonuç
@@ -628,8 +671,8 @@ eski taslak veri tabanında sonsuza kadar kalıyordu.
   okur ve okundu işaretler. Metin uygulamada kurulsaydı aynı olay iki yerde iki
   farklı cümleyle anlatılırdı. Yeni bir durum eklerken bildirimi de aynı
   migration'da ekleyin.
-- **Alt kategorisiz ilan yayına giremez.** `publish_listing()` alt kategoriyi
-  karelerden önce denetler. Yalnızca ana kategorisi olan bir ilan vitrine
+- **Alt kategorisiz ilan yayına giremez.** `submit_listing()` (ve yayın
+  gövdesi `ilan_yayina_al`) alt kategoriyi karelerden önce denetler. Yalnızca ana kategorisi olan bir ilan vitrine
   çıksaydı ana kategori süzgecinde görünür, her alt kategori süzgecinde
   kaybolurdu: satıcı ilanını yayında sanar, alıcı hiçbir zaman bulamazdı.
   Taslak alt kategorisiz açılabilir — form akışının ortasında zorlamak için
@@ -905,8 +948,9 @@ olarak koruyor, yani ileride biri "fatura için lazım" diye eklerse test düşe
 ve karar yeniden konuşulur.
 
 Adres **tek bir yüzeyde başkasına gösteriliyor** (2026-09-08'den beri):
-süren takasın satıcısı, `POINTS_HELD` ve sonrasında, `my_trades()` içindeki
-`teslimat` anlık görüntüsünü görüyor — kargoyu o gönderiyor. Vitrin
+süren takasın satıcısı, `trades.teslimat` anlık görüntüsünü görüyor — kargoyu
+o gönderiyor. Kopya takas kapanınca (COMPLETED/REFUNDED) siliniyor; satır
+RLS'i tarafa açık, kolonu süzen bir şey yok ve olamaz. Vitrin
 okumuyor, ilan kartı okumuyor, pazarlama sitesi veri tabanına hiç
 bağlanmıyor. Bir tur boyunca "hiçbir yüzeyde" idi; değişince gizlilik
 sayfası aynı gün güncellendi.

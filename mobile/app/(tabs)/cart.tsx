@@ -18,8 +18,10 @@ export default function CartScreen() {
 
   const items = products.filter((p) => ids.includes(p.id));
   const total = items.reduce((s, p) => s + p.points, 0);
-  const balance = 1260; // demo cüzdan bakiyesi
-  const enough = balance >= total;
+  /* Sepet bir hatırlatma listesi: takas ürün sayfasından, ürün başına
+     başlatılır (adres seçimi ve bakiye kontrolü sunucuda). Eskiden burada
+     sabit bir "demo bakiye" (1260) ve hiçbir şey yapmayan bir "Takas et"
+     düğmesi vardı — 2026-09-13 denetiminde bulundu. */
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -44,8 +46,9 @@ export default function CartScreen() {
         <>
           <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 200 }} showsVerticalScrollIndicator={false}>
             <Text style={styles.hint}>
-              <MaterialIcons name="info-outline" size={13} color={colors.onSurfaceVariant} /> Her ürün ayrı takas + kargo
-              olarak işlenir; Takas Puanın Güvenli Havuz’da bekler.
+              <MaterialIcons name="info-outline" size={13} color={colors.onSurfaceVariant} /> Her ürün kendi
+              sayfasından ayrı bir takas olarak başlatılır; kargoyu satıcı gönderir, Takas Puanın Güvenli
+              Havuz’da bekler.
             </Text>
             {items.map((p) => (
               <View key={p.id} style={styles.item}>
@@ -60,9 +63,19 @@ export default function CartScreen() {
                       {p.location} · {p.seller.name}
                     </Text>
                   </View>
-                  <View style={styles.pts}>
-                    <Diamond size={13} color={colors.onPrimaryContainer} />
-                    <Text style={styles.ptsText}>{p.points} puan</Text>
+                  <View style={styles.ptsSatir}>
+                    <View style={styles.pts}>
+                      <Diamond size={13} color={colors.onPrimaryContainer} />
+                      <Text style={styles.ptsText}>{p.points} puan</Text>
+                    </View>
+                    <Pressable
+                      style={styles.git}
+                      onPress={() => router.push(`/product/${p.id}`)}
+                      accessibilityLabel={`${p.title} için takasa git`}
+                    >
+                      <Text style={styles.gitText}>Takasa git</Text>
+                      <MaterialIcons name="chevron-right" size={16} color={colors.primary} />
+                    </Pressable>
                   </View>
                 </View>
                 <Pressable onPress={() => remove(p.id)} style={styles.remove} hitSlop={8}>
@@ -77,18 +90,9 @@ export default function CartScreen() {
               <Text style={styles.sumLabel}>{count} ürün toplamı</Text>
               <Text style={styles.sumValue}>{fmt(total)} puan</Text>
             </View>
-            <View style={styles.sumRow}>
-              <Text style={styles.balLabel}>Cüzdan bakiyen</Text>
-              <Text style={[styles.balValue, !enough && { color: colors.error }]}>{fmt(balance)} puan</Text>
-            </View>
-            <Pressable
-              style={[styles.cta, !enough && styles.ctaDisabled]}
-              disabled={!enough}
-              onPress={() => router.push('/trades')}
-            >
-              <MaterialIcons name="swap-horiz" size={20} color="#fff" />
-              <Text style={styles.ctaText}>{enough ? `Takas et · ${fmt(total)} puan` : 'Yetersiz bakiye'}</Text>
-            </Pressable>
+            <Text style={styles.balLabel}>
+              Bakiyen Cüzdan ekranında; bir takas başlatırken sunucu yeterli puan olup olmadığına bakar.
+            </Text>
           </View>
         </>
       )}
@@ -111,13 +115,12 @@ const styles = StyleSheet.create({
   pts: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', marginTop: 8, height: 26, paddingHorizontal: 10, borderRadius: shape.xs, backgroundColor: colors.primaryContainer },
   ptsText: { fontWeight: '800', fontSize: 12, color: colors.onPrimaryContainer },
   remove: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+  ptsSatir: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
+  git: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 4, paddingLeft: 8 },
+  gitText: { fontSize: 12.5, fontWeight: '700', color: colors.primary },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: colors.surfaceContainer, paddingHorizontal: 18, paddingTop: 14, gap: 6 },
   sumRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   sumLabel: { fontSize: 14, fontWeight: '600', color: colors.onSurface },
   sumValue: { fontSize: 18, fontWeight: '800', color: colors.primary },
-  balLabel: { fontSize: 12, fontWeight: '500', color: colors.onSurfaceVariant },
-  balValue: { fontSize: 13, fontWeight: '700', color: colors.onSurfaceVariant },
-  cta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 54, borderRadius: shape.full, backgroundColor: colors.primary, marginTop: 8, ...elevation.level1 },
-  ctaDisabled: { backgroundColor: colors.outline },
-  ctaText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  balLabel: { fontSize: 12, fontWeight: '500', color: colors.onSurfaceVariant, lineHeight: 17 },
 });

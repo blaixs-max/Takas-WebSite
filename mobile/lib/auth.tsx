@@ -227,6 +227,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (p?.avatar_path) {
             await supabase.storage.from('avatars').remove([p.avatar_path as string]);
           }
+
+          /* İlan kareleri de aynı sebeple ÖNCE: `/gizlilik/` ilan
+             fotoğraflarının "hesap silinene kadar" tutulduğunu yazıyor.
+             Kova politikası sahibinin kendi klasörünü silmesine izin veriyor;
+             yol `{uid}/{ilan}/{slot}.jpg`, yani önce ilan klasörleri listelenir.
+             Silme başarısız olursa hesap yine siliniyor — geride kimliksiz
+             (REMOVED ilana bağlı, kimseye gösterilmeyen) dosya kalır. */
+          try {
+            const { data: klasorler } = await supabase.storage.from('listing-photos').list(uid);
+            const yollar: string[] = [];
+            for (const k of klasorler ?? []) {
+              const { data: dosyalar } = await supabase.storage
+                .from('listing-photos')
+                .list(`${uid}/${k.name}`);
+              for (const d of dosyalar ?? []) yollar.push(`${uid}/${k.name}/${d.name}`);
+            }
+            if (yollar.length) await supabase.storage.from('listing-photos').remove(yollar);
+          } catch (e) {
+            console.error('[hesabiSil] ilan kareleri silinemedi', e);
+          }
         }
 
         const { error } = await supabase.rpc('delete_own_account', {

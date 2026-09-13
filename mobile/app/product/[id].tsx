@@ -457,13 +457,18 @@ export default function ProductDetail() {
           </View>
           <Text style={styles.altAksiyonText}>{inSepet ? 'Sepette' : 'Sepet'}</Text>
         </Pressable>
+        {/* Kendi ilanında takas düğmesi yok: sunucu zaten reddediyor ("kendi
+            ilanınızı satın alamazsınız") ama onay diyaloğunu geçtikten sonra
+            hata görmek yanlış tarafa düğme çıkarmak demek. */}
         <Pressable
-          style={[styles.cta, takasEdiliyor && { opacity: 0.6 }]}
-          disabled={takasEdiliyor}
+          style={[styles.cta, (takasEdiliyor || benimIlanim) && { opacity: 0.6 }]}
+          disabled={takasEdiliyor || benimIlanim}
           onPress={takasEt}
         >
           {takasEdiliyor ? (
             <ActivityIndicator color="#fff" />
+          ) : benimIlanim ? (
+            <Text style={styles.ctaText}>Bu senin ilanın · {product.points} puan</Text>
           ) : (
             /* Rehber 05: birincil CTA "420 Takas Puanı ile takas et". Simge
                yok — cümle zaten ne olacağını söylüyor. */

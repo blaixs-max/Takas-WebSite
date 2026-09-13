@@ -291,3 +291,164 @@ select bekle_esit('kapanmış takasta asılı sayaç yok',
                     where (buyer_id = :'b' or seller_id = :'s')
                       and deadline_at is not null
                       and status in ('COMPLETED','REFUNDED','DISPUTED')), 0::bigint);
+
+-- ============================================================================
+-- 2026-09-13 denetim düzeltmeleri (`20260913132351_denetim_duzeltmeleri.sql`)
+-- ============================================================================
+
+\echo ''
+\echo '=== 13) BAŞKASININ ADINA TAKAS AÇILAMAZ ==='
+-- `p_buyer_id` istemciden geliyordu ve çağıranla karşılaştırılmıyordu: satıcı
+-- kendi ilanı için kurbanın kimliğiyle takas açıp adresini ve puanını
+-- alabilirdi. Düşerse gizlilik sayfasının "başka hiçbir üye görmez" cümlesi
+-- yalan olur.
+select pg_temp.yayinda_ilan('Sahte alıcı denemesi', 100) as pid \gset i8_
+set session role authenticated;
+select set_config('test.uid', :'y', false);
+select set_config('test.pid', :'i8_pid', false);
+do $$
+declare pid text := current_setting('test.pid');
+begin
+  perform create_trade(pid, '66666666-6666-6666-6666-666666666666');
+  raise notice 'SONUÇ: HATA — yabancı, alıcı adına takas açtı';
+exception when others then
+  raise notice 'SONUÇ: doğru — engellendi (%)', sqlerrm;
+end $$;
+reset role;
+select bekle_esit('ilan hâlâ ACTIVE, alıcı adına takas yok',
+                  (select count(*) from trades where product_id = :'i8_pid'), 0::bigint);
+select bekle('anon trades tablosunu okuyamaz',
+             not has_table_privilege('anon', 'public.trades', 'select'));
+-- Kendi adına (parametre açıkça verilmiş) açabilir.
+set session role authenticated;
+select set_config('test.uid', :'b', false);
+select id from create_trade(:'i8_pid', :'b') \gset t8_
+select bekle_esit('kendi adına açıldı', (select status from trades where id = :'t8_id'), 'POINTS_HELD');
+
+\echo ''
+\echo '=== 14) KARGO BİLGİSİ BİÇİMLİ: firma sınırlı, takip numarası harf-rakam ==='
+-- İkisi de alıcıya giden bildirime gömülüyor; serbest metin platform ağzından
+-- dolandırıcılık mesajı taşırdı.
+select set_config('test.uid', :'s', false);
+select set_config('test.tid', :'t8_id', false);
+do $$
+declare tid uuid := current_setting('test.tid')::uuid;
+begin
+  perform mark_shipped(tid, 'Yurtiçi Kargo. Kargo ücreti için 250 TL yi TR12 3456 IBAN a gönderin', '1234567890');
+  raise notice 'SONUÇ: HATA — uzun firma metni geçti';
+exception when others then
+  raise notice 'SONUÇ: doğru — engellendi (%)', sqlerrm;
+end $$;
+do $$
+declare tid uuid := current_setting('test.tid')::uuid;
+begin
+  perform mark_shipped(tid, 'Aras', 'http://x.y/z?takip=1');
+  raise notice 'SONUÇ: HATA — bağlantı takip numarası diye geçti';
+exception when others then
+  raise notice 'SONUÇ: doğru — engellendi (%)', sqlerrm;
+end $$;
+select bekle_esit('hâlâ POINTS_HELD', (select status from trades where id = :'t8_id'), 'POINTS_HELD');
+select status from mark_shipped(:'t8_id', 'Aras Kargo', 'ABC 123 456');
+select bekle_esit('boşluklar ayıklandı', (select takip_no from trades where id = :'t8_id'), 'ABC123456');
+
+\echo ''
+\echo '=== 15) KAPANAN TAKASTA ADRES KOPYASI SİLİNİR ==='
+-- Gizlilik sayfası: "takas kapanınca satıcıya görünmez olur". Politika
+-- kolon süzemez; kopya kapanışta siliniyor.
+select set_config('test.uid', :'b', false);
+select status from confirm_delivery(:'t8_id');
+reset role;
+select bekle_esit('takas tamamlandı', (select status from trades where id = :'t8_id'), 'COMPLETED');
+select bekle('teslimat kopyası silindi', (select teslimat is null from trades where id = :'t8_id'));
+select bekle('kargo bilgisi kaldı (kanıt)', (select takip_no is not null from trades where id = :'t8_id'));
+
+\echo ''
+\echo '=== 16) İTİRAZDAN DÖNÜŞ İKİNCİ "YOLDA" BİLDİRİMİ ÜRETMEZ ==='
+select pg_temp.yayinda_ilan('İtiraz sessizliği', 300) as pid \gset i9_
+set session role authenticated;
+select set_config('test.uid', :'b', false);
+select id from create_trade(:'i9_pid', :'b') \gset t9_
+select set_config('test.uid', :'s', false);
+select status from mark_shipped(:'t9_id', 'MNG', 'MNG-4455');
+select set_config('test.uid', :'b', false);
+select id from open_dispute(:'t9_id', 'Kutu ezik geldi, içi kırık.') \gset d9_
+reset role;
+select status from resolve_dispute(:'d9_id', false, 'Kanıt yetersiz');
+select bekle_esit('takas SHIPPED''e döndü', (select status from trades where id = :'t9_id'), 'SHIPPED');
+select bekle_esit('alıcıya tek "yolda" bildirimi',
+                  (select count(*) from notifications
+                    where user_id = :'b' and kind = 'trade.shipped'
+                      and data ->> 'trade' = :'t9_id'), 1::bigint);
+
+\echo ''
+\echo '=== 17) REFUND_KEEP: ürün alıcıda kaldıysa ilan vitrine dönmez ==='
+-- Eşik (dispute_policy.return_threshold_points) altındaki iadede ürün
+-- alıcıda kalır; ilan ACTIVE olsaydı satıcı elinde olmayan malı satardı.
+select pg_temp.yayinda_ilan('Ucuz kırık oyuncak', 100) as pid \gset i10_
+set session role authenticated;
+select set_config('test.uid', :'b', false);
+select id from create_trade(:'i10_pid', :'b') \gset t10_
+select set_config('test.uid', :'s', false);
+select status from mark_shipped(:'t10_id', 'PTT', 'PTT-9900');
+select set_config('test.uid', :'b', false);
+select id from open_dispute(:'t10_id', 'Ürün tarifle uyuşmuyor, parçası eksik.') \gset d10_
+reset role;
+select resolution from resolve_dispute(:'d10_id', true, 'Alıcı haklı');
+select bekle_esit('karar REFUND_KEEP', (select resolution from disputes where id = :'d10_id'), 'REFUND_KEEP');
+select bekle_esit('takas iade edildi', (select status from trades where id = :'t10_id'), 'REFUNDED');
+select bekle_esit('ilan vitrine dönmedi', (select status from products where id = :'i10_pid'), 'REMOVED');
+select bekle('satıcıya "vitrinde" denmedi',
+             not exists (select 1 from notifications
+                          where user_id = :'s' and kind = 'trade.refunded'
+                            and data ->> 'trade' = :'t10_id' and body like '%vitrinde%'));
+select bekle('kargo sonrası iadede de adres kopyası silindi',
+             (select teslimat is null from trades where id = :'t10_id'));
+
+\echo ''
+\echo '=== 18) expire_stale_trades: CREATED satır koşuyu düşürmez ==='
+-- Emanete hiç girmemiş bir satır (doğrudan insert) süresi dolunca
+-- `refund_points` istisnasıyla bütün saatlik koşuyu durduruyordu.
+select pg_temp.yayinda_ilan('Yarım kalmış takas', 100) as pid \gset i11_
+insert into trades (buyer_id, seller_id, product_id, points, status)
+values (:'b', :'s', :'i11_pid', 100, 'CREATED')
+returning id \gset t11_
+-- Damga tetikleyicisi INSERT'te sayacı 4 güne kurar; süresi dolmuş gibi geri çekiyoruz.
+update trades set deadline_at = now() - interval '1 hour' where id = :'t11_id';
+select * from expire_stale_trades();
+select bekle('CREATED satır sayaçsız kaldı, koşu düşmedi',
+             (select deadline_at is null and status = 'CREATED' from trades where id = :'t11_id'));
+delete from trades where id = :'t11_id';
+
+\echo ''
+\echo '=== 19) mark_shipped: 65 karakter takip numarası ve adressiz takas reddedilir ==='
+select pg_temp.yayinda_ilan('Uzun takip', 100) as pid \gset i12_
+set session role authenticated;
+select set_config('test.uid', :'b', false);
+select id from create_trade(:'i12_pid', :'b') \gset t12_
+select set_config('test.uid', :'s', false);
+select set_config('test.tid', :'t12_id', false);
+do $$
+declare tid uuid := current_setting('test.tid')::uuid;
+begin
+  perform mark_shipped(tid, 'Yurtiçi Kargo', repeat('A', 65));
+  raise notice 'SONUÇ: HATA — 65 karakter takip numarası geçti';
+exception when others then
+  raise notice 'SONUÇ: doğru — engellendi (%)', sqlerrm;
+end $$;
+reset role;
+select bekle_esit('hâlâ POINTS_HELD', (select status from trades where id = :'t12_id'), 'POINTS_HELD');
+-- Göç öncesi açılmış, adres kopyası olmayan takas: kargoya verilemez.
+update trades set teslimat = null where id = :'t12_id';
+set session role authenticated;
+select set_config('test.uid', :'s', false);
+do $$
+declare tid uuid := current_setting('test.tid')::uuid;
+begin
+  perform mark_shipped(tid, 'Yurtiçi Kargo', 'YK-12345');
+  raise notice 'SONUÇ: HATA — adressiz takas kargoya verildi';
+exception when others then
+  raise notice 'SONUÇ: doğru — engellendi (%)', sqlerrm;
+end $$;
+reset role;
+select bekle_esit('adressiz takas POINTS_HELD kaldı', (select status from trades where id = :'t12_id'), 'POINTS_HELD');
+select bekle('takip numarası yazılmadı', (select takip_no is null from trades where id = :'t12_id'));

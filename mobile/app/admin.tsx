@@ -35,12 +35,14 @@ import {
   loadDisputeQueue,
   loadReportQueue,
   loadReviewQueue,
+  moderatePhoto,
   nedenEtiketi,
   puanOnizle,
   rejectListing,
   resolveDispute,
   resolveReport,
 } from '../lib/admin';
+import { supabase } from '../lib/supabase';
 import { colors, elevation, shape } from '../theme/tokens';
 
 /**
@@ -104,6 +106,7 @@ export default function AdminScreen() {
   // Gerekçe soran tek bir sayfa: ilan reddi, avatar reddi, itiraz, şikâyet.
   const [gerekceIcin, setGerekceIcin] = useState<
     | { tip: 'ilanRet'; id: string }
+    | { tip: 'kareRet'; id: string; path: string; productId: string }
     | { tip: 'avatarRet'; id: string }
     | { tip: 'itiraz'; id: string; kabul: boolean; esiginUstunde: boolean }
     | { tip: 'sikayet'; id: string; ihlal: boolean }
@@ -112,28 +115,49 @@ export default function AdminScreen() {
   const [gerekce, setGerekce] = useState('');
   const [iadeKargo, setIadeKargo] = useState('');
 
-  const getir = useCallback(async () => {
-    const [il, av, i, c, r, h] = await Promise.all([
-      loadReviewQueue(),
-      loadAvatarQueue(),
-      loadDisputeQueue(),
-      campaignStatus(),
-      loadReportQueue(),
-      adminHatalar(),
-    ]);
-    setIlanlar(il);
-    setAvatarlar(av);
-    setItirazlar(i);
-    setKampanya(c);
-    setSikayetler(r);
-    setHatalar(h);
+  /* Kuyruk yüklenemediğinde boş liste "kuyruk temiz" diye okunurdu — yetki
+     düşmesi, oturum süresi, RPC uyumsuzluğu hepsi aynı görünürdü ve yönetici
+     bakmazdı. Hata artık ayrı bir durumda ve kartla gösteriliyor. */
+  const [yuklemeHatasi, setYuklemeHatasi] = useState<string | null>(null);
 
-    // Özel kovalar: görselleri göstermek için kısa ömürlü bağlantı gerekiyor.
-    // Eşleme yol üzerinden; sıraya güvenmek kareleri birbirine karıştırırdı.
-    const yollar = il.flatMap((x) => x.kareler.map((k) => k.path));
-    setKareUrl(await imzaliBaglantilar('listing-photos', yollar));
-    setAvatarUrl(await imzaliBaglantilar('avatars', av.map((a) => a.avatarPath)));
+  const getir = useCallback(async () => {
+    try {
+      const [il, av, i, c, r, h] = await Promise.all([
+        loadReviewQueue(),
+        loadAvatarQueue(),
+        loadDisputeQueue(),
+        campaignStatus(),
+        loadReportQueue(),
+        adminHatalar(),
+      ]);
+      setIlanlar(il);
+      setAvatarlar(av);
+      setItirazlar(i);
+      setKampanya(c);
+      setSikayetler(r);
+      setHatalar(h);
+      setYuklemeHatasi(null);
+
+      // Özel kovalar: görselleri göstermek için kısa ömürlü bağlantı gerekiyor.
+      // Eşleme yol üzerinden; sıraya güvenmek kareleri birbirine karıştırırdı.
+      const yollar = il.flatMap((x) => x.kareler.map((k) => k.path));
+      setKareUrl(await imzaliBaglantilar('listing-photos', yollar));
+      setAvatarUrl(await imzaliBaglantilar('avatars', av.map((a) => a.avatarPath)));
+    } catch (e) {
+      setYuklemeHatasi(e instanceof Error ? e.message : 'Kuyruk yüklenemedi.');
+    }
   }, []);
+
+  /* Önizleme isteklerinin sırası: geç dönen eski istek yeni değerin sonucunu
+     ezmesin (1000 yaz → istek A; 2000 yaz → istek B; A sonra dönerse ekran
+     1000'in puanını gösterir, alan 2000 der ve onay diyaloğu o sayıyı alıntılar). */
+  const onizlemeSira = useRef<Record<string, number>>({});
+  useEffect(
+    () => () => {
+      Object.values(onizlemeZamanlayici.current).forEach(clearTimeout);
+    },
+    [],
+  );
 
   useEffect(() => {
     (async () => {
@@ -157,7 +181,10 @@ export default function AdminScreen() {
       return;
     }
     onizlemeZamanlayici.current[il.productId] = setTimeout(async () => {
+      const n = (onizlemeSira.current[il.productId] ?? 0) + 1;
+      onizlemeSira.current[il.productId] = n;
       const p = await puanOnizle(sayi, il.condition, il.hasDamage);
+      if (onizlemeSira.current[il.productId] !== n) return; // bayat cevap
       setOnizleme((o) => ({ ...o, [il.productId]: p }));
     }, 400);
   }
@@ -198,6 +225,29 @@ export default function AdminScreen() {
   async function ilanReddet(productId: string, neden: string) {
     setIslemde(productId);
     const s = await rejectListing(productId, neden);
+    setIslemde(null);
+    if (!s.ok) {
+      uyar('Reddedilemedi', s.message);
+      return;
+    }
+    await getir();
+  }
+
+  /**
+   * Kare düzeyinde ret: güvenlik gerekçesi (çocuk yüzü, uygunsuz içerik) olan
+   * kare için. Satır `rejected` olur, dosya depodan silinir (gizlilik
+   * sayfasının "karar anında silinir" taahhüdü), satıcıya `photo.rejected`
+   * bildirimi gider. İlan hâlâ incelemede kalır — yönetici ardından ilanı
+   * gerekçesiyle reddeder ki satıcı yeniden çeksin. Sıradan düzeltme (bulanık,
+   * yanlış açı) için bu yol değil, ilan reddi kullanılır: kareler durur.
+   */
+  async function kareReddet(photoId: string, path: string, neden: string) {
+    setIslemde(photoId);
+    const s = await moderatePhoto(photoId, false, neden);
+    if (s.ok && supabase) {
+      const { error } = await supabase.storage.from('listing-photos').remove([path]);
+      if (error) console.error('[kareReddet] dosya silinemedi', error.message);
+    }
     setIslemde(null);
     if (!s.ok) {
       uyar('Reddedilemedi', s.message);
@@ -360,7 +410,14 @@ export default function AdminScreen() {
         )}
 
         {/* ---------------------------------------------------------- İLANLAR */}
-        {sekme === 'ilan' && ilanlar.length === 0 && (
+        {yuklemeHatasi && (
+          <View style={[styles.kart, { borderColor: colors.error, borderWidth: 1 }]}>
+            <Text style={styles.kartBaslik}>Kuyruklar yüklenemedi</Text>
+            <Text style={styles.kartAlt}>{yuklemeHatasi} Aşağı çekerek yeniden dene.</Text>
+          </View>
+        )}
+
+        {sekme === 'ilan' && !yuklemeHatasi && ilanlar.length === 0 && (
           <Bos ikon="check-circle" metin="Onay bekleyen ilan yok. Kuyruk temiz." />
         )}
 
@@ -389,6 +446,12 @@ export default function AdminScreen() {
                         key={k.photoId}
                         style={styles.kareKutu}
                         onPress={() => url && setBuyukKare(url)}
+                        /* Uzun basış: bu kareyi güvenlik gerekçesiyle reddet ve sil. */
+                        onLongPress={() =>
+                          k.status !== 'rejected' &&
+                          setGerekceIcin({ tip: 'kareRet', id: k.photoId, path: k.path, productId: il.productId })
+                        }
+                        accessibilityHint="Uzun basınca kare reddedilir ve silinir"
                       >
                         {url ? (
                           <Image source={{ uri: url }} style={styles.gorsel} />
@@ -687,6 +750,8 @@ export default function AdminScreen() {
             <Text style={styles.sheetBaslik}>
               {gerekceIcin?.tip === 'ilanRet'
                 ? 'İlan neden reddedildi?'
+                : gerekceIcin?.tip === 'kareRet'
+                  ? 'Bu kare neden silinsin?'
                 : gerekceIcin?.tip === 'avatarRet'
                   ? 'Fotoğraf neden reddedildi?'
                   : gerekceIcin?.tip === 'sikayet'
@@ -700,6 +765,8 @@ export default function AdminScreen() {
             <Text style={styles.sheetMetin}>
               {gerekceIcin?.tip === 'ilanRet'
                 ? 'Gerekçe satıcıya bildirimle gider; hangi kareyi ya da bilgiyi düzelteceğini yaz. Kareler silinmez.'
+                : gerekceIcin?.tip === 'kareRet'
+                  ? 'Yalnızca güvenlik gerekçesi için (çocuk yüzü, uygunsuz içerik, başka kişi): dosya depodan silinir, satıcıya bildirim gider. Bulanık ya da yanlış açı için ilanı reddet, kare dursun.'
                 : gerekceIcin?.tip === 'avatarRet'
                   ? 'Gerekçe kullanıcıya gösterilir; fotoğraf depodan silinir.'
                   : 'Gerekçe denetim kaydına yazılır ve sonradan değiştirilemez.'}
@@ -743,6 +810,11 @@ export default function AdminScreen() {
                     const neden = gerekce;
                     kapat();
                     ilanReddet(id, neden);
+                  } else if (gerekceIcin?.tip === 'kareRet') {
+                    const { id, path } = gerekceIcin;
+                    const neden = gerekce;
+                    kapat();
+                    kareReddet(id, path, neden);
                   } else if (gerekceIcin?.tip === 'avatarRet') {
                     const id = gerekceIcin.id;
                     const neden = gerekce;

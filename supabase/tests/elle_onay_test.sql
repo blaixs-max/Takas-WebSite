@@ -293,3 +293,176 @@ select bekle_esit('durum rejected',
 select bekle('yol boşaltıldı', (select avatar_path is null from profiles where user_id = :'b'));
 select bekle_esit('gerekçe saklandı',
                   (select avatar_reason from profiles where user_id = :'b'), 'Uygunsuz içerik.');
+
+-- ============================================================================
+-- 2026-09-13 denetim düzeltmeleri (`20260913132351_denetim_duzeltmeleri.sql`)
+-- ============================================================================
+
+\echo ''
+\echo '=== 12) İNCELEMEDEKİ İLAN SATIRI İSTEMCİDEN DEĞİŞMEZ ==='
+-- Politika durum şartı taşımıyordu: satıcı yönetici bakarken kondisyonu
+-- "Yeni gibi" yapıp onay puanını yükseltebilir, `submitted_at`i geri çekip
+-- kuyrukta öne geçebilirdi.
+select pg_temp.gonderilmis('Kilitli ilan') as pid \gset p12_
+set session role authenticated;
+select set_config('test.uid', :'s', false);
+update products set condition = 'Yeni gibi', submitted_at = now() - interval '30 days'
+ where id = :'p12_pid';
+reset role;
+select bekle_esit('kondisyon değişmedi', (select condition from products where id = :'p12_pid'), 'İyi durumda');
+select bekle('gönderim damgası geri çekilmedi',
+             (select submitted_at > now() - interval '1 hour' from products where id = :'p12_pid'));
+-- Taslakta bile inceleme/değerleme izi istemciden yazılamaz; kondisyon
+-- yalnızca update_listing üzerinden.
+select set_config('test.uid', :'s', false);
+select id as pid from create_listing('Taslak kilit', 'Oyun & Oyuncak', 'İyi durumda', 'S', p_sub_category => 'Yapı & inşa') \gset p13_
+set session role authenticated;
+select set_config('test.uid', :'s', false);
+select set_config('test.pid', :'p13_pid', false);
+do $$
+declare pid text := current_setting('test.pid');
+begin
+  update products set review_reason = 'kendime not' where id = pid;
+  raise notice 'SONUÇ: HATA — inceleme alanı istemciden yazıldı';
+exception when others then
+  raise notice 'SONUÇ: doğru — engellendi (%)', sqlerrm;
+end $$;
+do $$
+declare pid text := current_setting('test.pid');
+begin
+  update products set condition = 'Yeni gibi' where id = pid;
+  raise notice 'SONUÇ: HATA — kondisyon doğrudan yazıldı';
+exception when others then
+  raise notice 'SONUÇ: doğru — engellendi (%)', sqlerrm;
+end $$;
+reset role;
+select bekle_esit('taslak kondisyonu aynı', (select condition from products where id = :'p13_pid'), 'İyi durumda');
+-- Resmi yol çalışmaya devam ediyor.
+set session role authenticated;
+select set_config('test.uid', :'s', false);
+select condition from update_listing(:'p13_pid', 'Taslak kilit', 'Oyun & Oyuncak', 'Yeni gibi', 'S', p_sub_category => 'Yapı & inşa');
+reset role;
+select bekle_esit('update_listing kondisyonu değiştirdi', (select condition from products where id = :'p13_pid'), 'Yeni gibi');
+
+\echo ''
+\echo '=== 13) taban_uygulandi kolonun tanımıyla aynı: 80 TL taban değil, 60 TL taban ==='
+select pg_temp.gonderilmis('Seksen lira') as pid \gset p14_
+select pg_temp.gonderilmis('Altmış lira') as pid \gset p15_
+set session role authenticated;
+select set_config('test.uid', :'a', false);
+select points from admin_approve_listing(:'p14_pid', 80);
+select points from admin_approve_listing(:'p15_pid', 60);
+reset role;
+select bekle_esit('80 TL → 50 puan', (select points from products where id = :'p14_pid'), 50);
+select bekle('80 TL tabana yükseltilmedi', (select not taban_uygulandi from products where id = :'p14_pid'));
+select bekle_esit('60 TL → 50 puan', (select points from products where id = :'p15_pid'), 50);
+select bekle('60 TL tabana yükseltildi', (select taban_uygulandi from products where id = :'p15_pid'));
+
+\echo ''
+\echo '=== 14) Avatar kararı bildirim üretir ==='
+-- §11 bir onay ve bir ret verdi; ikisi de kullanıcıya bildirilmiş olmalı.
+select bekle_esit('onay ve ret bildirimleri',
+                  (select count(*) from notifications
+                    where user_id = :'b' and kind in ('avatar.approved','avatar.rejected')), 2::bigint);
+select bekle('ret bildirimi gerekçeyi taşıyor',
+             exists (select 1 from notifications
+                      where user_id = :'b' and kind = 'avatar.rejected' and body like 'Uygunsuz içerik.%'));
+
+\echo ''
+\echo '=== 15) DEPO NESNESİ DE KİLİTLİ: incelemedeki ilanın karesi üzerine yazılamaz ==='
+-- Satır IN_REVIEW'da kilitliydi ama dosya değildi: onaylı kare aynı yola
+-- yeni baytlarla değiştirilebiliyordu. Yerel iskele `storage.objects`'i
+-- tabloyla taklit ediyor; politika metni birebir aynı.
+insert into storage.buckets (id, name) values ('listing-photos', 'listing-photos') on conflict (id) do nothing;
+select pg_temp.gonderilmis('Depo kilidi') as pid \gset p16_
+select set_config('test.uid', :'s', false);
+select id as pid from create_listing('Depo taslak', 'Oyun & Oyuncak', 'İyi durumda', 'S', p_sub_category => 'Yapı & inşa') \gset p17_
+set session role authenticated;
+select set_config('test.uid', :'s', false);
+select set_config('test.pid', :'p16_pid', false);
+do $$
+declare pid text := current_setting('test.pid');
+begin
+  insert into storage.objects (bucket_id, name)
+  values ('listing-photos', '0910a0a0-0000-0000-0000-000000000002/' || pid || '/front.jpg');
+  raise notice 'SONUÇ: HATA — incelemedeki ilanın klasörüne yazıldı';
+exception when others then
+  raise notice 'SONUÇ: doğru — engellendi (%)', sqlerrm;
+end $$;
+insert into storage.objects (bucket_id, name)
+values ('listing-photos', '0910a0a0-0000-0000-0000-000000000002/' || :'p17_pid' || '/front.jpg');
+reset role;
+select bekle_esit('incelemedeki ilana dosya yazılmadı',
+                  (select count(*) from storage.objects where name like '%' || :'p16_pid' || '%'), 0::bigint);
+select bekle_esit('taslağa yazıldı',
+                  (select count(*) from storage.objects where name like '%' || :'p17_pid' || '%'), 1::bigint);
+
+\echo ''
+\echo '=== 16) BAŞKASININ TAM KARELİ TASLAĞI ONAYA GÖNDERİLEMEZ (sahiplik, eksik kare değil) ==='
+-- Eski test karesiz ilan kullanıyordu: sahiplik kontrolü silinse bile "eksik
+-- kare" hatasıyla geçiyordu. Burada kareler tam; tek engel sahiplik.
+select set_config('test.uid', :'s', false);
+select id as pid from create_listing('Sahiplik denemesi', 'Oyun & Oyuncak', 'İyi durumda', 'S', p_sub_category => 'Yapı & inşa') \gset p18_
+insert into product_photos (product_id, slot, storage_path)
+select :'p18_pid', s, :'s' || '/' || :'p18_pid' || '/' || s || '.jpg'
+  from unnest(array['front','back','left','right']::photo_slot[]) s;
+set session role authenticated;
+select set_config('test.uid', :'b', false);
+select set_config('test.pid', :'p18_pid', false);
+do $$
+declare pid text := current_setting('test.pid');
+begin
+  perform submit_listing(pid);
+  raise notice 'SONUÇ: HATA — yabancı, başkasının taslağını onaya gönderdi';
+exception when others then
+  raise notice 'SONUÇ: doğru — engellendi (%)', sqlerrm;
+end $$;
+reset role;
+select bekle_esit('yabancı gönderemedi: ilan DRAFT kaldı', (select status from products where id = :'p18_pid'), 'DRAFT');
+
+\echo ''
+\echo '=== 17) YAYINDAKİ İLAN GERİ ÇEKİLEMEZ, YENİDEN GÖNDERİLEMEZ ==='
+-- p1 onaylandı, ACTIVE. Durum makinesi geri gitmez.
+set session role authenticated;
+select set_config('test.uid', :'s', false);
+select set_config('test.pid', :'p1_pid', false);
+do $$
+declare pid text := current_setting('test.pid');
+begin
+  perform withdraw_listing(pid);
+  raise notice 'SONUÇ: HATA — yayındaki ilan geri çekildi';
+exception when others then
+  raise notice 'SONUÇ: doğru — engellendi (%)', sqlerrm;
+end $$;
+do $$
+declare pid text := current_setting('test.pid');
+begin
+  perform submit_listing(pid);
+  raise notice 'SONUÇ: HATA — yayındaki ilan yeniden gönderildi';
+exception when others then
+  raise notice 'SONUÇ: doğru — engellendi (%)', sqlerrm;
+end $$;
+reset role;
+select bekle_esit('yayındaki ilan ACTIVE kaldı', (select status from products where id = :'p1_pid'), 'ACTIVE');
+
+\echo ''
+\echo '=== 18) anon yeni akışın hiçbir RPC''sini çağıramaz ==='
+select bekle('anon yeni akışın hiçbir RPC''sini çağıramaz',
+  (select count(*) = 0 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname in ('submit_listing','withdraw_listing','admin_review_queue','admin_puan_hesapla',
+                        'admin_approve_listing','admin_reject_listing','admin_avatar_queue','admin_avatar_karar',
+                        'create_trade','mark_shipped','kare_yazilabilir','expire_stale_trades',
+                        'itiraz_oncesi_durum','ilan_onayla','delete_own_account')
+      and has_function_privilege('anon', p.oid, 'execute')));
+
+\echo ''
+\echo '=== 19) HESAP SİLİNİNCE İNCELEMEDEKİ İLAN DA KALKAR ==='
+select pg_temp.gonderilmis('Silinecek hesabın ilanı') as pid \gset p19_
+set session role authenticated;
+select set_config('test.uid', :'s', false);
+select delete_own_account('HESABIMI SIL');
+reset role;
+select bekle_esit('incelemedeki ilan REMOVED', (select status from products where id = :'p19_pid'), 'REMOVED');
+select bekle('kuyrukta görünmüyor',
+             not exists (select 1 from products where id = :'p19_pid' and status = 'IN_REVIEW'));

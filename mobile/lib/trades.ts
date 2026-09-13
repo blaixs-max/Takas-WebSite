@@ -278,6 +278,15 @@ function cevirAksiyon(mesaj: string): string {
     return 'Ürün kargoya verildi; artık iptal değil iade süreci işler.';
   }
   if (mesaj.includes('yalnızca alıcı iptal')) return 'Bu takası yalnızca alıcı iptal edebilir.';
+  if (mesaj.includes('kargo firması adı')) {
+    return 'Firma adı en fazla 40 harf; yalnızca harf, rakam, boşluk, nokta, & ve tire.';
+  }
+  if (mesaj.includes('takip numarası')) return 'Takip numarası 4–64 karakter; yalnızca harf, rakam ve tire.';
+  if (mesaj.includes('teslimat adresi yok')) {
+    return 'Bu takasta alıcının adresi yok; alıcıdan mesajla adres eklemesini iste.';
+  }
+  if (mesaj.includes('yalnızca satıcı girer')) return 'Kargo bilgisini yalnızca satıcı girer.';
+  if (mesaj.includes('kendi adına takas')) return 'Takası yalnızca kendi adına başlatabilirsin.';
   if (mesaj.includes('kargo bilgisini yalnızca satıcı')) return 'Kargo bilgisini yalnızca satıcı girer.';
   if (mesaj.includes('kargo firması zorunludur')) return 'Kargo firmasını seç.';
   if (mesaj.includes('takip numarası')) return 'Takip numarası 4–64 karakter olmalı.';

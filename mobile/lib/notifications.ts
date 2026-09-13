@@ -66,6 +66,10 @@ export function gorunum(kind: string): Gorunum {
       return { ikon: 'edit-note', ton: 'dikkat' };
     case 'photo.rejected':
       return { ikon: 'photo-camera', ton: 'dikkat' };
+    case 'avatar.approved':
+      return { ikon: 'account-circle', ton: 'primary' };
+    case 'avatar.rejected':
+      return { ikon: 'account-circle', ton: 'dikkat' };
     case 'trade.created':
       return { ikon: 'swap-horiz', ton: 'primary' };
     case 'trade.shipped':
@@ -116,6 +120,8 @@ export function hedef(n: NotificationRow): string | null {
      sahibine gösterir ama sayfa yayındaki ilan için yazıldı). Varış yeri
      taslak listesi — gerekçe orada okunuyor. */
   if (n.data.draft === true) return '/drafts';
+  /* Avatar kararı: gerekçe ve yeniden yükleme profil düzenleme ekranında. */
+  if (n.data.profile === true) return '/edit-profile';
   if (typeof n.data.trade === 'string') return '/trades';
   if (typeof n.data.product === 'string') return `/product/${n.data.product}`;
   if (n.kind === 'campaign.granted') return '/wallet';

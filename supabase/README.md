@@ -1,7 +1,22 @@
-# KIDS TRADE — Ödeme backend'i (Supabase + iyzico)
+# ELDENELE — Arka uç (Supabase)
 
-Bu klasör, **kargo ücreti tahsilatı + komisyon** akışının backend'ini içerir.
-Güvenli havuz (puan) bu katmanda **değildir** — burada yalnızca gerçek para (kargo) akar.
+> **Güncel durum (2026-09-08, Ana Doküman v2.0):** kargo ödemesi yok, alıcı
+> TL ödemez, kargoyu satıcı gönderir. `cargo-payment-init` silindi;
+> `iyzico-callback` takasa dokunmuyor ve kredi kartıyla **puan satışı** için
+> yuva olarak duruyor (nereden satılacağı kararlaştırılmadı). Yayında iki uç
+> var: `iyzico-callback`, `send-sms`. Göçler `migrations/`, testler `tests/`
+> (`tests/kosu.sh`). Karar kaynağı `docs/ana-dokuman.md`, çalışma kuralları
+> kök `CLAUDE.md`.
+>
+> **Aşağısı TARİHSEL** — 2026-08 kargo tahsilatı mimarisini anlatıyor;
+> `cargo_payments` / `fee_settings` tabloları yalnızca geçmiş kayıt olarak
+> duruyor. IYZWSv2 imzalama ve RETRIEVE doğrulama bölümleri puan satışında
+> yeniden kullanılacak, o yüzden silinmedi.
+
+# KIDS TRADE — Ödeme backend'i (Supabase + iyzico) — TARİHSEL
+
+Bu klasör, **kargo ücreti tahsilatı + komisyon** akışının backend'ini içeriyordu.
+Güvenli havuz (puan) bu katmanda **değildir** — burada yalnızca gerçek para (kargo) akıyordu.
 
 ## Mimari özeti
 

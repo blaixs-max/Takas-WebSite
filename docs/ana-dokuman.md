@@ -75,8 +75,9 @@ toplamaz.
 
 ### 2.2 Profil ve satıcı adı
 
-Vitrinde ve pazarlama sitesinde ad **kısaltılmış** görünür ("Zeynep D.").
-Ad e-postadan türemişse hiç yayınlanmaz, "Üye" yazılır. Konum "İlçe, İl"
+Pazarlama sitesinde (açık web, indekslenir) ad **kısaltılmış** görünür
+("Zeynep D."); uygulamada üyeler arasında tam ad görünür. Ad e-postadan
+türemişse ikisinde de yayınlanmaz, "Üye" yazılır. Konum "İlçe, İl"
 biçiminde, listeden seçilir; mahalle ve mesafe hiç yayınlanmaz.
 
 ### 2.3 Profil fotoğrafı
@@ -93,6 +94,11 @@ Yeni kullanıcıya ilk ilanı **yayına girince** kampanya puanı verilir
 Satışta değil yayında — soğuk başlangıcı kıran şey bu sıra. Hak verme
 sessizdir: koşul sağlanmazsa hata vermez, yalnızca hak vermez.
 
+**Açık sorun (2026-09-13 denetimi):** `grant_campaign_points` telefon
+doğrulaması ister (`auth.users.phone_confirmed_at`), uygulama ise telefon
+toplamıyor. Yani bugün hiçbir gerçek kullanıcı kampanya puanı alamıyor ve
+satış da kapalıyken **puan üreten yol yok**. Karar §7.9'da bekliyor.
+
 ### 2.5 Adres defteri
 
 Kullanıcı birden fazla adres kaydeder, düzenler, siler; biri varsayılan.
@@ -101,8 +107,9 @@ başlarken seçilir ve **o takasın satıcısına** gösterilir (§4.4, §6).
 
 ### 2.6 Hesap silme
 
-Uygulama içinden, geri alınamaz. Süren takas ya da rezerve ilan varsa
-reddedilir. Profil, avatar, adresler, favoriler, sepet silinir; tamamlanmış
+Uygulama içinden, geri alınamaz. Süren takas, rezerve ilan ya da ödenmemiş
+iade kargosu borcu varsa reddedilir. Taslak, incelemedeki ve yayındaki
+ilanlar kaldırılır; ilan kareleri depodan silinir. Profil, avatar, adresler, favoriler, sepet silinir; tamamlanmış
 takas, cüzdan ve mesaj kayıtları kimliksizleştirilerek kalır (karşı tarafın
 da kaydı). Kalan puan düşer, nakde çevrilmez.
 
@@ -186,13 +193,15 @@ ACTIVE ilan ──create_trade(ilan, adres)──▶ POINTS_HELD   (ürün RESER
      ilan ACTIVE'e döner,                  SHIPPED ──confirm_delivery()──▶ COMPLETED (puan satıcıya)
      adres kopyası silinir)                   │
                                               └── 7 gün içinde onay yoksa ──▶ COMPLETED (otomatik)
-                       herhangi bir anda alıcı "Sorun var" ──▶ DISPUTED (sayaç durur, §5)
+                       SHIPPED'den itibaren, süre dolmadan: alıcı "Sorun var" ──▶ DISPUTED (sayaç durur, §5)
+     POINTS_HELD'de alıcı "Takası iptal et" ──▶ REFUNDED (kargo öncesi iptal, satıcı onayı gerekmez)
 ```
 
 1. **Sepet ve başlatma.** Alıcı sepete ekler; bakiyesi yetiyorsa takası
-   başlatır. **Teslimat adresi zorunlu** — defterden seçilir, takasa anlık
+   başlatır. **Teslimat adresi zorunlu** — bugün uygulama seçtirmiyor,
+   **varsayılan** (yoksa en son düzenlenen) adres alınır ve takasa anlık
    görüntü olarak kopyalanır (defterdeki adres sonradan silinse de gönderi
-   adresi kalır).
+   adresi kalır). Birden fazla adresi olan alıcı için seçtirme §7.10'da açık.
 2. **Rezervasyon ve emanet.** Ürün `RESERVED` olur ve vitrinden gizlenir;
    alıcının puanı iç emanete alınır.
 3. **Satıcının 4 günü.** Satıcı alıcının adını, adresini, telefonunu görür;
@@ -205,8 +214,9 @@ ACTIVE ilan ──create_trade(ilan, adres)──▶ POINTS_HELD   (ürün RESER
    ve itiraz da açmazsa puan **otomatik** satıcıya geçer. Ekranda açıkça
    yazar: "ürün gelmediyse süre dolmadan 'Sorun var'a bas."
 5. **Satıcı kendi takasını onaylayamaz** — onaylayabilseydi ürünü
-   göndermeden puanı alırdı. Puanı emanetten yalnızca üç şey çıkarır:
-   alıcının onayı, süresi dolan sayaç, çözülen itiraz.
+   göndermeden puanı alırdı. Puanı emanetten yalnızca dört şey çıkarır:
+   alıcının onayı, süresi dolan sayaç, çözülen itiraz ve alıcının kargo
+   öncesi iptali.
 
 Süreler `trade_timings` tablosunda (kod değişmeden ayarlanır):
 `dropoff_window = 4 gün`, `confirm_window = 7 gün`.
@@ -262,8 +272,11 @@ açıldığında kalıcı kapatmayı her zaman insan verir.
   zekâ hizmeti yok. iyzico, puan satışı açıldığında geri gelir.
 - **Üyeler arası tek kişisel veri akışı:** alıcının adı, adresi ve telefonu
   → o takasın satıcısına, yalnızca `POINTS_HELD` ve sonrasında, yalnızca
-  takas sürerken. Kargolanmamış iptalde adres kopyası silinir. Bunu RLS
-  değil RPC süzer — RLS bir sınırdır, filtre değil.
+  takas sürerken. Takas kapanınca (tamamlandı ya da iade edildi) adres
+  kopyası **silinir** — "görünmez olur" taahhüdünü bir politika değil silme
+  yerine getirir, çünkü satır düzeyi güvenlik kolon süzemez. Alıcı takası
+  yalnızca kendi adına başlatabilir; satıcı başkasının kimliğiyle takas açıp
+  adresini kopyalatamaz (2026-09-13 denetiminde kapatıldı).
 - **Hiç toplanmayan:** telefon konumu, T.C. kimlik numarası, fatura bilgisi,
   mahalle, mesafe.
 - **Reddedilen görsel saklanmaz** (kare ve avatar, karar anında silinir).
@@ -284,6 +297,8 @@ açıldığında kalıcı kapatmayı her zaman insan verir.
 | 7.6 | Kargo aggregator entegrasyonu | Kapsam dışı | Satıcı kendi gönderiyor; entegrasyon düşünülürse ayrı karar. |
 | 7.7 | Push bildirim | Bekliyor | Bildirimler uygulama içi kuyrukta; push altyapısı yok. |
 | 7.8 | Yaptırım merdiveni | Kapalı | §5.5. |
+| 7.9 | Kampanya puanı için telefon doğrulaması | **Açık** | Kod telefon doğrulaması istiyor, uygulama telefon toplamıyor; bugün kampanya puanı fiilen verilemiyor. Ya şart kalkar (aynı numarayla ikinci hesap koruması düşer) ya da telefon doğrulama akışı (send-sms hazır) eklenir. |
+| 7.10 | Takas başlatırken adres seçimi | **Açık** | Bugün varsayılan adres sessizce alınıyor; birden fazla adresi olan alıcı için ürün sayfasında seçtirme yapılmalı. |
 
 ---
 
@@ -300,7 +315,7 @@ açıldığında kalıcı kapatmayı her zaman insan verir.
 | Gelir | Kargo komisyonu | **Puan satışı marjı** (yeri açık) |
 | Puan satın alma | "Parayla satın alınmaz, e-para lisansı gerekmez" | Satın alınacak; lisans sorusu açık |
 | Kargo gönderimi | Aggregator etiketi (planlanan), teslimat webhook'u | Satıcı firma + takip no girer |
-| Satıcı süresi | (48 saat teslimat sonrası onay) | Kargoya verme **4 gün**, dolarsa iptal + iade |
+| Satıcı süresi | Etikete göre şubeye bırakma 3 gün | Kargoya verme **4 gün**, dolarsa iptal + iade |
 | Alıcı onay süresi | 48 saat | Takip numarasından **7 gün**, dolarsa otomatik aktarım |
 | Alıcı adresi | Yalnızca ödeme formunda, kimseye gösterilmez | Takasın satıcısına gösterilir (anlık görüntü) |
 | `DELIVERED` durumu | Kullanılıyor | Kullanılmıyor; onay doğrudan `COMPLETED` |

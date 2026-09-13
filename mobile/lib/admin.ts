@@ -377,7 +377,10 @@ export interface ReviewQueueRow {
 export async function loadReviewQueue(): Promise<ReviewQueueRow[]> {
   if (!supabaseConfigured || !supabase) return [];
   const { data, error } = await supabase.rpc('admin_review_queue', { p_limit: 50 });
-  if (error || !data) return [];
+  /* Hata boş liste DEĞİL: boş liste "kuyruk temiz" diye çizilir ve yönetici
+     bakmaz. Panel bu hatayı yakalayıp kart gösteriyor. */
+  if (error) throw new Error(`İlan kuyruğu yüklenemedi: ${cevir(error.message)}`);
+  if (!data) return [];
   return (data as Record<string, unknown>[]).map((r) => ({
     productId: r.product_id as string,
     title: (r.title as string) ?? 'İsimsiz ilan',

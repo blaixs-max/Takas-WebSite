@@ -2,6 +2,25 @@
 
 Son güncelleme: 2026-09-08 · Branch: `main`
 
+## 🆕 Denetim düzeltmeleri (2026-09-13)
+
+Sekiz boyutlu bağımsız denetim: `docs/denetim-2026-09-13.md`. 51 bulgu, 41'i
+kapatıldı (`20260913132351_denetim_duzeltmeleri.sql` canlıda; mobil ve site
+düzeltmeleri aynı commit). Test takımı 64 göç / 31 test / 271 iddia.
+
+- [x] Alıcı kimliği sahteciliği, kare dosyası üzerine yazma, IN_REVIEW satır
+      güncellemesi, adres kopyasının kapanışta silinmesi, kare düzeyinde ret,
+      kargo bilgisi biçimi, yinelenen bildirim, REFUND_KEEP → REMOVED, cron
+      dayanıklılığı, taban işareti, avatar bildirimi, sepet düğmesi, panel
+      hata kartı — hepsi raporda.
+- [ ] **Sende, panelden:** yukarıdaki sır listesine ek olarak
+      `IYZICO_CALLBACK_URL` de silinecek.
+- [ ] **Karar:** kampanya puanı telefon şartı (aşağıda), adres seçimi,
+      yeniden itiraz döngüsü.
+- [ ] **Test borcu:** 98 negatif do-bloğu için `bekle_hata` yardımcısı ve
+      dönüşüm; kaldırılan ilanın dosyalarının silinmesi (`ilan_kaldir`
+      yolları döndürsün).
+
 ## 🆕 Elle onay ve satıcı kargosu (2026-09-08)
 
 Ürün akışı yeniden kuruldu; plan ve gerekçeler `docs/plan-elle-onay-2026-09.md`,
@@ -34,13 +53,21 @@ kararlar Ana Doküman v2.0 (`docs/ana-dokuman.md` — **ilk kez repoda**).
       **sil**; Edge Function Secrets → `AI_VISION_API_KEY`,
       `AI_VISION_BASE_URL`, `AI_VISION_MODEL`, `AI_VISION_MODEL_STRICT`,
       `AI_VISION_SAATLIK_LIMIT`, `AI_VISION_TIMEOUT_MS`, `AI_VALUE_MODEL`,
-      `AI_VALUE_TIMEOUT_MS`, `APP_RETURN_URL` sil; Google AI Studio'da
+      `AI_VALUE_TIMEOUT_MS`, `APP_RETURN_URL`, `IYZICO_CALLBACK_URL` sil; Google AI Studio'da
       anahtarı iptal et. Taslaklar 410 döndürdüğü için anahtar
       **çağrılmıyor**, ama duran anahtar duran risktir.
 - [ ] **Cihazda tek tur:** ilan gönder → panelde onayla → vitrine düştü mü;
       reddet → taslakta gerekçe; takas başlat (adressiz → "Adres ekle");
       satıcıda adres kartı + kargoya verdim; alıcıda takip + onay; avatar
       yükle → panelde onayla/reddet.
+- [ ] **KAMPANYA PUANI FİİLEN VERİLEMİYOR** (2026-09-13 denetimi):
+      `grant_campaign_points` telefon doğrulaması istiyor, uygulama telefon
+      toplamıyor → hiçbir gerçek kullanıcı kampanya puanı almıyor ve satış da
+      kapalı, yani puan üreten yol yok. Karar: şartı kaldır (göç) ya da
+      telefon doğrulama akışı ekle. Ana Doküman §7.9.
+- [ ] **Takas başlatırken adres seçimi yok** — varsayılan adres sessizce
+      alınıyor; birden fazla adresi olan alıcı için ürün sayfasında seçtirme.
+      Ana Doküman §7.10.
 - [ ] **Puan satışı — karar bekliyor** (Ana Doküman §7.1, §7.2): satış yeri
       (web mini-site A / uygulama içi IAP B) ve **hukukçu görüşü** (e-para,
       6493). Karar verilene kadar tek puan kaynağı kampanya; 7000 puanlık

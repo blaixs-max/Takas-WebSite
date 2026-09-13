@@ -90,6 +90,9 @@ select test_yayinla(:'k_id', 300);
 reset role;
 -- Alıcının cüzdanı boş; takas puanı havuza alamadan açılmıyor.
 select available_points from earn_points(:'y', 1000, 'test:silme');
+-- Sunucu yolu: oturum yok (`auth.uid()` boş), alıcı parametreyle veriliyor.
+-- Oturumlu çağrıda alıcı yalnızca çağıranın kendisi olabilir (2026-09-13).
+select set_config('test.uid', '', false);
 select create_trade(:'k_id', :'y');
 set session role authenticated;
 select set_config('test.uid', :'s', false);
